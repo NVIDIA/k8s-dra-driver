@@ -1,0 +1,40 @@
+# One pod, two containers
+# Each container asking for shared acces to same 2 GPUs
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gpu-example2-test
+spec:
+  containers:
+  - name: ctr1
+    image: ubuntu:22.04
+    command: ["sleep", "99999"]
+    resources:
+      claims:
+      - gpus
+  - name: ctr2
+    image: ubuntu:22.04
+    command: ["sleep", "99999"]
+    resources:
+      claims:
+      - gpus
+  resourceClaims:
+  - name: gpus
+    claim:
+      template:
+        spec:
+          resourceClassName: gpus
+          parameters:
+            apiVersion: dra.nvidia.com/v1
+            kind: GpuParameterSet
+            name: gpu-example2-test-parameters
+
+---
+apiVersion: dra.nvidia.com/v1
+kind: GpuParameterSet
+metadata:
+  name: gpu-example2-test-parameters
+spec:
+  count: 2
+
