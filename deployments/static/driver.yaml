@@ -1,0 +1,239 @@
+---
+apiVersion: v1
+kind: ResourceClass
+metadata:
+  name: gpus
+driverName: dra.nvidia.com
+
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: gpuparametersets.dra.nvidia.com
+spec:
+  scope: Namespaced
+  group: dra.nvidia.com
+  names:
+    singular: gpuparameterset
+    plural: gpuparametersets
+    kind: GpuParameterSet
+  versions:
+  - name: v1
+    served: true
+    storage: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            type: object
+            properties:
+              count:
+                type: integer
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nvidia-dra-driver
+
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: gpus.dra.nvidia.com
+  namespace: nvidia-dra-driver
+spec:
+  scope: Namespaced
+  group: dra.nvidia.com
+  names:
+    singular: gpu
+    plural: gpus
+    kind: Gpu
+  versions:
+  - name: v1
+    served: true
+    storage: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          status:
+            type: string
+          spec:
+            type: object
+            properties:
+              capacity:
+                type: integer
+              allocatable:
+                type: integer
+              allocations:
+                type: object
+                additionalProperties:
+                  type: integer
+
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: nvidia-dra-plugin
+  namespace: nvidia-dra-driver
+  labels:
+    app: nvidia-dra-plugin
+spec:
+  selector:
+    matchLabels:
+      app: nvidia-dra-plugin
+  template:
+    metadata:
+      labels:
+        app: nvidia-dra-plugin
+    spec:
+      serviceAccount: nvidia-dra-driver-service-account
+      serviceAccountName: nvidia-dra-driver-service-account
+      nodeSelector:
+        nvidia.com/dra.plugin: "true"
+      initContainers:
+      - name: nvidia-dra-plugin-init
+        image: nvcr.io/nvidia/cloud-native/k8s-dra-driver:v0.1.0
+        imagePullPolicy: IfNotPresent
+        command: ["bash", "-c"]
+        args:
+        - >-
+          set -x;
+          kubectl get -n ${POD_NAMESPACE} gpus ${NODE_NAME};
+          if [ "${?}" = "0" ]; then
+          	kubectl patch -n ${POD_NAMESPACE} gpus ${NODE_NAME} --type merge -p '{"status": "NotReady"}';
+          	exit "${?}";
+          fi;
+          kubectl get --ignore-not-found=true -n ${POD_NAMESPACE} gpus ${NODE_NAME};
+          exit "${?}";
+        env:
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+      containers:
+      - name: nvidia-dra-plugin
+        image: nvcr.io/nvidia/cloud-native/k8s-dra-driver:v0.1.0
+        imagePullPolicy: IfNotPresent
+        command:
+        - nvidia-dra-plugin
+        env:
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - name: plugins-registry
+          mountPath: /var/lib/kubelet/plugins_registry
+        - name: plugins
+          mountPath: /var/lib/kubelet/plugins
+        - name: cdi
+          mountPath: /etc/cdi
+        lifecycle:
+          preStop:
+            exec: 
+              command:
+              - bash
+              - -c
+              - >-
+                set -x;
+                kubectl get -n ${POD_NAMESPACE} gpus ${NODE_NAME};
+                if [ "${?}" = "0" ]; then
+                	kubectl patch -n ${POD_NAMESPACE} gpus ${NODE_NAME} --type merge -p '{"status": "NotReady"}';
+                	exit "${?}";
+                fi;
+                kubectl get --ignore-not-found=true -n ${POD_NAMESPACE} gpus ${NODE_NAME};
+                exit "${?}";
+      volumes:
+      - name: plugins-registry
+        hostPath:
+          path: /var/lib/kubelet/plugins_registry
+      - name: plugins
+        hostPath:
+          path: /var/lib/kubelet/plugins
+      - name: cdi
+        hostPath:
+          path: /etc/cdi
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nvidia-dra-controller
+  namespace: nvidia-dra-driver
+  labels:
+    app: nvidia-dra-controller
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nvidia-dra-controller
+  template:
+    metadata:
+      labels:
+        app: nvidia-dra-controller
+    spec:
+      serviceAccount: nvidia-dra-driver-service-account
+      serviceAccountName: nvidia-dra-driver-service-account
+      containers:
+      - name: nvidia-dra-controller
+        image: nvcr.io/nvidia/cloud-native/k8s-dra-driver:v0.1.0
+        imagePullPolicy: IfNotPresent
+        command: ["nvidia-dra-controller", "-v", "6"]
+        env:
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        operator: Exists
+        effect: NoSchedule
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: nvidia-dra-driver-service-account
+  namespace: nvidia-dra-driver
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: nvidia-dra-driver-role
+  namespace: nvidia-dra-driver
+rules:
+- apiGroups: ["", "dra.nvidia.com"]
+  resources: ["*"]
+  verbs: ["*"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: nvidia-dra-driver-role-binding
+  namespace: nvidia-dra-driver
+subjects:
+- kind: ServiceAccount
+  name: nvidia-dra-driver-service-account
+  namespace: nvidia-dra-driver
+roleRef:
+  kind: ClusterRole
+  name: nvidia-dra-driver-role
+  apiGroup: rbac.authorization.k8s.io

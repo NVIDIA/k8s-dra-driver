@@ -1,0 +1,135 @@
+cdiVersion: 0.4.0
+kind: nvidia.com/gpu
+containerEdits:
+  hooks:
+  - hookName: createContainer
+    path: /usr/bin/nvidia-ctk
+    args:
+    - /usr/bin/nvidia-ctk
+    - hook
+    - update-ldcache
+    - --folder
+    - /usr/lib/x86_64-linux-gnu
+  deviceNodes:
+  - path: /dev/nvidia-modeset
+  - path: /dev/nvidiactl
+  - path: /dev/nvidia-uvm
+  - path: /dev/nvidia-uvm-tools
+  mounts:
+  - containerPath: /usr/lib/x86_64-linux-gnu/libnvidia-ml.so.460.91.03
+    hostPath: /usr/lib/x86_64-linux-gnu/libnvidia-ml.so.460.91.03
+    options: ["bind"]
+  - containerPath: /usr/lib/x86_64-linux-gnu/libnvidia-cfg.so.460.91.03
+    hostPath: /usr/lib/x86_64-linux-gnu/libnvidia-cfg.so.460.91.03
+    options: ["bind"]
+  - containerPath: /usr/lib/x86_64-linux-gnu/libnvidia-compiler.so.460.91.03
+    hostPath: /usr/lib/x86_64-linux-gnu/libnvidia-compiler.so.460.91.03
+    options: ["bind"]
+  - containerPath: /usr/lib/x86_64-linux-gnu/libcuda.so.460.91.03
+    hostPath: /usr/lib/x86_64-linux-gnu/libcuda.so.460.91.03
+    options: ["bind"]
+  - containerPath: /usr/lib/x86_64-linux-gnu/libnvidia-opencl.so.460.91.03
+    hostPath: /usr/lib/x86_64-linux-gnu/libnvidia-opencl.so.460.91.03
+    options: ["bind"]
+  - containerPath: /usr/lib/x86_64-linux-gnu/libnvidia-ptxjitcompiler.so.460.91.03
+    hostPath: /usr/lib/x86_64-linux-gnu/libnvidia-ptxjitcompiler.so.460.91.03
+    options: ["bind"]
+  - containerPath: /usr/lib/x86_64-linux-gnu/libnvidia-allocator.so.460.91.03
+    hostPath: /usr/lib/x86_64-linux-gnu/libnvidia-allocator.so.460.91.03
+    options: ["bind"]
+  - containerPath: /usr/lib/x86_64-linux-gnu/libnvidia-opticalflow.so.460.91.03
+    hostPath: /usr/lib/x86_64-linux-gnu/libnvidia-opticalflow.so.460.91.03
+    options: ["bind"]
+  - containerPath: /usr/lib/x86_64-linux-gnu/libnvcuvid.so.460.91.03
+    hostPath: /usr/lib/x86_64-linux-gnu/libnvcuvid.so.460.91.03
+    options: ["bind"]
+  - containerPath: /usr/lib/x86_64-linux-gnu/libnvidia-encode.so.460.91.03
+    hostPath: /usr/lib/x86_64-linux-gnu/libnvidia-encode.so.460.91.03
+    options: ["bind"]
+  - containerPath: /usr/lib/x86_64-linux-gnu/libnvidia-rtcore.so.460.91.03
+    hostPath: /usr/lib/x86_64-linux-gnu/libnvidia-rtcore.so.460.91.03
+    options: ["bind"]
+  - containerPath: /usr/lib/x86_64-linux-gnu/libnvoptix.so.460.91.03
+    hostPath: /usr/lib/x86_64-linux-gnu/libnvoptix.so.460.91.03
+    options: ["bind"]
+  - containerPath: /usr/lib/x86_64-linux-gnu/libnvidia-eglcore.so.460.91.03
+    hostPath: /usr/lib/x86_64-linux-gnu/libnvidia-eglcore.so.460.91.03
+    options: ["bind"]
+  - containerPath: /usr/lib/x86_64-linux-gnu/libnvidia-glcore.so.460.91.03
+    hostPath: /usr/lib/x86_64-linux-gnu/libnvidia-glcore.so.460.91.03
+    options: ["bind"]
+  - containerPath: /usr/lib/x86_64-linux-gnu/libnvidia-tls.so.460.91.03
+    hostPath: /usr/lib/x86_64-linux-gnu/libnvidia-tls.so.460.91.03
+    options: ["bind"]
+  - containerPath: /usr/lib/x86_64-linux-gnu/libnvidia-glsi.so.460.91.03
+    hostPath: /usr/lib/x86_64-linux-gnu/libnvidia-glsi.so.460.91.03
+    options: ["bind"]
+  - containerPath: /usr/lib/x86_64-linux-gnu/libnvidia-fbc.so.460.91.03
+    hostPath: /usr/lib/x86_64-linux-gnu/libnvidia-fbc.so.460.91.03
+    options: ["bind"]
+  - containerPath: /usr/lib/x86_64-linux-gnu/libnvidia-ifr.so.460.91.03
+    hostPath: /usr/lib/x86_64-linux-gnu/libnvidia-ifr.so.460.91.03
+    options: ["bind"]
+  - containerPath: /usr/lib/x86_64-linux-gnu/libnvidia-glvkspirv.so.460.91.03
+    hostPath: /usr/lib/x86_64-linux-gnu/libnvidia-glvkspirv.so.460.91.03
+    options: ["bind"]
+  - containerPath: /usr/lib/x86_64-linux-gnu/libnvidia-cbl.so.460.91.03
+    hostPath: /usr/lib/x86_64-linux-gnu/libnvidia-cbl.so.460.91.03
+    options: ["bind"]
+  - containerPath: /usr/lib/x86_64-linux-gnu/libGLX_nvidia.so.460.91.03
+    hostPath: /usr/lib/x86_64-linux-gnu/libGLX_nvidia.so.460.91.03
+    options: ["bind"]
+  - containerPath: /usr/lib/x86_64-linux-gnu/libEGL_nvidia.so.460.91.03
+    hostPath: /usr/lib/x86_64-linux-gnu/libEGL_nvidia.so.460.91.03
+    options: ["bind"]
+  - containerPath: /usr/lib/x86_64-linux-gnu/libGLESv2_nvidia.so.460.91.03
+    hostPath: /usr/lib/x86_64-linux-gnu/libGLESv2_nvidia.so.460.91.03
+    options: ["bind"]
+  - containerPath: /usr/lib/x86_64-linux-gnu/libGLESv1_CM_nvidia.so.460.91.03
+    hostPath: /usr/lib/x86_64-linux-gnu/libGLESv1_CM_nvidia.so.460.91.03
+    options: ["bind"]
+  - containerPath: /usr/lib/x86_64-linux-gnu/libnvidia-ngx.so.460.91.03
+    hostPath: /usr/lib/x86_64-linux-gnu/libnvidia-ngx.so.460.91.03
+    options: ["bind"]
+  - containerPath: /usr/bin/nvidia-persistenced
+    hostPath: /usr/bin/nvidia-persistenced
+    options: ["bind"]
+  - containerPath: /usr/bin/nvidia-smi
+    hostPath: /usr/bin/nvidia-smi
+    options: ["bind"]
+  - containerPath: /var/run/nvidia-persistenced/socket
+    hostPath: /var/run/nvidia-persistenced/socket
+    options: ["bind"]
+devices:
+- containerEdits:
+    deviceNodes:
+    - path: /dev/nvidia0
+  name: gpu0
+- containerEdits:
+    deviceNodes:
+    - path: /dev/nvidia1
+  name: gpu1
+- containerEdits:
+    deviceNodes:
+    - path: /dev/nvidia2
+  name: gpu2
+- containerEdits:
+    deviceNodes:
+    - path: /dev/nvidia3
+  name: gpu3
+- containerEdits:
+    deviceNodes:
+    - path: /dev/nvidia4
+  name: gpu4
+- containerEdits:
+    deviceNodes:
+    - path: /dev/nvidia5
+  name: gpu5
+- containerEdits:
+    deviceNodes:
+    - path: /dev/nvidia6
+  name: gpu6
+- containerEdits:
+    deviceNodes:
+    - path: /dev/nvidia7
+  name: gpu7
