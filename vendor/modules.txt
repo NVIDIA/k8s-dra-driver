@@ -768,14 +768,6 @@ k8s.io/kube-openapi/pkg/validation/spec
 ## explicit; go 1.19
 k8s.io/kubelet/pkg/apis/dra/v1alpha1
 k8s.io/kubelet/pkg/apis/pluginregistration/v1
-# k8s.io/kubernetes v0.0.0-00010101000000-000000000000 => ../kubernetes
-## explicit; go 1.19
-k8s.io/kubernetes/pkg/kubelet/checkpointmanager
-k8s.io/kubernetes/pkg/kubelet/checkpointmanager/checksum
-k8s.io/kubernetes/pkg/kubelet/checkpointmanager/errors
-k8s.io/kubernetes/pkg/kubelet/util/store
-k8s.io/kubernetes/pkg/util/filesystem
-k8s.io/kubernetes/pkg/util/hash
 # k8s.io/utils v0.0.0-20220728103510-ee6ede2d64ed
 ## explicit; go 1.12
 k8s.io/utils/buffer

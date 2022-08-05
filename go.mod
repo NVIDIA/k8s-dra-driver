@@ -44,7 +44,6 @@ require (
 	k8s.io/component-helpers v0.0.0
 	k8s.io/klog/v2 v2.70.1
 	k8s.io/kubelet v0.0.0
-	k8s.io/kubernetes v0.0.0-00010101000000-000000000000
 )
 
 require (
