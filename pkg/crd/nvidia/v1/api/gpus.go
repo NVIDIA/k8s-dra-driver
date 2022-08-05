@@ -43,6 +43,8 @@ type Gpu struct {
 	*nvcrd.Gpu
 	clientset nvclientset.Interface
 }
+type GpuSpec = nvcrd.GpuSpec
+type GpuList = nvcrd.GpuList
 
 func NewGpu(config *GpuConfig, clientset nvclientset.Interface) *Gpu {
 	object := &nvcrd.Gpu{

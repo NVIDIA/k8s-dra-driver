@@ -34,11 +34,10 @@ import (
 )
 
 const (
-	DriverName                 = "dra.nvidia.com"
-	PluginRegistrationPath     = "/var/lib/kubelet/plugins_registry"
-	DriverPluginPath           = "/var/lib/kubelet/plugins/" + DriverName
-	DriverPluginSocketPath     = DriverPluginPath + "/plugin.sock"
-	DriverPluginCheckpointFile = "checkpoint.json"
+	DriverName             = "dra.nvidia.com"
+	PluginRegistrationPath = "/var/lib/kubelet/plugins_registry"
+	DriverPluginPath       = "/var/lib/kubelet/plugins/" + DriverName
+	DriverPluginSocketPath = DriverPluginPath + "/plugin.sock"
 
 	cdiVersion = "0.4.0"
 	cdiRoot    = "/etc/cdi"

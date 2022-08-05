@@ -18,26 +18,25 @@ package main
 
 import (
 	"fmt"
+	"strconv"
 	"sync"
 
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog/v2"
-	cm "k8s.io/kubernetes/pkg/kubelet/checkpointmanager"
-	cmerrors "k8s.io/kubernetes/pkg/kubelet/checkpointmanager/errors"
 
 	"github.com/NVIDIA/go-nvml/pkg/nvml"
-	nvcrd "github.com/NVIDIA/k8s-dra-driver/pkg/crd/nvidia/v1"
+	nvcrd "github.com/NVIDIA/k8s-dra-driver/pkg/crd/nvidia/v1/api"
 )
 
+type intSet sets.Int
 type ClaimAllocation map[string]sets.Int
 
 type GpuStatus struct {
 	sync.Mutex
-	healthy      sets.Int
-	unhealthy    sets.Int
-	available    sets.Int
-	allocated    ClaimAllocation
-	checkpointer cm.CheckpointManager
+	healthy   sets.Int
+	unhealthy sets.Int
+	available sets.Int
+	allocated ClaimAllocation
 }
 
 func tryNvmlShutdown() {
@@ -47,7 +46,7 @@ func tryNvmlShutdown() {
 	}
 }
 
-func NewGpuStatus(config *Config) (*GpuStatus, error) {
+func NewGpuStatus(config *Config, gpucrd *nvcrd.Gpu) (*GpuStatus, error) {
 	ret := nvml.Init()
 	if ret != nvml.SUCCESS {
 		return nil, fmt.Errorf("error initializing NVML: %v", nvml.ErrorString(ret))
@@ -64,44 +63,22 @@ func NewGpuStatus(config *Config) (*GpuStatus, error) {
 		gpuset.Insert(i)
 	}
 
-	checkpointer, err := cm.NewCheckpointManager(DriverPluginPath)
-	if err != nil {
-		return nil, fmt.Errorf("error creating checkpoint manager: %v", err)
-	}
-
 	gpus := &GpuStatus{
-		healthy:      sets.NewInt().Union(gpuset),
-		unhealthy:    sets.NewInt(),
-		available:    sets.NewInt().Union(gpuset),
-		allocated:    make(ClaimAllocation),
-		checkpointer: checkpointer,
+		healthy:   sets.NewInt().Union(gpuset),
+		unhealthy: sets.NewInt(),
+		available: sets.NewInt().Union(gpuset),
+		allocated: make(ClaimAllocation),
 	}
 
-	checkpoint := NewCheckpoint()
-	err = gpus.checkpointer.GetCheckpoint(DriverPluginCheckpointFile, checkpoint)
-	if err != nil && err != cmerrors.ErrCheckpointNotFound {
-		return nil, fmt.Errorf("error getting checkpoint file: %v", err)
-	}
-
-	if err == nil {
-		gpus.allocated = checkpoint.Allocations
-		for claimUid := range gpus.allocated {
-			gpus.available = gpus.available.Difference(gpus.allocated[claimUid])
-		}
-		return gpus, nil
-	}
-
-	checkpoint = NewCheckpoint()
-	checkpoint.Allocations = gpus.allocated
-	err = gpus.checkpointer.CreateCheckpoint(DriverPluginCheckpointFile, checkpoint)
-	if err != nil {
-		return nil, fmt.Errorf("error creating checkpoint file: %v", err)
+	gpus.allocated.FromStringsMap(gpucrd.Spec.ClaimAllocations)
+	for claimUid := range gpus.allocated {
+		gpus.available = gpus.available.Difference(gpus.allocated[claimUid])
 	}
 
 	return gpus, nil
 }
 
-func (g *GpuStatus) Allocate(claimUid string, count int) (sets.Int, error) {
+func (g *GpuStatus) Allocate(claimUid string, parameters nvcrd.GpuParameterSetSpec) (sets.Int, error) {
 	g.Lock()
 	defer g.Unlock()
 
@@ -109,20 +86,11 @@ func (g *GpuStatus) Allocate(claimUid string, count int) (sets.Int, error) {
 		return nil, fmt.Errorf("allocation already exists")
 	}
 
-	if g.available.Len() < count {
+	if g.available.Len() < parameters.Count {
 		return nil, fmt.Errorf("unable to satisfy allocation (available: %v)", g.available.Len())
 	}
 
-	checkpoint := NewCheckpoint()
-	checkpoint.Allocations = g.allocated.DeepCopy()
-	checkpoint.Allocations[claimUid] = sets.NewInt(g.available.List()[:count]...)
-
-	err := g.checkpointer.CreateCheckpoint(DriverPluginCheckpointFile, checkpoint)
-	if err != nil {
-		return nil, fmt.Errorf("error updating checkpoint file: %v", err)
-	}
-
-	g.allocated = checkpoint.Allocations
+	g.allocated[claimUid] = sets.NewInt(g.available.List()[:parameters.Count]...)
 	g.available = g.available.Difference(g.allocated[claimUid])
 	return g.allocated[claimUid], nil
 }
@@ -131,17 +99,8 @@ func (g *GpuStatus) Free(claimUid string) error {
 	g.Lock()
 	defer g.Unlock()
 
-	checkpoint := NewCheckpoint()
-	checkpoint.Allocations = g.allocated.DeepCopy()
-	delete(checkpoint.Allocations, claimUid)
-
-	err := g.checkpointer.CreateCheckpoint(DriverPluginCheckpointFile, checkpoint)
-	if err != nil {
-		return fmt.Errorf("error updating checkpoint file: %v", err)
-	}
-
 	g.available = g.available.Union(g.allocated[claimUid])
-	g.allocated = checkpoint.Allocations
+	delete(g.allocated, claimUid)
 	return nil
 }
 
@@ -163,7 +122,57 @@ func (g *GpuStatus) GetUpdatedSpec(inspec *nvcrd.GpuSpec) *nvcrd.GpuSpec {
 	outspec := inspec.DeepCopy()
 	outspec.Capacity = g.healthy.Union(g.unhealthy).Len()
 	outspec.Allocatable = g.healthy.Len()
+	outspec.ClaimAllocations = g.allocated.ToStringsMap()
 	return outspec
+}
+
+func (is intSet) FromStrings(instrings []string) error {
+	newis := sets.NewInt()
+	for _, s := range instrings {
+		i, err := strconv.Atoi(s)
+		if err != nil {
+			return fmt.Errorf("unable to convert '%s' to integer: %v", s)
+		}
+		newis.Insert(i)
+	}
+	sets.Int(is).Delete(sets.Int(is).List()...)
+	sets.Int(is).Insert(newis.List()...)
+	return nil
+}
+
+func (is intSet) ToStrings() []string {
+	var outstrings []string
+	for _, i := range sets.Int(is).List() {
+		outstrings = append(outstrings, fmt.Sprintf("%d", i))
+	}
+	return outstrings
+}
+
+func (ca ClaimAllocation) FromStringsMap(m map[string][]string) error {
+	newca := make(ClaimAllocation)
+	for claim, strs := range m {
+		is := sets.NewInt()
+		err := intSet(is).FromStrings(strs)
+		if err != nil {
+			return fmt.Errorf("error converting from strings for claim '%s': %v", claim, err)
+		}
+		newca[claim] = is
+	}
+	for claim := range ca {
+		delete(ca, claim)
+	}
+	for claim := range newca {
+		ca[claim] = newca[claim]
+	}
+	return nil
+}
+
+func (ca ClaimAllocation) ToStringsMap() map[string][]string {
+	strsmap := make(map[string][]string)
+	for claim, allocations := range ca {
+		strsmap[claim] = intSet(allocations).ToStrings()
+	}
+	return strsmap
 }
 
 func (ca ClaimAllocation) DeepCopy() ClaimAllocation {

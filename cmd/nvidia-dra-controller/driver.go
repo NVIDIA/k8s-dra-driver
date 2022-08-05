@@ -91,11 +91,11 @@ func (d driver) Allocate(ctx context.Context, claim *corev1.ResourceClaim, claim
 		return nil, fmt.Errorf("error retrieving node specific Gpu CRD: %v", err)
 	}
 
-	if gpucrd.Spec.Allocations == nil {
-		gpucrd.Spec.Allocations = make(map[string]int)
+	if gpucrd.Spec.ClaimRequirements == nil {
+		gpucrd.Spec.ClaimRequirements = make(map[string]nvcrd.GpuParameterSetSpec)
 	}
 
-	if _, exists := gpucrd.Spec.Allocations[string(claim.UID)]; exists {
+	if _, exists := gpucrd.Spec.ClaimRequirements[string(claim.UID)]; exists {
 		return buildAllocationResult(selectedNode), nil
 	}
 
@@ -104,8 +104,8 @@ func (d driver) Allocate(ctx context.Context, claim *corev1.ResourceClaim, claim
 	}
 
 	allocated := 0
-	for _, count := range gpucrd.Spec.Allocations {
-		allocated += count
+	for _, parameters := range gpucrd.Spec.ClaimRequirements {
+		allocated += parameters.Count
 	}
 
 	available := gpucrd.Spec.Allocatable - allocated
@@ -114,7 +114,7 @@ func (d driver) Allocate(ctx context.Context, claim *corev1.ResourceClaim, claim
 		return nil, fmt.Errorf("not enough devices to satisfy allocation: (available: %v, requested: %v)", available, requested)
 	}
 
-	gpucrd.Spec.Allocations[string(claim.UID)] = requested
+	gpucrd.Spec.ClaimRequirements[string(claim.UID)] = claimParameters.(nvcrd.GpuParameterSetSpec)
 
 	err = gpucrd.Update(&gpucrd.Spec)
 	if err != nil {
@@ -144,15 +144,15 @@ func (d driver) Deallocate(ctx context.Context, claim *corev1.ResourceClaim) err
 		return fmt.Errorf("error retrieving node specific Gpu CRD: %v", err)
 	}
 
-	if gpucrd.Spec.Allocations == nil {
+	if gpucrd.Spec.ClaimRequirements == nil {
 		return nil
 	}
 
-	if _, exists := gpucrd.Spec.Allocations[string(claim.UID)]; !exists {
+	if _, exists := gpucrd.Spec.ClaimRequirements[string(claim.UID)]; !exists {
 		return nil
 	}
 
-	delete(gpucrd.Spec.Allocations, string(claim.UID))
+	delete(gpucrd.Spec.ClaimRequirements, string(claim.UID))
 
 	err = gpucrd.Update(&gpucrd.Spec)
 	if err != nil {
