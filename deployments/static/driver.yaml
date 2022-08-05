@@ -67,10 +67,22 @@ spec:
                 type: integer
               allocatable:
                 type: integer
-              allocations:
+              claimRequirements:
                 type: object
                 additionalProperties:
-                  type: integer
+                  type: object
+                  properties:
+                    count:
+                      type: integer
+              claimAllocations:
+                type: object
+                additionalProperties:
+                  type: array
+                  items:
+                    type: string
+            required:
+            - allocatable
+            - capacity
 
 ---
 apiVersion: apps/v1
