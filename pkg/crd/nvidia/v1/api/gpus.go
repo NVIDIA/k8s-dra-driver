@@ -22,8 +22,8 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	nvcrd "github.com/NVIDIA/k8s-dra-driver/pkg/crd/nvidia/v1"
 	nvclientset "github.com/NVIDIA/k8s-dra-driver/pkg/crd/nvidia/clientset/versioned"
+	nvcrd "github.com/NVIDIA/k8s-dra-driver/pkg/crd/nvidia/v1"
 )
 
 const (
@@ -43,6 +43,8 @@ type Gpu struct {
 	*nvcrd.Gpu
 	clientset nvclientset.Interface
 }
+type GpuSpec = nvcrd.GpuSpec
+type GpuList = nvcrd.GpuList
 
 func NewGpu(config *GpuConfig, clientset nvclientset.Interface) *Gpu {
 	object := &nvcrd.Gpu{
@@ -53,7 +55,7 @@ func NewGpu(config *GpuConfig, clientset nvclientset.Interface) *Gpu {
 	}
 
 	if config.Owner != nil {
-		object.OwnerReferences = []metav1.OwnerReference{ *config.Owner }
+		object.OwnerReferences = []metav1.OwnerReference{*config.Owner}
 	}
 
 	gpucrd := &Gpu{

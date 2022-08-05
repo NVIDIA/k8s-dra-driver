@@ -36,30 +36,31 @@ type driver struct {
 }
 
 func NewDriver(config *Config) (*driver, error) {
-	gpustatus, err := NewGpuStatus(config)
+	gpucrd := nvcrd.NewGpu(config.crdconfig, config.clientset.nvidia)
+	err := gpucrd.GetOrCreate()
+	if err != nil {
+		return nil, err
+	}
+
+	gpustatus, err := NewGpuStatus(config, gpucrd)
+	if err != nil {
+		return nil, err
+	}
+
+	err = gpucrd.Update(gpustatus.GetUpdatedSpec(&gpucrd.Spec))
+	if err != nil {
+		return nil, err
+	}
+
+	err = gpucrd.UpdateStatus(nvcrd.GpuStatusReady)
 	if err != nil {
 		return nil, err
 	}
 
 	d := &driver{
 		config: config,
-		gpucrd: nvcrd.NewGpu(config.crdconfig, config.clientset.nvidia),
+		gpucrd: gpucrd,
 		gpus:   gpustatus,
-	}
-
-	err = d.gpucrd.GetOrCreate()
-	if err != nil {
-		return nil, err
-	}
-
-	err = d.gpucrd.Update(d.gpus.GetUpdatedSpec(&d.gpucrd.Spec))
-	if err != nil {
-		return nil, err
-	}
-
-	err = d.gpucrd.UpdateStatus(nvcrd.GpuStatusReady)
-	if err != nil {
-		return nil, err
 	}
 
 	return d, nil
@@ -84,21 +85,35 @@ func (d *driver) NodePrepareResource(ctx context.Context, req *drapbv1.NodePrepa
 		}
 	}
 
+	err = d.gpucrd.Update(d.gpus.GetUpdatedSpec(&d.gpucrd.Spec))
+	if err != nil {
+		d.gpus.Free(req.ClaimUid)
+		return nil, fmt.Errorf("error updating Gpu CRD: %v", err)
+	}
+
 	var devs []string
 	for _, i := range allocated.List() {
 		devs = append(devs, cdi.DeviceDB().GetDevice(fmt.Sprintf("%s=gpu%d", cdiKind, i)).GetQualifiedName())
 	}
 
-	klog.Infof("Allocated Devices for claim '%v': %s", req.ClaimUid, devs)
+	klog.Infof("Allocated devices for claim '%v': %s", req.ClaimUid, devs)
 	return &drapbv1.NodePrepareResourceResponse{CdiDevice: devs}, nil
 }
 
 func (d *driver) NodeUnprepareResource(ctx context.Context, req *drapbv1.NodeUnprepareResourceRequest) (*drapbv1.NodeUnprepareResourceResponse, error) {
 	klog.Infof("NodeUnprepareResource is called: request: %+v", req)
+
 	err := d.Free(req.ClaimUid)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error freeing devices for claim '%v': %v", req.ClaimUid, err)
 	}
+
+	err = d.gpucrd.Update(d.gpus.GetUpdatedSpec(&d.gpucrd.Spec))
+	if err != nil {
+		return nil, fmt.Errorf("error updating Gpu CRD: %v", err)
+	}
+
+	klog.Infof("Freed devices for claim '%v'", req.ClaimUid)
 	return &drapbv1.NodeUnprepareResourceResponse{}, nil
 }
 
@@ -107,9 +122,13 @@ func (d *driver) Allocate(claimUid string) (sets.Int, error) {
 	if err != nil {
 		return nil, err
 	}
-	allocated, err := d.gpus.Allocate(claimUid, d.gpucrd.Spec.Allocations[claimUid])
+	allocated, err := d.gpus.Allocate(claimUid, d.gpucrd.Spec.ClaimRequirements[claimUid])
 	if err != nil {
 		return nil, err
+	}
+	err = d.gpucrd.Update(d.gpus.GetUpdatedSpec(&d.gpucrd.Spec))
+	if err != nil {
+		return nil, fmt.Errorf("error updating Gpu CRD: %v", err)
 	}
 	return allocated, nil
 }

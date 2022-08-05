@@ -34,7 +34,7 @@ type GpuParameterSet struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   GpuParameterSetSpec `json:"spec,omitempty"`
+	Spec GpuParameterSetSpec `json:"spec,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

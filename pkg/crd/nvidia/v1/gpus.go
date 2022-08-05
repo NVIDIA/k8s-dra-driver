@@ -22,9 +22,10 @@ import (
 
 // GpuSpec is the spec for the Gpu CRD
 type GpuSpec struct {
-	Capacity    int            `json:"capacity"`
-	Allocatable int            `json:"allocatable"`
-	Allocations map[string]int `json:"allocations"`
+	Capacity          int                            `json:"capacity"`
+	Allocatable       int                            `json:"allocatable"`
+	ClaimRequirements map[string]GpuParameterSetSpec `json:"claimRequirements"`
+	ClaimAllocations  map[string][]string            `json:"claimAllocations"`
 }
 
 // +genclient
