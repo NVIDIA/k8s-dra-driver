@@ -24,8 +24,8 @@ import (
 type GpuSpec struct {
 	Capacity          int                            `json:"capacity"`
 	Allocatable       int                            `json:"allocatable"`
-	ClaimRequirements map[string]GpuParameterSetSpec `json:"claimRequirements"`
-	ClaimAllocations  map[string][]string            `json:"claimAllocations"`
+	ClaimRequirements map[string]GpuParameterSetSpec `json:"claimRequirements,omitempty"`
+	ClaimAllocations  map[string][]string            `json:"claimAllocations,omitempty"`
 }
 
 // +genclient
