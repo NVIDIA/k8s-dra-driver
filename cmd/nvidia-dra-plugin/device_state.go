@@ -31,7 +31,7 @@ import (
 type intSet sets.Int
 type ClaimAllocation map[string]sets.Int
 
-type GpuStatus struct {
+type DeviceState struct {
 	sync.Mutex
 	healthy   sets.Int
 	unhealthy sets.Int
@@ -46,7 +46,7 @@ func tryNvmlShutdown() {
 	}
 }
 
-func NewGpuStatus(config *Config, gpucrd *nvcrd.Gpu) (*GpuStatus, error) {
+func NewDeviceState(config *Config, gpucrd *nvcrd.Gpu) (*DeviceState, error) {
 	ret := nvml.Init()
 	if ret != nvml.SUCCESS {
 		return nil, fmt.Errorf("error initializing NVML: %v", nvml.ErrorString(ret))
@@ -58,71 +58,71 @@ func NewGpuStatus(config *Config, gpucrd *nvcrd.Gpu) (*GpuStatus, error) {
 		return nil, fmt.Errorf("error getting device count: %v", nvml.ErrorString(ret))
 	}
 
-	gpuset := sets.NewInt()
+	gpus := sets.NewInt()
 	for i := 0; i < numGPUs; i++ {
-		gpuset.Insert(i)
+		gpus.Insert(i)
 	}
 
-	gpus := &GpuStatus{
-		healthy:   sets.NewInt().Union(gpuset),
+	state := &DeviceState{
+		healthy:   sets.NewInt().Union(gpus),
 		unhealthy: sets.NewInt(),
-		available: sets.NewInt().Union(gpuset),
+		available: sets.NewInt().Union(gpus),
 		allocated: make(ClaimAllocation),
 	}
 
-	gpus.allocated.FromStringsMap(gpucrd.Spec.ClaimAllocations)
-	for claimUid := range gpus.allocated {
-		gpus.available = gpus.available.Difference(gpus.allocated[claimUid])
+	state.allocated.FromStringsMap(gpucrd.Spec.ClaimAllocations)
+	for claimUid := range state.allocated {
+		state.available = state.available.Difference(state.allocated[claimUid])
 	}
 
-	return gpus, nil
+	return state, nil
 }
 
-func (g *GpuStatus) Allocate(claimUid string, parameters nvcrd.GpuParameterSetSpec) (sets.Int, error) {
-	g.Lock()
-	defer g.Unlock()
+func (s *DeviceState) Allocate(claimUid string, parameters nvcrd.GpuParameterSetSpec) (sets.Int, error) {
+	s.Lock()
+	defer s.Unlock()
 
-	if g.allocated[claimUid] != nil {
+	if s.allocated[claimUid] != nil {
 		return nil, fmt.Errorf("allocation already exists")
 	}
 
-	if g.available.Len() < parameters.Count {
-		return nil, fmt.Errorf("unable to satisfy allocation (available: %v)", g.available.Len())
+	if s.available.Len() < parameters.Count {
+		return nil, fmt.Errorf("unable to satisfy allocation (available: %v)", s.available.Len())
 	}
 
-	g.allocated[claimUid] = sets.NewInt(g.available.List()[:parameters.Count]...)
-	g.available = g.available.Difference(g.allocated[claimUid])
-	return g.allocated[claimUid], nil
+	s.allocated[claimUid] = sets.NewInt(s.available.List()[:parameters.Count]...)
+	s.available = s.available.Difference(s.allocated[claimUid])
+	return s.allocated[claimUid], nil
 }
 
-func (g *GpuStatus) Free(claimUid string) error {
-	g.Lock()
-	defer g.Unlock()
+func (s *DeviceState) Free(claimUid string) error {
+	s.Lock()
+	defer s.Unlock()
 
-	g.available = g.available.Union(g.allocated[claimUid])
-	delete(g.allocated, claimUid)
+	s.available = s.available.Union(s.allocated[claimUid])
+	delete(s.allocated, claimUid)
 	return nil
 }
 
-func (g *GpuStatus) GetAvailable() sets.Int {
-	g.Lock()
-	defer g.Unlock()
-	return g.available
+func (s *DeviceState) GetAvailable() sets.Int {
+	s.Lock()
+	defer s.Unlock()
+	return s.available
 }
 
-func (g *GpuStatus) GetAllocated(claimUid string) sets.Int {
-	g.Lock()
-	defer g.Unlock()
-	return g.allocated[claimUid]
+func (s *DeviceState) GetAllocated(claimUid string) sets.Int {
+	s.Lock()
+	defer s.Unlock()
+	return s.allocated[claimUid]
 }
 
-func (g *GpuStatus) GetUpdatedSpec(inspec *nvcrd.GpuSpec) *nvcrd.GpuSpec {
-	g.Lock()
-	defer g.Unlock()
+func (s *DeviceState) GetUpdatedSpec(inspec *nvcrd.GpuSpec) *nvcrd.GpuSpec {
+	s.Lock()
+	defer s.Unlock()
 	outspec := inspec.DeepCopy()
-	outspec.Capacity = g.healthy.Union(g.unhealthy).Len()
-	outspec.Allocatable = g.healthy.Len()
-	outspec.ClaimAllocations = g.allocated.ToStringsMap()
+	outspec.Capacity = s.healthy.Union(s.unhealthy).Len()
+	outspec.Allocatable = s.healthy.Len()
+	outspec.ClaimAllocations = s.allocated.ToStringsMap()
 	return outspec
 }
 
