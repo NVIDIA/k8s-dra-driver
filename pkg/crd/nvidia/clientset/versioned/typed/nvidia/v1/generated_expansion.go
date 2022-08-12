@@ -18,6 +18,8 @@
 
 package v1
 
-type GpuExpansion interface{}
+type DeviceClassExpansion interface{}
 
-type GpuParameterSetExpansion interface{}
+type GpuClaimExpansion interface{}
+
+type NodeAllocationStateExpansion interface{}

@@ -28,12 +28,16 @@ type FakeDraV1 struct {
 	*testing.Fake
 }
 
-func (c *FakeDraV1) Gpus(namespace string) v1.GpuInterface {
-	return &FakeGpus{c, namespace}
+func (c *FakeDraV1) DeviceClasses() v1.DeviceClassInterface {
+	return &FakeDeviceClasses{c}
 }
 
-func (c *FakeDraV1) GpuParameterSets(namespace string) v1.GpuParameterSetInterface {
-	return &FakeGpuParameterSets{c, namespace}
+func (c *FakeDraV1) GpuClaims(namespace string) v1.GpuClaimInterface {
+	return &FakeGpuClaims{c, namespace}
+}
+
+func (c *FakeDraV1) NodeAllocationStates(namespace string) v1.NodeAllocationStateInterface {
+	return &FakeNodeAllocationStates{c, namespace}
 }
 
 // RESTClient returns a RESTClient that is used to communicate
