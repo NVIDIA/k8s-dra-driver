@@ -20,34 +20,30 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// GpuSpec is the spec for the Gpu CRD
-type GpuSpec struct {
-	Capacity          int                            `json:"capacity"`
-	Allocatable       int                            `json:"allocatable"`
-	ClaimRequirements map[string]GpuParameterSetSpec `json:"claimRequirements,omitempty"`
-	ClaimAllocations  map[string][]string            `json:"claimAllocations,omitempty"`
+// GpuClaimSpec is the spec for the GpuClaim CRD
+type GpuClaimSpec struct {
+	Count int `json:"count,omitempty"`
 }
 
 // +genclient
-// +genclient:noStatus
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +k8s:openapi-gen=true
+// +kubebuilder:resource:scope=Namespaced
 
-// Gpu represents a Gpu CRD Object
-type Gpu struct {
+// GpuClaim holds the set of parameters provided when creating a resource claim for a GPU
+type GpuClaim struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   GpuSpec `json:"spec,omitempty"`
-	Status string  `json:"status,omitempty"`
+	Spec GpuClaimSpec `json:"spec,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// GpuList represents the "plural" of a Gpu CRD object
-type GpuList struct {
+// GpuClaimList represents the "plural" of a GpuClaim CRD object
+type GpuClaimList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 
-	Items []Gpu `json:"items"`
+	Items []GpuClaim `json:"items"`
 }

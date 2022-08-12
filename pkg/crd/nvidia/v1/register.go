@@ -23,7 +23,7 @@ import (
 )
 
 const (
-	GroupName string = "dra.nvidia.com"
+	GroupName string = "dra.gpu.nvidia.com"
 	Version   string = "v1"
 )
 
@@ -46,10 +46,12 @@ func Resource(resource string) schema.GroupResource {
 
 func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(SchemeGroupVersion,
-		&Gpu{},
-		&GpuList{},
-		&GpuParameterSet{},
-		&GpuParameterSetList{},
+		&NodeAllocationState{},
+		&NodeAllocationStateList{},
+		&DeviceClass{},
+		&DeviceClassList{},
+		&GpuClaim{},
+		&GpuClaimList{},
 	)
 	metav1.AddToGroupVersion(scheme, SchemeGroupVersion)
 	return nil

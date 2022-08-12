@@ -20,12 +20,6 @@ import (
 	nvcrd "github.com/NVIDIA/k8s-dra-driver/pkg/crd/nvidia/v1"
 )
 
-const (
-	GroupName = nvcrd.GroupName
-	Version   = nvcrd.Version
-
-	GpuDeviceType     = nvcrd.GpuDeviceType
-	UnknownDeviceType = nvcrd.UnknownDeviceType
-
-	GpuClaimKind = "GpuClaim"
-)
+type GpuClaimSpec = nvcrd.GpuClaimSpec
+type GpuClaim = nvcrd.GpuClaim
+type GpuClaimList = nvcrd.GpuClaimList

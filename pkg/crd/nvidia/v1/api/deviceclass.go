@@ -20,10 +20,18 @@ import (
 	nvcrd "github.com/NVIDIA/k8s-dra-driver/pkg/crd/nvidia/v1"
 )
 
-const (
-	GpuParameterSetKind = "GpuParameterSet"
-)
+type DeviceSelector = nvcrd.DeviceSelector
+type DeviceClassSpec = nvcrd.DeviceClassSpec
+type DeviceClass = nvcrd.DeviceClass
+type DeviceClassList = nvcrd.DeviceClassList
 
-type GpuParameterSetSpec = nvcrd.GpuParameterSetSpec
-type GpuParameterSet = nvcrd.GpuParameterSet
-type GpuParameterSetList = nvcrd.GpuParameterSetList
+func DefaultDeviceClassSpec() DeviceClassSpec {
+	return DeviceClassSpec{
+		DeviceSelector: []DeviceSelector{
+			{
+				Type: GpuDeviceType,
+				Name: "*",
+			},
+		},
+	}
+}
