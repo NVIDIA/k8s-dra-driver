@@ -28,21 +28,26 @@ import (
 
 type DraV1Interface interface {
 	RESTClient() rest.Interface
-	GpusGetter
-	GpuParameterSetsGetter
+	DeviceClassesGetter
+	GpuClaimsGetter
+	NodeAllocationStatesGetter
 }
 
-// DraV1Client is used to interact with features provided by the dra.nvidia.com group.
+// DraV1Client is used to interact with features provided by the dra.gpu.nvidia.com group.
 type DraV1Client struct {
 	restClient rest.Interface
 }
 
-func (c *DraV1Client) Gpus(namespace string) GpuInterface {
-	return newGpus(c, namespace)
+func (c *DraV1Client) DeviceClasses() DeviceClassInterface {
+	return newDeviceClasses(c)
 }
 
-func (c *DraV1Client) GpuParameterSets(namespace string) GpuParameterSetInterface {
-	return newGpuParameterSets(c, namespace)
+func (c *DraV1Client) GpuClaims(namespace string) GpuClaimInterface {
+	return newGpuClaims(c, namespace)
+}
+
+func (c *DraV1Client) NodeAllocationStates(namespace string) NodeAllocationStateInterface {
+	return newNodeAllocationStates(c, namespace)
 }
 
 // NewForConfig creates a new DraV1Client for the given config.

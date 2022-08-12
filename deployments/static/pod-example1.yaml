@@ -1,8 +1,8 @@
 # Two pods, one container each
 # Each container asking for 2 distinct GPUs
 
-apiVersion: dra.nvidia.com/v1
-kind: GpuParameterSet
+apiVersion: dra.gpu.nvidia.com/v1
+kind: GpuClaim
 metadata:
   name: gpu-example1-test-parameters
 spec:
@@ -27,10 +27,10 @@ spec:
     claim:
       template:
         spec:
-          resourceClassName: gpus
+          resourceClassName: nvidia.com-gpu
           parameters:
-            apiVersion: dra.nvidia.com/v1
-            kind: GpuParameterSet
+            apiVersion: dra.gpu.nvidia.com/v1
+            kind: GpuClaim
             name: gpu-example1-test-parameters
 
 ---
@@ -52,8 +52,8 @@ spec:
     claim:
       template:
         spec:
-          resourceClassName: gpus
+          resourceClassName: nvidia.com-gpu
           parameters:
-            apiVersion: dra.nvidia.com/v1
-            kind: GpuParameterSet
+            apiVersion: dra.gpu.nvidia.com/v1
+            kind: GpuClaim
             name: gpu-example1-test-parameters
