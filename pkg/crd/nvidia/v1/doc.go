@@ -26,6 +26,6 @@
 //go:generate rm -rf ./tmp_clientset
 
 // +k8s:deepcopy-gen=package
-// +groupName=dra.nvidia.com
+// +groupName=dra.gpu.nvidia.com
 
 package v1
