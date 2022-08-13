@@ -36,6 +36,10 @@ func (c *FakeDraV1) GpuClaims(namespace string) v1.GpuClaimInterface {
 	return &FakeGpuClaims{c, namespace}
 }
 
+func (c *FakeDraV1) MigDeviceClaims(namespace string) v1.MigDeviceClaimInterface {
+	return &FakeMigDeviceClaims{c, namespace}
+}
+
 func (c *FakeDraV1) NodeAllocationStates(namespace string) v1.NodeAllocationStateInterface {
 	return &FakeNodeAllocationStates{c, namespace}
 }
