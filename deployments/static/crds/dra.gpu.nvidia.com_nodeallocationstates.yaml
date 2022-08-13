@@ -54,6 +54,21 @@ spec:
                       - count
                       - name
                       type: object
+                    mig:
+                      description: AllocatableMigDevice represents an allocatable
+                        MIG device on a node
+                      properties:
+                        count:
+                          type: integer
+                        profile:
+                          type: string
+                        size:
+                          type: integer
+                      required:
+                      - count
+                      - profile
+                      - size
+                      type: object
                   type: object
                 type: array
               claimAllocations:
@@ -72,6 +87,34 @@ spec:
                             type: string
                         required:
                         - name
+                        - uuid
+                        type: object
+                      mig:
+                        description: AllocatedMigDevice represents an allocated MIG
+                          device on a node
+                        properties:
+                          name:
+                            type: string
+                          placement:
+                            description: MigDevicePlacement represents the physical
+                              placement of a MIG device relative to others
+                            properties:
+                              gpu:
+                                type: string
+                              size:
+                                type: integer
+                              start:
+                                type: integer
+                            required:
+                            - gpu
+                            - size
+                            - start
+                            type: object
+                          uuid:
+                            type: string
+                        required:
+                        - name
+                        - placement
                         - uuid
                         type: object
                     type: object

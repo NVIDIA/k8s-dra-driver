@@ -23,6 +23,7 @@ import (
 // Types of Devices that can be allocated
 const (
 	GpuDeviceType     = "gpu"
+	MigDeviceType     = "mig"
 	UnknownDeviceType = "unknown"
 )
 
@@ -32,15 +33,26 @@ type AllocatableGpu struct {
 	Count int    `json:"count"`
 }
 
+// AllocatableMigDevice represents an allocatable MIG device on a node
+type AllocatableMigDevice struct {
+	Profile string `json:"profile"`
+	Count   int    `json:"count"`
+	Size    int    `json:"size"`
+}
+
 // AllocatableDevice represents an allocatable device on a node
 type AllocatableDevice struct {
-	Gpu *AllocatableGpu `json:"gpu,omitempty"`
+	Gpu *AllocatableGpu       `json:"gpu,omitempty"`
+	Mig *AllocatableMigDevice `json:"mig,omitempty"`
 }
 
 // Type returns the type of AllocatableDevice this represents
 func (d AllocatableDevice) Type() string {
 	if d.Gpu != nil {
 		return GpuDeviceType
+	}
+	if d.Mig != nil {
+		return MigDeviceType
 	}
 	return UnknownDeviceType
 }
@@ -51,15 +63,33 @@ type AllocatedGpu struct {
 	UUID string `json:"uuid"`
 }
 
+// AllocatedMigDevice represents an allocated MIG device on a node
+type AllocatedMigDevice struct {
+	Name      string             `json:"name"`
+	UUID      string             `json:"uuid"`
+	Placement MigDevicePlacement `json:"placement"`
+}
+
+// MigDevicePlacement represents the physical placement of a MIG device relative to others
+type MigDevicePlacement struct {
+	GpuUUID string `json:"gpu"`
+	Start   int    `json:"start"`
+	Size    int    `json:"size"`
+}
+
 // AllocatedDevice represents an allocated device on a node
 type AllocatedDevice struct {
-	Gpu *AllocatedGpu `json:"gpu,omitempty"`
+	Gpu *AllocatedGpu       `json:"gpu,omitempty"`
+	Mig *AllocatedMigDevice `json:"mig,omitempty"`
 }
 
 // Type returns the type of AllocatedDevice this represents
 func (d AllocatedDevice) Type() string {
 	if d.Gpu != nil {
 		return GpuDeviceType
+	}
+	if d.Mig != nil {
+		return MigDeviceType
 	}
 	return UnknownDeviceType
 }
