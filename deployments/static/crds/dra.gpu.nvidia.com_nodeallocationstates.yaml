@@ -54,6 +54,21 @@ spec:
                       - count
                       - name
                       type: object
+                    mig:
+                      description: AllocatableMigDevice represents an allocatable
+                        MIG device on a node
+                      properties:
+                        count:
+                          type: integer
+                        profile:
+                          type: string
+                        slices:
+                          type: integer
+                      required:
+                      - count
+                      - profile
+                      - slices
+                      type: object
                   type: object
                 type: array
               claimAllocations:
@@ -74,6 +89,34 @@ spec:
                         - name
                         - uuid
                         type: object
+                      mig:
+                        description: AllocatedMigDevice represents an allocated MIG
+                          device on a node
+                        properties:
+                          placement:
+                            description: MigDevicePlacement represents the physical
+                              placement of a MIG device relative to others
+                            properties:
+                              gpu:
+                                type: string
+                              size:
+                                type: integer
+                              start:
+                                type: integer
+                            required:
+                            - gpu
+                            - size
+                            - start
+                            type: object
+                          profile:
+                            type: string
+                          uuid:
+                            type: string
+                        required:
+                        - placement
+                        - profile
+                        - uuid
+                        type: object
                     type: object
                   type: array
                 type: object
@@ -87,6 +130,13 @@ spec:
                       properties:
                         count:
                           type: integer
+                      type: object
+                    mig:
+                      description: MigDeviceClaimSpec is the spec for the MigDeviceClaim
+                        CRD
+                      properties:
+                        profile:
+                          type: string
                       type: object
                   type: object
                 type: object

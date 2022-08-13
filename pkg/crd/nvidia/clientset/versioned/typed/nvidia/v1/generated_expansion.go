@@ -22,4 +22,6 @@ type DeviceClassExpansion interface{}
 
 type GpuClaimExpansion interface{}
 
+type MigDeviceClaimExpansion interface{}
+
 type NodeAllocationStateExpansion interface{}
