@@ -20,22 +20,6 @@ import (
 	nvcrd "github.com/NVIDIA/k8s-dra-driver/pkg/crd/nvidia/v1"
 )
 
-type DeviceSelector = nvcrd.DeviceSelector
-type DeviceClassSpec = nvcrd.DeviceClassSpec
-type DeviceClass = nvcrd.DeviceClass
-type DeviceClassList = nvcrd.DeviceClassList
-
-func DefaultDeviceClassSpec() *DeviceClassSpec {
-	return &DeviceClassSpec{
-		DeviceSelector: []DeviceSelector{
-			{
-				Type: GpuDeviceType,
-				Name: "*",
-			},
-			{
-				Type: MigDeviceType,
-				Name: "*",
-			},
-		},
-	}
-}
+type MigDeviceClaimSpec = nvcrd.MigDeviceClaimSpec
+type MigDeviceClaim = nvcrd.MigDeviceClaim
+type MigDeviceClaimList = nvcrd.MigDeviceClaimList

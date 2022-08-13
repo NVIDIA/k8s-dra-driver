@@ -30,6 +30,7 @@ type DraV1Interface interface {
 	RESTClient() rest.Interface
 	DeviceClassesGetter
 	GpuClaimsGetter
+	MigDeviceClaimsGetter
 	NodeAllocationStatesGetter
 }
 
@@ -44,6 +45,10 @@ func (c *DraV1Client) DeviceClasses() DeviceClassInterface {
 
 func (c *DraV1Client) GpuClaims(namespace string) GpuClaimInterface {
 	return newGpuClaims(c, namespace)
+}
+
+func (c *DraV1Client) MigDeviceClaims(namespace string) MigDeviceClaimInterface {
+	return newMigDeviceClaims(c, namespace)
 }
 
 func (c *DraV1Client) NodeAllocationStates(namespace string) NodeAllocationStateInterface {
