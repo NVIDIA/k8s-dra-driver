@@ -25,8 +25,8 @@ type DeviceClassSpec = nvcrd.DeviceClassSpec
 type DeviceClass = nvcrd.DeviceClass
 type DeviceClassList = nvcrd.DeviceClassList
 
-func DefaultDeviceClassSpec() DeviceClassSpec {
-	return DeviceClassSpec{
+func DefaultDeviceClassSpec() *DeviceClassSpec {
+	return &DeviceClassSpec{
 		DeviceSelector: []DeviceSelector{
 			{
 				Type: GpuDeviceType,
