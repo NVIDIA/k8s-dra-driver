@@ -31,9 +31,16 @@ import (
 type ClaimAllocations map[string]sets.String
 
 type GpuInfo struct {
-	uuid  string
-	minor int
-	name  string
+	uuid       string
+	minor      int
+	name       string
+	migEnabled bool
+	migs       []MigProfileInfo
+}
+
+type MigProfileInfo struct {
+	profile *MigProfile
+	count   int
 }
 
 func (g GpuInfo) CDIDevice() string {
@@ -86,13 +93,47 @@ func NewDeviceState(config *Config, nascrd *nvcrd.NodeAllocationState) (*DeviceS
 		if ret != nvml.SUCCESS {
 			return nil, fmt.Errorf("error getting name for device %d: %v", i, nvml.ErrorString(ret))
 		}
-		gpuInfo := &GpuInfo{
-			uuid:  uuid,
-			minor: minor,
-			name:  name,
+		migMode, _, ret := device.GetMigMode()
+		if ret != nvml.SUCCESS {
+			return nil, fmt.Errorf("error getting MIG mode for device %d: %v", i, nvml.ErrorString(ret))
 		}
+
+		gpuInfo := &GpuInfo{
+			uuid:       uuid,
+			minor:      minor,
+			name:       name,
+			migEnabled: migMode == nvml.DEVICE_MIG_ENABLE,
+		}
+
 		devices[uuid] = gpuInfo
 		uuids.Insert(uuid)
+
+		if !gpuInfo.migEnabled {
+			continue
+		}
+
+		memory, ret := device.GetMemoryInfo()
+		if ret != nvml.SUCCESS {
+			return nil, fmt.Errorf("error getting memory info for device %d: %v", i, nvml.ErrorString(ret))
+		}
+
+		for j := 0; j < nvml.GPU_INSTANCE_PROFILE_COUNT; j++ {
+			giProfileInfo, ret := device.GetGpuInstanceProfileInfo(j)
+			if ret == nvml.ERROR_NOT_SUPPORTED {
+				continue
+			}
+			if ret == nvml.ERROR_INVALID_ARGUMENT {
+				continue
+			}
+			if ret != nvml.SUCCESS {
+				return nil, fmt.Errorf("error retrieving GPUInstanceProfileInfo for profile %d on GPU %v", j, i)
+			}
+			profileInfo := MigProfileInfo{
+				profile: NewMigProfile(giProfileInfo.SliceCount, giProfileInfo.SliceCount, GetMigProfileAttributes(j), giProfileInfo.MemorySizeMB, memory.Total),
+				count:   int(giProfileInfo.InstanceCount),
+			}
+			gpuInfo.migs = append(gpuInfo.migs, profileInfo)
+		}
 	}
 
 	cdi := cdiapi.GetRegistry(
@@ -162,6 +203,7 @@ func (s *DeviceState) GetUpdatedSpec(inspec *nvcrd.NodeAllocationStateSpec) *nvc
 	defer s.Unlock()
 
 	gpus := make(map[string]nvcrd.AllocatableDevice)
+	migs := make(map[string]nvcrd.AllocatableDevice)
 	for _, device := range s.alldevices {
 		if _, exists := gpus[device.name]; !exists {
 			gpus[device.name] = nvcrd.AllocatableDevice{
@@ -171,12 +213,36 @@ func (s *DeviceState) GetUpdatedSpec(inspec *nvcrd.NodeAllocationStateSpec) *nvc
 				},
 			}
 		}
-		gpus[device.name].Gpu.Count += 1
+
+		if !device.migEnabled {
+			gpus[device.name].Gpu.Count += 1
+			continue
+		}
+
+		for _, mig := range device.migs {
+			if _, exists := migs[mig.profile.String()]; !exists {
+				migs[mig.profile.String()] = nvcrd.AllocatableDevice{
+					Mig: &nvcrd.AllocatableMigDevice{
+						Profile: mig.profile.String(),
+						Count:   0,
+						Slices:  mig.profile.G,
+					},
+				}
+			}
+			migs[mig.profile.String()].Mig.Count += mig.count
+		}
 	}
 
 	allocatable := []nvcrd.AllocatableDevice{}
 	for _, device := range gpus {
-		allocatable = append(allocatable, device)
+		if device.Gpu.Count > 0 {
+			allocatable = append(allocatable, device)
+		}
+	}
+	for _, device := range migs {
+		if device.Mig.Count > 0 {
+			allocatable = append(allocatable, device)
+		}
 	}
 
 	outspec := inspec.DeepCopy()
