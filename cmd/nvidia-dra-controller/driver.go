@@ -40,6 +40,7 @@ type driver struct {
 	namespace string
 	clientset nvclientset.Interface
 	gpu       *gpudriver
+	mig       *migdriver
 }
 
 var _ controller.Driver = (*driver)(nil)
@@ -50,6 +51,7 @@ func NewDriver(config *Config) *driver {
 		namespace: config.namespace,
 		clientset: config.clientset.nvidia,
 		gpu:       NewGpuDriver(),
+		mig:       NewMigDriver(),
 	}
 }
 
@@ -81,6 +83,12 @@ func (d driver) GetClaimParameters(ctx context.Context, claim *corev1.ResourceCl
 			return nil, fmt.Errorf("error getting GpuClaim called '%v' in namespace '%v': %v", claim.Spec.Parameters.Name, claim.Namespace, err)
 		}
 		return &gc.Spec, nil
+	case nvcrd.MigDeviceClaimKind:
+		mc, err := d.clientset.DraV1().MigDeviceClaims(claim.Namespace).Get(ctx, claim.Spec.Parameters.Name, metav1.GetOptions{})
+		if err != nil {
+			return nil, fmt.Errorf("error getting MigDeviceClaim called '%v' in namespace '%v': %v", claim.Spec.Parameters.Name, claim.Namespace, err)
+		}
+		return &mc.Spec, nil
 	}
 	return nil, fmt.Errorf("unknown ResourceClaim.Parameters.Kind: %v", claim.Spec.Parameters.Kind)
 }
@@ -121,6 +129,9 @@ func (d driver) Allocate(ctx context.Context, claim *corev1.ResourceClaim, claim
 	case nvcrd.GpuClaimKind:
 		claimSpec := claimParameters.(*nvcrd.GpuClaimSpec)
 		err = d.gpu.Allocate(nascrd, claim, claimSpec, class, classSpec, selectedNode)
+	case nvcrd.MigDeviceClaimKind:
+		claimSpec := claimParameters.(*nvcrd.MigDeviceClaimSpec)
+		err = d.mig.Allocate(nascrd, claim, claimSpec, class, classSpec, selectedNode)
 	default:
 		err = fmt.Errorf("unknown ResourceClaim.Parameters.Kind: %v", claim.Spec.Parameters.Kind)
 	}
@@ -185,6 +196,8 @@ func (d driver) UnsuitableNodes(ctx context.Context, pod *v1.Pod, cas []*control
 		switch kind {
 		case nvcrd.GpuClaimKind:
 			err = d.gpu.UnsuitableNodes(ctx, pod, cas, potentialNodes)
+		case nvcrd.MigDeviceClaimKind:
+			err = d.mig.UnsuitableNodes(ctx, pod, cas, potentialNodes)
 		}
 		if err != nil {
 			return fmt.Errorf("error calling UnsuitableNodes for '%v': %v", kind, err)
