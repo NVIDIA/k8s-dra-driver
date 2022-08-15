@@ -20,47 +20,42 @@ import (
 	"context"
 	"fmt"
 
-	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog/v2"
 	drapbv1 "k8s.io/kubernetes/pkg/kubelet/apis/dra/v1alpha1"
-
-	cdiapi "github.com/container-orchestrated-devices/container-device-interface/pkg/cdi"
 
 	nvcrd "github.com/NVIDIA/k8s-dra-driver/pkg/crd/nvidia/v1/api"
 )
 
 type driver struct {
-	config *Config
-	gpucrd *nvcrd.Gpu
-	state  *DeviceState
+	crd   *nvcrd.NodeAllocationState
+	state *DeviceState
 }
 
 func NewDriver(config *Config) (*driver, error) {
-	gpucrd := nvcrd.NewGpu(config.crdconfig, config.clientset.nvidia)
-	err := gpucrd.GetOrCreate()
+	nascrd := nvcrd.NewNodeAllocationState(config.crdconfig, config.clientset.nvidia)
+	err := nascrd.GetOrCreate()
 	if err != nil {
 		return nil, err
 	}
 
-	state, err := NewDeviceState(config, gpucrd)
+	state, err := NewDeviceState(config, nascrd)
 	if err != nil {
 		return nil, err
 	}
 
-	err = gpucrd.Update(state.GetUpdatedSpec(&gpucrd.Spec))
+	err = nascrd.Update(state.GetUpdatedSpec(&nascrd.Spec))
 	if err != nil {
 		return nil, err
 	}
 
-	err = gpucrd.UpdateStatus(nvcrd.GpuStatusReady)
+	err = nascrd.UpdateStatus(nvcrd.NodeAllocationStateStatusReady)
 	if err != nil {
 		return nil, err
 	}
 
 	d := &driver{
-		config: config,
-		gpucrd: gpucrd,
-		state:  state,
+		crd:   nascrd,
+		state: state,
 	}
 
 	return d, nil
@@ -69,35 +64,19 @@ func NewDriver(config *Config) (*driver, error) {
 func (d *driver) NodePrepareResource(ctx context.Context, req *drapbv1.NodePrepareResourceRequest) (*drapbv1.NodePrepareResourceResponse, error) {
 	klog.Infof("NodePrepareResource is called: request: %+v", req)
 
-	cdi := cdiapi.GetRegistry(
-		cdiapi.WithSpecDirs(cdiRoot),
-	)
-	err := cdi.Refresh()
+	allocated, err := d.Allocate(req.ClaimUid)
 	if err != nil {
-		return nil, fmt.Errorf("unable to refresh the CDI registry: %v", err)
+		return nil, fmt.Errorf("error allocating devices for claim '%v': %v", req.ClaimUid, err)
 	}
 
-	allocated := d.state.GetAllocated(req.ClaimUid)
-	if allocated == nil {
-		allocated, err = d.Allocate(req.ClaimUid)
-		if err != nil {
-			return nil, fmt.Errorf("error allocating devices for claim '%v': %v", req.ClaimUid, err)
-		}
-	}
-
-	err = d.gpucrd.Update(d.state.GetUpdatedSpec(&d.gpucrd.Spec))
+	err = d.crd.Update(d.state.GetUpdatedSpec(&d.crd.Spec))
 	if err != nil {
 		d.state.Free(req.ClaimUid)
 		return nil, fmt.Errorf("error updating Gpu CRD: %v", err)
 	}
 
-	var devs []string
-	for _, i := range allocated.List() {
-		devs = append(devs, cdi.DeviceDB().GetDevice(fmt.Sprintf("%s=gpu%d", cdiKind, i)).GetQualifiedName())
-	}
-
-	klog.Infof("Allocated devices for claim '%v': %s", req.ClaimUid, devs)
-	return &drapbv1.NodePrepareResourceResponse{CdiDevice: devs}, nil
+	klog.Infof("Allocated devices for claim '%v': %s", req.ClaimUid, allocated)
+	return &drapbv1.NodePrepareResourceResponse{CdiDevice: allocated}, nil
 }
 
 func (d *driver) NodeUnprepareResource(ctx context.Context, req *drapbv1.NodeUnprepareResourceRequest) (*drapbv1.NodeUnprepareResourceResponse, error) {
@@ -108,7 +87,7 @@ func (d *driver) NodeUnprepareResource(ctx context.Context, req *drapbv1.NodeUnp
 		return nil, fmt.Errorf("error freeing devices for claim '%v': %v", req.ClaimUid, err)
 	}
 
-	err = d.gpucrd.Update(d.state.GetUpdatedSpec(&d.gpucrd.Spec))
+	err = d.crd.Update(d.state.GetUpdatedSpec(&d.crd.Spec))
 	if err != nil {
 		return nil, fmt.Errorf("error updating Gpu CRD: %v", err)
 	}
@@ -117,30 +96,22 @@ func (d *driver) NodeUnprepareResource(ctx context.Context, req *drapbv1.NodeUnp
 	return &drapbv1.NodeUnprepareResourceResponse{}, nil
 }
 
-func (d *driver) Allocate(claimUid string) (sets.Int, error) {
-	err := d.gpucrd.Get()
+func (d *driver) Allocate(claimUid string) ([]string, error) {
+	err := d.crd.Get()
 	if err != nil {
 		return nil, err
 	}
-	allocated, err := d.state.Allocate(claimUid, d.gpucrd.Spec.ClaimRequirements[claimUid])
+	allocated, err := d.state.Allocate(claimUid, d.crd.Spec.ClaimRequirements[claimUid])
 	if err != nil {
 		return nil, err
-	}
-	err = d.gpucrd.Update(d.state.GetUpdatedSpec(&d.gpucrd.Spec))
-	if err != nil {
-		return nil, fmt.Errorf("error updating Gpu CRD: %v", err)
 	}
 	return allocated, nil
 }
 
 func (d *driver) Free(claimUid string) error {
-	err := d.gpucrd.Get()
+	err := d.crd.Get()
 	if err != nil {
 		return err
-	}
-	allocated := d.state.GetAllocated(claimUid)
-	if allocated == nil {
-		return nil
 	}
 	d.state.Free(claimUid)
 	return nil

@@ -25,6 +25,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/NVIDIA/k8s-dra-driver/pkg/controller"
+	nvclientset "github.com/NVIDIA/k8s-dra-driver/pkg/crd/nvidia/clientset/versioned"
 	nvcrd "github.com/NVIDIA/k8s-dra-driver/pkg/crd/nvidia/v1/api"
 )
 
@@ -35,21 +36,35 @@ const (
 )
 
 type driver struct {
-	lock   *PerNodeMutex
-	config *Config
+	lock      *PerNodeMutex
+	namespace string
+	clientset nvclientset.Interface
+	gpu       *gpudriver
 }
 
 var _ controller.Driver = (*driver)(nil)
 
 func NewDriver(config *Config) *driver {
 	return &driver{
-		lock:   NewPerNodeMutex(),
-		config: config,
+		lock:      NewPerNodeMutex(),
+		namespace: config.namespace,
+		clientset: config.clientset.nvidia,
+		gpu:       NewGpuDriver(),
 	}
 }
 
 func (d driver) GetClassParameters(ctx context.Context, class *corev1.ResourceClass) (interface{}, error) {
-	return nil, nil
+	if class.Parameters == nil {
+		return nvcrd.DefaultDeviceClassSpec(), nil
+	}
+	if class.Parameters.APIVersion != DriverAPIVersion {
+		return nil, fmt.Errorf("incorrect API group and version: %v", class.Parameters.APIVersion)
+	}
+	dc, err := d.clientset.DraV1().DeviceClasses().Get(ctx, class.Parameters.Name, metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("error getting DeviceClass called '%v': %v", class.Parameters.Name, err)
+	}
+	return &dc.Spec, nil
 }
 
 func (d driver) GetClaimParameters(ctx context.Context, claim *corev1.ResourceClaim, class *corev1.ResourceClass, classParameters interface{}) (interface{}, error) {
@@ -59,17 +74,15 @@ func (d driver) GetClaimParameters(ctx context.Context, claim *corev1.ResourceCl
 	if claim.Spec.Parameters.APIVersion != DriverAPIVersion {
 		return nil, fmt.Errorf("incorrect API group and version: %v", claim.Spec.Parameters.APIVersion)
 	}
-	if claim.Spec.Parameters.Kind != nvcrd.GpuParameterSetKind {
-		return nil, fmt.Errorf("incorrect Kind: %v", claim.Spec.Parameters.Kind)
+	switch claim.Spec.Parameters.Kind {
+	case nvcrd.GpuClaimKind:
+		gc, err := d.clientset.DraV1().GpuClaims(claim.Namespace).Get(ctx, claim.Spec.Parameters.Name, metav1.GetOptions{})
+		if err != nil {
+			return nil, fmt.Errorf("error getting GpuClaim called '%v' in namespace '%v': %v", claim.Spec.Parameters.Name, claim.Namespace, err)
+		}
+		return &gc.Spec, nil
 	}
-	gcps, err := d.config.clientset.nvidia.DraV1().GpuParameterSets(claim.Namespace).Get(ctx, claim.Spec.Parameters.Name, metav1.GetOptions{})
-	if err != nil {
-		return nil, fmt.Errorf("error getting GpuParameterSet for '%v' in namespace '%v': %v", claim.Spec.Parameters.Name, claim.Namespace, err)
-	}
-	if gcps.Spec.Count <= 0 {
-		return nil, fmt.Errorf("expected Count > 0")
-	}
-	return gcps.Spec, nil
+	return nil, fmt.Errorf("unknown ResourceClaim.Parameters.Kind: %v", claim.Spec.Parameters.Kind)
 }
 
 func (d driver) Allocate(ctx context.Context, claim *corev1.ResourceClaim, claimParameters interface{}, class *corev1.ResourceClass, classParameters interface{}, selectedNode string) (*corev1.AllocationResult, error) {
@@ -80,48 +93,47 @@ func (d driver) Allocate(ctx context.Context, claim *corev1.ResourceClaim, claim
 	d.lock.Get(selectedNode).Lock()
 	defer d.lock.Get(selectedNode).Unlock()
 
-	crdconfig := &nvcrd.GpuConfig{
+	crdconfig := &nvcrd.NodeAllocationStateConfig{
 		Name:      selectedNode,
-		Namespace: d.config.namespace,
+		Namespace: d.namespace,
 	}
 
-	gpucrd := nvcrd.NewGpu(crdconfig, d.config.clientset.nvidia)
-	err := gpucrd.Get()
+	nascrd := nvcrd.NewNodeAllocationState(crdconfig, d.clientset)
+	err := nascrd.Get()
 	if err != nil {
 		return nil, fmt.Errorf("error retrieving node specific Gpu CRD: %v", err)
 	}
 
-	if gpucrd.Spec.ClaimRequirements == nil {
-		gpucrd.Spec.ClaimRequirements = make(map[string]nvcrd.GpuParameterSetSpec)
+	if nascrd.Spec.ClaimRequirements == nil {
+		nascrd.Spec.ClaimRequirements = make(map[string]nvcrd.DeviceRequirements)
 	}
 
-	if _, exists := gpucrd.Spec.ClaimRequirements[string(claim.UID)]; exists {
-		return buildAllocationResult(selectedNode), nil
+	if _, exists := nascrd.Spec.ClaimRequirements[string(claim.UID)]; exists {
+		return buildAllocationResult(selectedNode, true), nil
 	}
 
-	if gpucrd.Status != nvcrd.GpuStatusReady {
-		return nil, fmt.Errorf("Gpu CRD status: %v", gpucrd.Status)
+	if nascrd.Status != nvcrd.NodeAllocationStateStatusReady {
+		return nil, fmt.Errorf("NodeAllocationStateStatus: %v", nascrd.Status)
 	}
 
-	allocated := 0
-	for _, parameters := range gpucrd.Spec.ClaimRequirements {
-		allocated += parameters.Count
+	classSpec := classParameters.(*nvcrd.DeviceClassSpec)
+	switch claim.Spec.Parameters.Kind {
+	case nvcrd.GpuClaimKind:
+		claimSpec := claimParameters.(*nvcrd.GpuClaimSpec)
+		err = d.gpu.Allocate(nascrd, claim, claimSpec, class, classSpec, selectedNode)
+	default:
+		err = fmt.Errorf("unknown ResourceClaim.Parameters.Kind: %v", claim.Spec.Parameters.Kind)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("unable to allocate devices: %v", err)
 	}
 
-	available := gpucrd.Spec.Allocatable - allocated
-	requested := claimParameters.(nvcrd.GpuParameterSetSpec).Count
-	if requested > available {
-		return nil, fmt.Errorf("not enough devices to satisfy allocation: (available: %v, requested: %v)", available, requested)
-	}
-
-	gpucrd.Spec.ClaimRequirements[string(claim.UID)] = claimParameters.(nvcrd.GpuParameterSetSpec)
-
-	err = gpucrd.Update(&gpucrd.Spec)
+	err = nascrd.Update(&nascrd.Spec)
 	if err != nil {
 		return nil, fmt.Errorf("error updating Gpu CRD: %v", err)
 	}
 
-	return buildAllocationResult(selectedNode), nil
+	return buildAllocationResult(selectedNode, true), nil
 }
 
 func (d driver) Deallocate(ctx context.Context, claim *corev1.ResourceClaim) error {
@@ -133,28 +145,28 @@ func (d driver) Deallocate(ctx context.Context, claim *corev1.ResourceClaim) err
 	d.lock.Get(selectedNode).Lock()
 	defer d.lock.Get(selectedNode).Unlock()
 
-	crdconfig := &nvcrd.GpuConfig{
+	crdconfig := &nvcrd.NodeAllocationStateConfig{
 		Name:      selectedNode,
-		Namespace: d.config.namespace,
+		Namespace: d.namespace,
 	}
 
-	gpucrd := nvcrd.NewGpu(crdconfig, d.config.clientset.nvidia)
-	err := gpucrd.Get()
+	nascrd := nvcrd.NewNodeAllocationState(crdconfig, d.clientset)
+	err := nascrd.Get()
 	if err != nil {
 		return fmt.Errorf("error retrieving node specific Gpu CRD: %v", err)
 	}
 
-	if gpucrd.Spec.ClaimRequirements == nil {
+	if nascrd.Spec.ClaimRequirements == nil {
 		return nil
 	}
 
-	if _, exists := gpucrd.Spec.ClaimRequirements[string(claim.UID)]; !exists {
+	if _, exists := nascrd.Spec.ClaimRequirements[string(claim.UID)]; !exists {
 		return nil
 	}
 
-	delete(gpucrd.Spec.ClaimRequirements, string(claim.UID))
+	delete(nascrd.Spec.ClaimRequirements, string(claim.UID))
 
-	err = gpucrd.Update(&gpucrd.Spec)
+	err = nascrd.Update(&nascrd.Spec)
 	if err != nil {
 		return fmt.Errorf("error updating Gpu CRD: %v", err)
 	}
@@ -162,15 +174,35 @@ func (d driver) Deallocate(ctx context.Context, claim *corev1.ResourceClaim) err
 	return nil
 }
 
+func (d driver) UnsuitableNodes(ctx context.Context, pod *v1.Pod, cas []*controller.ClaimAllocation, potentialNodes []string) error {
+	perKindCas := make(map[string][]*controller.ClaimAllocation)
+	for _, ca := range cas {
+		kind := ca.Claim.Spec.Parameters.Kind
+		switch kind {
+		case nvcrd.GpuClaimKind:
+			perKindCas[kind] = append(perKindCas[kind], ca)
+		default:
+			return fmt.Errorf("unknown ResourceClaim.Parameters.Kind: %v", kind)
+		}
+	}
+	for kind, cas := range perKindCas {
+		var err error
+		switch kind {
+		case nvcrd.GpuClaimKind:
+			err = d.gpu.UnsuitableNodes(ctx, pod, cas, potentialNodes)
+		}
+		if err != nil {
+			return fmt.Errorf("error calling UnsuitableNodes for '%v': %v", kind, err)
+		}
+	}
+	return nil
+}
+
 func (d driver) StopAllocation(ctx context.Context, claim *corev1.ResourceClaim) error {
-	return nil
+	return d.Deallocate(ctx, claim)
 }
 
-func (d driver) UnsuitableNodes(ctx context.Context, pod *v1.Pod, claims []*controller.ClaimAllocation, potentialNodes []string) error {
-	return nil
-}
-
-func buildAllocationResult(selectedNode string) *corev1.AllocationResult {
+func buildAllocationResult(selectedNode string, shared bool) *corev1.AllocationResult {
 	nodeSelector := &corev1.NodeSelector{
 		NodeSelectorTerms: []corev1.NodeSelectorTerm{
 			{
@@ -186,7 +218,7 @@ func buildAllocationResult(selectedNode string) *corev1.AllocationResult {
 	}
 	allocation := &corev1.AllocationResult{
 		AvailableOnNodes: nodeSelector,
-		SharedResource:   true,
+		SharedResource:   shared,
 	}
 	return allocation
 }

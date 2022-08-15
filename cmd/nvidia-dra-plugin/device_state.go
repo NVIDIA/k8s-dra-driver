@@ -18,7 +18,6 @@ package main
 
 import (
 	"fmt"
-	"strconv"
 	"sync"
 
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -26,17 +25,23 @@ import (
 
 	"github.com/NVIDIA/go-nvml/pkg/nvml"
 	nvcrd "github.com/NVIDIA/k8s-dra-driver/pkg/crd/nvidia/v1/api"
+	cdiapi "github.com/container-orchestrated-devices/container-device-interface/pkg/cdi"
 )
 
-type intSet sets.Int
-type ClaimAllocation map[string]sets.Int
+type ClaimAllocations map[string]sets.String
+
+type GpuInfo struct {
+	uuid  string
+	minor int
+	name  string
+}
 
 type DeviceState struct {
 	sync.Mutex
-	healthy   sets.Int
-	unhealthy sets.Int
-	available sets.Int
-	allocated ClaimAllocation
+	cdi       cdiapi.Registry
+	devices   map[string]*GpuInfo
+	available sets.String
+	allocated ClaimAllocations
 }
 
 func tryNvmlShutdown() {
@@ -46,31 +51,62 @@ func tryNvmlShutdown() {
 	}
 }
 
-func NewDeviceState(config *Config, gpucrd *nvcrd.Gpu) (*DeviceState, error) {
+func NewDeviceState(config *Config, nascrd *nvcrd.NodeAllocationState) (*DeviceState, error) {
 	ret := nvml.Init()
 	if ret != nvml.SUCCESS {
 		return nil, fmt.Errorf("error initializing NVML: %v", nvml.ErrorString(ret))
 	}
 	defer tryNvmlShutdown()
 
-	numGPUs, ret := nvml.DeviceGetCount()
+	count, ret := nvml.DeviceGetCount()
 	if ret != nvml.SUCCESS {
 		return nil, fmt.Errorf("error getting device count: %v", nvml.ErrorString(ret))
 	}
 
-	gpus := sets.NewInt()
-	for i := 0; i < numGPUs; i++ {
-		gpus.Insert(i)
+	uuids := sets.NewString()
+	devices := make(map[string]*GpuInfo)
+	for i := 0; i < count; i++ {
+		device, ret := nvml.DeviceGetHandleByIndex(i)
+		if ret != nvml.SUCCESS {
+			return nil, fmt.Errorf("error getting handle for device %d: %v", i, nvml.ErrorString(ret))
+		}
+		uuid, ret := device.GetUUID()
+		if ret != nvml.SUCCESS {
+			return nil, fmt.Errorf("error getting UUID for device %d: %v", i, nvml.ErrorString(ret))
+		}
+		minor, ret := device.GetMinorNumber()
+		if ret != nvml.SUCCESS {
+			return nil, fmt.Errorf("error getting minor number for device %d: %v", i, nvml.ErrorString(ret))
+		}
+		name, ret := device.GetName()
+		if ret != nvml.SUCCESS {
+			return nil, fmt.Errorf("error getting name for device %d: %v", i, nvml.ErrorString(ret))
+		}
+		devices[uuid] = &GpuInfo{
+			uuid:  uuid,
+			minor: minor,
+			name:  name,
+		}
+		uuids.Insert(uuid)
+	}
+
+	cdi := cdiapi.GetRegistry(
+		cdiapi.WithSpecDirs(cdiRoot),
+	)
+
+	err := cdi.Refresh()
+	if err != nil {
+		return nil, fmt.Errorf("unable to refresh the CDI registry: %v", err)
 	}
 
 	state := &DeviceState{
-		healthy:   sets.NewInt().Union(gpus),
-		unhealthy: sets.NewInt(),
-		available: sets.NewInt().Union(gpus),
-		allocated: make(ClaimAllocation),
+		cdi:       cdi,
+		devices:   devices,
+		available: sets.NewString().Union(uuids),
+		allocated: make(ClaimAllocations),
 	}
 
-	state.allocated.FromStringsMap(gpucrd.Spec.ClaimAllocations)
+	state.allocated.From(nascrd.Spec.ClaimAllocations)
 	for claimUid := range state.allocated {
 		state.available = state.available.Difference(state.allocated[claimUid])
 	}
@@ -78,21 +114,33 @@ func NewDeviceState(config *Config, gpucrd *nvcrd.Gpu) (*DeviceState, error) {
 	return state, nil
 }
 
-func (s *DeviceState) Allocate(claimUid string, parameters nvcrd.GpuParameterSetSpec) (sets.Int, error) {
+func (s *DeviceState) Allocate(claimUid string, requirements nvcrd.DeviceRequirements) ([]string, error) {
 	s.Lock()
 	defer s.Unlock()
 
 	if s.allocated[claimUid] != nil {
-		return nil, fmt.Errorf("allocation already exists")
+		return s.getAllocatedAsCDIDevices(claimUid), nil
 	}
 
-	if s.available.Len() < parameters.Count {
+	if requirements.Type() != nvcrd.GpuDeviceType {
+		return nil, fmt.Errorf("unsupported device type: %v", requirements.Type)
+	}
+
+	if s.available.Len() < requirements.Gpu.Count {
 		return nil, fmt.Errorf("unable to satisfy allocation (available: %v)", s.available.Len())
 	}
 
-	s.allocated[claimUid] = sets.NewInt(s.available.List()[:parameters.Count]...)
+	s.allocated[claimUid] = sets.NewString(s.available.List()[:requirements.Gpu.Count]...)
 	s.available = s.available.Difference(s.allocated[claimUid])
-	return s.allocated[claimUid], nil
+	return s.getAllocatedAsCDIDevices(claimUid), nil
+}
+
+func (s *DeviceState) getAllocatedAsCDIDevices(claimUid string) []string {
+	var devs []string
+	for _, uuid := range s.allocated[claimUid].List() {
+		devs = append(devs, s.cdi.DeviceDB().GetDevice(fmt.Sprintf("%s=gpu%d", cdiKind, s.devices[uuid].minor)).GetQualifiedName())
+	}
+	return devs
 }
 
 func (s *DeviceState) Free(claimUid string) error {
@@ -104,81 +152,75 @@ func (s *DeviceState) Free(claimUid string) error {
 	return nil
 }
 
-func (s *DeviceState) GetAvailable() sets.Int {
+func (s *DeviceState) GetUpdatedSpec(inspec *nvcrd.NodeAllocationStateSpec) *nvcrd.NodeAllocationStateSpec {
 	s.Lock()
 	defer s.Unlock()
-	return s.available
-}
 
-func (s *DeviceState) GetAllocated(claimUid string) sets.Int {
-	s.Lock()
-	defer s.Unlock()
-	return s.allocated[claimUid]
-}
+	gpus := make(map[string]nvcrd.AllocatableDevice)
+	for _, device := range s.devices {
+		if _, exists := gpus[device.name]; !exists {
+			gpus[device.name] = nvcrd.AllocatableDevice{
+				Gpu: &nvcrd.AllocatableGpu{
+					Name:  device.name,
+					Count: 0,
+				},
+			}
+		}
+		gpus[device.name].Gpu.Count += 1
+	}
 
-func (s *DeviceState) GetUpdatedSpec(inspec *nvcrd.GpuSpec) *nvcrd.GpuSpec {
-	s.Lock()
-	defer s.Unlock()
+	allocatable := []nvcrd.AllocatableDevice{}
+	for _, device := range gpus {
+		allocatable = append(allocatable, device)
+	}
+
 	outspec := inspec.DeepCopy()
-	outspec.Capacity = s.healthy.Union(s.unhealthy).Len()
-	outspec.Allocatable = s.healthy.Len()
-	outspec.ClaimAllocations = s.allocated.ToStringsMap()
+	outspec.AllocatableDevices = allocatable
+	outspec.ClaimAllocations = s.allocated.To(s.devices)
+
 	return outspec
 }
 
-func (is intSet) FromStrings(instrings []string) error {
-	newis := sets.NewInt()
-	for _, s := range instrings {
-		i, err := strconv.Atoi(s)
-		if err != nil {
-			return fmt.Errorf("unable to convert '%s' to integer: %v", s)
+func (cas ClaimAllocations) From(incas map[string][]nvcrd.AllocatedDevice) {
+	outcas := make(ClaimAllocations)
+	for claim, devices := range incas {
+		outcas[claim] = sets.NewString()
+		for _, d := range devices {
+			if d.Type() != nvcrd.GpuDeviceType {
+				continue
+			}
+			outcas[claim].Insert(d.Gpu.UUID)
 		}
-		newis.Insert(i)
 	}
-	sets.Int(is).Delete(sets.Int(is).List()...)
-	sets.Int(is).Insert(newis.List()...)
-	return nil
+	for claim := range cas {
+		delete(cas, claim)
+	}
+	for claim := range outcas {
+		cas[claim] = outcas[claim]
+	}
 }
 
-func (is intSet) ToStrings() []string {
-	var outstrings []string
-	for _, i := range sets.Int(is).List() {
-		outstrings = append(outstrings, fmt.Sprintf("%d", i))
-	}
-	return outstrings
-}
-
-func (ca ClaimAllocation) FromStringsMap(m map[string][]string) error {
-	newca := make(ClaimAllocation)
-	for claim, strs := range m {
-		is := sets.NewInt()
-		err := intSet(is).FromStrings(strs)
-		if err != nil {
-			return fmt.Errorf("error converting from strings for claim '%s': %v", claim, err)
+func (cas ClaimAllocations) To(info map[string]*GpuInfo) map[string][]nvcrd.AllocatedDevice {
+	outcas := make(map[string][]nvcrd.AllocatedDevice)
+	for claim, devices := range cas {
+		outcas[claim] = []nvcrd.AllocatedDevice{}
+		for _, uuid := range devices.List() {
+			device := nvcrd.AllocatedDevice{
+				Gpu: &nvcrd.AllocatedGpu{
+					UUID: uuid,
+					Name: info[uuid].name,
+				},
+			}
+			outcas[claim] = append(outcas[claim], device)
 		}
-		newca[claim] = is
 	}
-	for claim := range ca {
-		delete(ca, claim)
-	}
-	for claim := range newca {
-		ca[claim] = newca[claim]
-	}
-	return nil
+	return outcas
 }
 
-func (ca ClaimAllocation) ToStringsMap() map[string][]string {
-	strsmap := make(map[string][]string)
-	for claim, allocations := range ca {
-		strsmap[claim] = intSet(allocations).ToStrings()
+func (cas ClaimAllocations) DeepCopy() ClaimAllocations {
+	newcas := make(ClaimAllocations)
+	for claim, devices := range cas {
+		newcas[claim] = sets.NewString().Union(devices)
 	}
-	return strsmap
-}
-
-func (ca ClaimAllocation) DeepCopy() ClaimAllocation {
-	newca := make(ClaimAllocation)
-	for claim, devices := range ca {
-		newca[claim] = sets.NewInt().Union(devices)
-	}
-	return newca
+	return newcas
 }
