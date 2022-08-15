@@ -34,7 +34,10 @@ import (
 )
 
 const (
-	DriverName             = "dra.nvidia.com"
+	DriverName       = nvcrd.GroupName
+	DriverVersion    = nvcrd.Version
+	DriverAPIVersion = DriverName + "/" + DriverVersion
+
 	PluginRegistrationPath = "/var/lib/kubelet/plugins_registry"
 	DriverPluginPath       = "/var/lib/kubelet/plugins/" + DriverName
 	DriverPluginSocketPath = DriverPluginPath + "/plugin.sock"
@@ -54,7 +57,7 @@ type Clientset struct {
 }
 
 type Config struct {
-	crdconfig *nvcrd.GpuConfig
+	crdconfig *nvcrd.NodeAllocationStateConfig
 	clientset *Clientset
 }
 
@@ -98,7 +101,7 @@ func NewCommand() *cobra.Command {
 		}
 
 		config := &Config{
-			crdconfig: &nvcrd.GpuConfig{
+			crdconfig: &nvcrd.NodeAllocationStateConfig{
 				Name:      nodeName,
 				Namespace: podNamespace,
 				Owner: &metav1.OwnerReference{
