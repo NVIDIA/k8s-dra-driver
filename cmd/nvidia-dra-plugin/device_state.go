@@ -36,6 +36,10 @@ type GpuInfo struct {
 	name  string
 }
 
+func (g GpuInfo) CDIDevice() string {
+	return fmt.Sprintf("%s=gpu%d", cdiKind, g.minor)
+}
+
 type DeviceState struct {
 	sync.Mutex
 	cdi       cdiapi.Registry
@@ -82,11 +86,12 @@ func NewDeviceState(config *Config, nascrd *nvcrd.NodeAllocationState) (*DeviceS
 		if ret != nvml.SUCCESS {
 			return nil, fmt.Errorf("error getting name for device %d: %v", i, nvml.ErrorString(ret))
 		}
-		devices[uuid] = &GpuInfo{
+		gpuInfo := &GpuInfo{
 			uuid:  uuid,
 			minor: minor,
 			name:  name,
 		}
+		devices[uuid] = gpuInfo
 		uuids.Insert(uuid)
 	}
 
@@ -138,7 +143,7 @@ func (s *DeviceState) Allocate(claimUid string, requirements nvcrd.DeviceRequire
 func (s *DeviceState) getAllocatedAsCDIDevices(claimUid string) []string {
 	var devs []string
 	for _, uuid := range s.allocated[claimUid].List() {
-		devs = append(devs, s.cdi.DeviceDB().GetDevice(fmt.Sprintf("%s=gpu%d", cdiKind, s.devices[uuid].minor)).GetQualifiedName())
+		devs = append(devs, s.cdi.DeviceDB().GetDevice(s.devices[uuid].CDIDevice()).GetQualifiedName())
 	}
 	return devs
 }
@@ -189,7 +194,7 @@ func (cas ClaimAllocations) From(incas map[string][]nvcrd.AllocatedDevice) {
 			if d.Type() != nvcrd.GpuDeviceType {
 				continue
 			}
-			outcas[claim].Insert(d.Gpu.UUID)
+			outcas[claim].Insert(d.Gpu.CDIDeviceName)
 		}
 	}
 	for claim := range cas {
@@ -207,8 +212,9 @@ func (cas ClaimAllocations) To(info map[string]*GpuInfo) map[string][]nvcrd.Allo
 		for _, uuid := range devices.List() {
 			device := nvcrd.AllocatedDevice{
 				Gpu: &nvcrd.AllocatedGpu{
-					UUID: uuid,
-					Name: info[uuid].name,
+					UUID:          uuid,
+					Name:          info[uuid].name,
+					CDIDeviceName: info[uuid].CDIDevice(),
 				},
 			}
 			outcas[claim] = append(outcas[claim], device)
