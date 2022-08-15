@@ -81,11 +81,14 @@ spec:
                         description: AllocatedGpu represents an allocated GPU on a
                           node
                         properties:
+                          cdiDevice:
+                            type: string
                           name:
                             type: string
                           uuid:
                             type: string
                         required:
+                        - cdiDevice
                         - name
                         - uuid
                         type: object
@@ -93,6 +96,8 @@ spec:
                         description: AllocatedMigDevice represents an allocated MIG
                           device on a node
                         properties:
+                          cdiDevice:
+                            type: string
                           placement:
                             description: MigDevicePlacement represents the physical
                               placement of a MIG device relative to others
@@ -113,6 +118,7 @@ spec:
                           uuid:
                             type: string
                         required:
+                        - cdiDevice
                         - placement
                         - profile
                         - uuid
