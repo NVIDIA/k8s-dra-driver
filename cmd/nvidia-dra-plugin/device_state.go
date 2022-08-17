@@ -107,9 +107,9 @@ func NewDeviceState(config *Config, nascrd *nvcrd.NodeAllocationState) (*DeviceS
 		allocated:  make(ClaimAllocations),
 	}
 
-	err = state.SyncAllocatedFromCRDSpec(&nascrd.Spec)
+	err = state.SyncAllocatedDevicesFromCRDSpec(&nascrd.Spec)
 	if err != nil {
-		return nil, fmt.Errorf("unable to sync ClaimAllocations from CRD: %v", err)
+		return nil, fmt.Errorf("unable to sync allocted devices from CRD: %v", err)
 	}
 
 	for claimUid := range state.allocated {
@@ -236,8 +236,8 @@ func (s *DeviceState) GetUpdatedSpec(inspec *nvcrd.NodeAllocationStateSpec) *nvc
 	defer s.Unlock()
 
 	outspec := inspec.DeepCopy()
-	s.SyncAllDevicesToCRDSpec(outspec)
-	s.SyncAllocatedToCRDSpec(outspec)
+	s.SyncAllocatableDevicesToCRDSpec(outspec)
+	s.SyncAllocatedDevicesToCRDSpec(outspec)
 	return outspec
 }
 
@@ -300,7 +300,7 @@ func (uds *UnallocatedDevices) addMigDevices(ads AllocatedDevices) {
 	}
 }
 
-func (s *DeviceState) SyncAllDevicesToCRDSpec(spec *nvcrd.NodeAllocationStateSpec) {
+func (s *DeviceState) SyncAllocatableDevicesToCRDSpec(spec *nvcrd.NodeAllocationStateSpec) {
 	gpus := make(map[string]nvcrd.AllocatableDevice)
 	migs := make(map[string]nvcrd.AllocatableDevice)
 	for _, device := range s.alldevices {
@@ -332,6 +332,17 @@ func (s *DeviceState) SyncAllDevicesToCRDSpec(spec *nvcrd.NodeAllocationStateSpe
 		}
 	}
 
+	for _, device := range s.available {
+		if !device.migEnabled {
+			gpus[device.name].Gpu.Available += 1
+			continue
+		}
+
+		for _, mig := range device.migProfiles {
+			migs[mig.profile.String()].Mig.Available += mig.count
+		}
+	}
+
 	allocatable := []nvcrd.AllocatableDevice{}
 	for _, device := range gpus {
 		if device.Gpu.Count > 0 {
@@ -347,7 +358,7 @@ func (s *DeviceState) SyncAllDevicesToCRDSpec(spec *nvcrd.NodeAllocationStateSpe
 	spec.AllocatableDevices = allocatable
 }
 
-func (s *DeviceState) SyncAllocatedFromCRDSpec(spec *nvcrd.NodeAllocationStateSpec) error {
+func (s *DeviceState) SyncAllocatedDevicesFromCRDSpec(spec *nvcrd.NodeAllocationStateSpec) error {
 	//outcas := make(ClaimAllocations)
 	//for claim, devices := range incas {
 	//	outcas[claim] = make(AllocatedDevices)
@@ -367,7 +378,7 @@ func (s *DeviceState) SyncAllocatedFromCRDSpec(spec *nvcrd.NodeAllocationStateSp
 	return nil
 }
 
-func (s *DeviceState) SyncAllocatedToCRDSpec(spec *nvcrd.NodeAllocationStateSpec) {
+func (s *DeviceState) SyncAllocatedDevicesToCRDSpec(spec *nvcrd.NodeAllocationStateSpec) {
 	outcas := make(map[string][]nvcrd.AllocatedDevice)
 	for claim, devices := range s.allocated {
 		var allocated []nvcrd.AllocatedDevice
