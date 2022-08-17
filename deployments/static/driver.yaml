@@ -2,8 +2,8 @@
 apiVersion: v1
 kind: ResourceClass
 metadata:
-  name: gpus
-driverName: dra.nvidia.com
+  name: gpu.nvidia.com
+driverName: dra.gpu.nvidia.com
 
 ---
 apiVersion: v1
@@ -40,12 +40,12 @@ spec:
         args:
         - >-
           set -x;
-          kubectl get -n ${POD_NAMESPACE} gpus ${NODE_NAME};
+          kubectl get -n ${POD_NAMESPACE} nas ${NODE_NAME};
           if [ "${?}" = "0" ]; then
-          	kubectl patch -n ${POD_NAMESPACE} gpus ${NODE_NAME} --type merge -p '{"status": "NotReady"}';
-          	exit "${?}";
+            kubectl patch -n ${POD_NAMESPACE} nas ${NODE_NAME} --type merge -p '{"status": "NotReady"}';
+            exit "${?}";
           fi;
-          kubectl get --ignore-not-found=true -n ${POD_NAMESPACE} gpus ${NODE_NAME};
+          kubectl get --ignore-not-found=true -n ${POD_NAMESPACE} nas ${NODE_NAME};
           exit "${?}";
         env:
         - name: NODE_NAME
@@ -88,12 +88,12 @@ spec:
               - -c
               - >-
                 set -x;
-                kubectl get -n ${POD_NAMESPACE} gpus ${NODE_NAME};
+                kubectl get -n ${POD_NAMESPACE} nas ${NODE_NAME};
                 if [ "${?}" = "0" ]; then
-                	kubectl patch -n ${POD_NAMESPACE} gpus ${NODE_NAME} --type merge -p '{"status": "NotReady"}';
-                	exit "${?}";
+                  kubectl patch -n ${POD_NAMESPACE} nas ${NODE_NAME} --type merge -p '{"status": "NotReady"}';
+                  exit "${?}";
                 fi;
-                kubectl get --ignore-not-found=true -n ${POD_NAMESPACE} gpus ${NODE_NAME};
+                kubectl get --ignore-not-found=true -n ${POD_NAMESPACE} nas ${NODE_NAME};
                 exit "${?}";
       volumes:
       - name: plugins-registry
@@ -160,7 +160,7 @@ metadata:
   name: nvidia-dra-driver-role
   namespace: nvidia-dra-driver
 rules:
-- apiGroups: ["", "dra.nvidia.com"]
+- apiGroups: ["", "dra.gpu.nvidia.com"]
   resources: ["*"]
   verbs: ["*"]
 
