@@ -5,15 +5,15 @@ kind: ResourceClaim
 metadata:
   name: gpu-example4-test-claim
 spec:
-  resourceClassName: gpus
+  resourceClassName: gpu.nvidia.com
   parameters:
-    apiVersion: dra.nvidia.com/v1
-    kind: GpuParameterSet
+    apiVersion: dra.gpu.nvidia.com/v1
+    kind: GpuClaim
     name: gpu-example4-test-parameters
 
 ---
-apiVersion: dra.nvidia.com/v1
-kind: GpuParameterSet
+apiVersion: dra.gpu.nvidia.com/v1
+kind: GpuClaim
 metadata:
   name: gpu-example4-test-parameters
 spec:
