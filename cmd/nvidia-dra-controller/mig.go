@@ -17,10 +17,7 @@
 package main
 
 import (
-	"context"
-
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
 
 	"github.com/NVIDIA/k8s-dra-driver/pkg/controller"
 	nvcrd "github.com/NVIDIA/k8s-dra-driver/pkg/crd/nvidia/v1/api"
@@ -40,6 +37,6 @@ func (g migdriver) Allocate(crd *nvcrd.NodeAllocationState, claim *corev1.Resour
 	return nil
 }
 
-func (g migdriver) UnsuitableNodes(ctx context.Context, pod *v1.Pod, claims []*controller.ClaimAllocation, potentialNodes []string) error {
+func (g migdriver) UnsuitableNode(crd *nvcrd.NodeAllocationState, claims []*controller.ClaimAllocation, potentialNode string) error {
 	return nil
 }
