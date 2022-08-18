@@ -65,6 +65,14 @@ spec:
                           type: integer
                         count:
                           type: integer
+                        parentName:
+                          type: string
+                        placements:
+                          items:
+                            description: MigDevicePlacement represents the physical
+                              placement of a MIG device relative to others
+                            type: integer
+                          type: array
                         profile:
                           type: string
                         slices:
@@ -72,6 +80,8 @@ spec:
                       required:
                       - available
                       - count
+                      - parentName
+                      - placements
                       - profile
                       - slices
                       type: object
@@ -104,27 +114,19 @@ spec:
                         properties:
                           cdiDevice:
                             type: string
+                          parentUUID:
+                            type: string
                           placement:
                             description: MigDevicePlacement represents the physical
                               placement of a MIG device relative to others
-                            properties:
-                              gpu:
-                                type: string
-                              size:
-                                type: integer
-                              start:
-                                type: integer
-                            required:
-                            - gpu
-                            - size
-                            - start
-                            type: object
+                            type: integer
                           profile:
                             type: string
                           uuid:
                             type: string
                         required:
                         - cdiDevice
+                        - parentUUID
                         - placement
                         - profile
                         - uuid

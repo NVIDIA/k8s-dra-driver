@@ -36,10 +36,12 @@ type AllocatableGpu struct {
 
 // AllocatableMigDevice represents an allocatable MIG device on a node
 type AllocatableMigDevice struct {
-	Profile   string `json:"profile"`
-	Count     int    `json:"count"`
-	Available int    `json:"available"`
-	Slices    int    `json:"slices"`
+	Profile    string               `json:"profile"`
+	Count      int                  `json:"count"`
+	Available  int                  `json:"available"`
+	Slices     int                  `json:"slices"`
+	ParentName string               `json:"parentName"`
+	Placements []MigDevicePlacement `json:"placements"`
 }
 
 // AllocatableDevice represents an allocatable device on a node
@@ -68,18 +70,15 @@ type AllocatedGpu struct {
 
 // AllocatedMigDevice represents an allocated MIG device on a node
 type AllocatedMigDevice struct {
-	Profile   string             `json:"profile"`
-	UUID      string             `json:"uuid"`
-	CDIDevice string             `json:"cdiDevice"`
-	Placement MigDevicePlacement `json:"placement"`
+	Profile    string             `json:"profile"`
+	UUID       string             `json:"uuid"`
+	ParentUUID string             `json:"parentUUID"`
+	CDIDevice  string             `json:"cdiDevice"`
+	Placement  MigDevicePlacement `json:"placement"`
 }
 
 // MigDevicePlacement represents the physical placement of a MIG device relative to others
-type MigDevicePlacement struct {
-	GpuUUID string `json:"gpu"`
-	Start   int    `json:"start"`
-	Size    int    `json:"size"`
-}
+type MigDevicePlacement int
 
 // AllocatedDevice represents an allocated device on a node
 type AllocatedDevice struct {
