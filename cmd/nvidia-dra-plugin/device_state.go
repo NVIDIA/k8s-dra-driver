@@ -68,8 +68,9 @@ func (i AllocatedDeviceInfo) Type() string {
 }
 
 type MigProfileInfo struct {
-	profile *MigProfile
-	count   int
+	profile            *MigProfile
+	count              int
+	possiblePlacements []nvml.GpuInstancePlacement
 }
 
 type UnallocatedDeviceInfo struct {
@@ -322,13 +323,21 @@ func (s *DeviceState) SyncAllocatableDevicesToCRDSpec(spec *nvcrd.NodeAllocation
 			if _, exists := migs[mig.profile.String()]; !exists {
 				migs[mig.profile.String()] = nvcrd.AllocatableDevice{
 					Mig: &nvcrd.AllocatableMigDevice{
-						Profile: mig.profile.String(),
-						Count:   0,
-						Slices:  mig.profile.G,
+						Profile:    mig.profile.String(),
+						Count:      0,
+						Slices:     mig.profile.G,
+						ParentName: device.name,
 					},
 				}
 			}
+
+			var placements []nvcrd.MigDevicePlacement
+			for _, p := range mig.possiblePlacements {
+				placements = append(placements, nvcrd.MigDevicePlacement(p.Start))
+			}
+
 			migs[mig.profile.String()].Mig.Count += mig.count
+			migs[mig.profile.String()].Mig.Placements = placements
 		}
 	}
 
@@ -343,7 +352,7 @@ func (s *DeviceState) SyncAllocatableDevicesToCRDSpec(spec *nvcrd.NodeAllocation
 		}
 	}
 
-	allocatable := []nvcrd.AllocatableDevice{}
+	var allocatable []nvcrd.AllocatableDevice
 	for _, device := range gpus {
 		if device.Gpu.Count > 0 {
 			allocatable = append(allocatable, device)
@@ -393,14 +402,11 @@ func (s *DeviceState) SyncAllocatedDevicesToCRDSpec(spec *nvcrd.NodeAllocationSt
 				}
 			case nvcrd.MigDeviceType:
 				outdevice.Mig = &nvcrd.AllocatedMigDevice{
-					UUID:      uuid,
-					Profile:   device.mig.profile.String(),
-					CDIDevice: device.mig.CDIDevice(),
-					Placement: nvcrd.MigDevicePlacement{
-						GpuUUID: device.mig.parent.uuid,
-						Start:   int(device.mig.giInfo.Placement.Start),
-						Size:    int(device.mig.giInfo.Placement.Size),
-					},
+					UUID:       uuid,
+					ParentUUID: device.mig.parent.uuid,
+					Profile:    device.mig.profile.String(),
+					CDIDevice:  device.mig.CDIDevice(),
+					Placement:  nvcrd.MigDevicePlacement(device.mig.giInfo.Placement.Start),
 				}
 			}
 			allocated = append(allocated, outdevice)
