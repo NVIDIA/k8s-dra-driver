@@ -118,13 +118,13 @@ func NewDeviceState(config *Config, nascrd *nvcrd.NodeAllocationState) (*DeviceS
 		allocated:  make(ClaimAllocations),
 	}
 
-	err = state.SyncAllocatedDevicesFromCRDSpec(&nascrd.Spec)
+	err = state.syncAllocatedDevicesFromCRDSpec(&nascrd.Spec)
 	if err != nil {
 		return nil, fmt.Errorf("unable to sync allocated devices from CRD: %v", err)
 	}
 
 	for claimUid := range state.allocated {
-		state.RemoveFromAvailable(state.allocated[claimUid])
+		state.removeFromAvailable(state.allocated[claimUid])
 	}
 
 	return state, nil
@@ -141,9 +141,9 @@ func (s *DeviceState) Allocate(claimUid string, requirements nvcrd.DeviceRequire
 	var err error
 	switch requirements.Type() {
 	case nvcrd.GpuDeviceType:
-		err = s.AllocateGpus(claimUid, requirements.Gpu)
+		err = s.allocateGpus(claimUid, requirements.Gpu)
 	case nvcrd.MigDeviceType:
-		err = s.AllocateMigDevices(claimUid, requirements.Mig)
+		err = s.allocateMigDevices(claimUid, requirements.Mig)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("allocation failed: %v", err)
@@ -156,25 +156,47 @@ func (s *DeviceState) Free(claimUid string) error {
 	s.Lock()
 	defer s.Unlock()
 
+	if s.allocated[claimUid] == nil {
+		return nil
+	}
+
 	for _, device := range s.allocated[claimUid] {
 		var err error
 		switch device.Type() {
 		case nvcrd.GpuDeviceType:
-			break
+			err = s.freeGpu(device.gpu)
 		case nvcrd.MigDeviceType:
-			err = s.FreeMigDevice(device.mig)
+			err = s.freeMigDevice(device.mig)
 		}
 		if err != nil {
 			return fmt.Errorf("free failed: %v", err)
 		}
 	}
 
-	s.AddtoAvailable(s.allocated[claimUid])
+	s.addtoAvailable(s.allocated[claimUid])
 	delete(s.allocated, claimUid)
 	return nil
 }
 
-func (s *DeviceState) AllocateGpus(claimUid string, requirements *nvcrd.GpuClaimSpec) error {
+func (s *DeviceState) GetUpdatedSpec(inspec *nvcrd.NodeAllocationStateSpec) *nvcrd.NodeAllocationStateSpec {
+	s.Lock()
+	defer s.Unlock()
+
+	outspec := inspec.DeepCopy()
+	s.syncAllocatableDevicesToCRDSpec(outspec)
+	s.syncAllocatedDevicesToCRDSpec(outspec)
+	return outspec
+}
+
+func (s *DeviceState) getAllocatedAsCDIDevices(claimUid string) []string {
+	var devs []string
+	for _, device := range s.allocated[claimUid] {
+		devs = append(devs, s.cdi.DeviceDB().GetDevice(device.CDIDevice()).GetQualifiedName())
+	}
+	return devs
+}
+
+func (s *DeviceState) allocateGpus(claimUid string, requirements *nvcrd.GpuClaimSpec) error {
 	var available []*GpuInfo
 	for _, d := range s.available {
 		if !d.migEnabled {
@@ -194,12 +216,12 @@ func (s *DeviceState) AllocateGpus(claimUid string, requirements *nvcrd.GpuClaim
 	}
 
 	s.allocated[claimUid] = allocated
-	s.RemoveFromAvailable(allocated)
+	s.removeFromAvailable(allocated)
 
 	return nil
 }
 
-func (s *DeviceState) AllocateMigDevices(claimUid string, requirements *nvcrd.MigDeviceClaimSpec) error {
+func (s *DeviceState) allocateMigDevices(claimUid string, requirements *nvcrd.MigDeviceClaimSpec) error {
 	var gpus UnallocatedDevices
 	for _, d := range s.available {
 		if d.migEnabled {
@@ -233,85 +255,34 @@ func (s *DeviceState) AllocateMigDevices(claimUid string, requirements *nvcrd.Mi
 	}
 
 	s.allocated[claimUid] = allocated
-	s.RemoveFromAvailable(allocated)
+	s.removeFromAvailable(allocated)
 
 	return nil
 }
 
-func (s *DeviceState) FreeMigDevice(mig *MigDeviceInfo) error {
+func (s *DeviceState) freeGpu(gpu *GpuInfo) error {
+	return nil
+}
+
+func (s *DeviceState) freeMigDevice(mig *MigDeviceInfo) error {
 	return deleteMigDevice(mig)
 }
 
-func (s *DeviceState) GetUpdatedSpec(inspec *nvcrd.NodeAllocationStateSpec) *nvcrd.NodeAllocationStateSpec {
-	s.Lock()
-	defer s.Unlock()
-
-	outspec := inspec.DeepCopy()
-	s.SyncAllocatableDevicesToCRDSpec(outspec)
-	s.SyncAllocatedDevicesToCRDSpec(outspec)
-	return outspec
-}
-
-func (s *DeviceState) RemoveFromAvailable(ads AllocatedDevices) {
+func (s *DeviceState) removeFromAvailable(ads AllocatedDevices) {
 	newav := s.available.DeepCopy()
 	(&newav).removeGpus(ads)
 	(&newav).removeMigDevices(ads)
 	s.available = newav
 }
 
-func (uds *UnallocatedDevices) removeGpus(ads AllocatedDevices) {
-	var newuds UnallocatedDevices
-	for _, ud := range *uds {
-		if _, exists := ads[ud.uuid]; !exists {
-			newuds = append(newuds, ud)
-		}
-	}
-	*uds = newuds
-}
-
-func (uds *UnallocatedDevices) removeMigDevices(ads AllocatedDevices) {
-	for _, ud := range *uds {
-		for _, ad := range ads {
-			if ad.Type() == nvcrd.MigDeviceType {
-				if ud.uuid == ad.mig.parent.uuid {
-					ud.migProfiles[ad.mig.profile.String()].count -= 1
-				}
-			}
-		}
-	}
-}
-
-func (s *DeviceState) AddtoAvailable(ads AllocatedDevices) {
+func (s *DeviceState) addtoAvailable(ads AllocatedDevices) {
 	newav := s.available.DeepCopy()
 	(&newav).addGpus(ads)
 	(&newav).addMigDevices(ads)
 	s.available = newav
 }
 
-func (uds *UnallocatedDevices) addGpus(ads AllocatedDevices) {
-	for _, ad := range ads {
-		if ad.Type() == nvcrd.GpuDeviceType {
-			ud := UnallocatedDeviceInfo{
-				GpuInfo: ad.gpu,
-			}
-			*uds = append(*uds, ud)
-		}
-	}
-}
-
-func (uds *UnallocatedDevices) addMigDevices(ads AllocatedDevices) {
-	for _, ad := range ads {
-		if ad.Type() == nvcrd.MigDeviceType {
-			for _, ud := range *uds {
-				if ud.uuid == ad.mig.parent.uuid {
-					ud.migProfiles[ad.mig.profile.String()].count += 1
-				}
-			}
-		}
-	}
-}
-
-func (s *DeviceState) SyncAllocatableDevicesToCRDSpec(spec *nvcrd.NodeAllocationStateSpec) {
+func (s *DeviceState) syncAllocatableDevicesToCRDSpec(spec *nvcrd.NodeAllocationStateSpec) {
 	gpus := make(map[string]nvcrd.AllocatableDevice)
 	migs := make(map[string]nvcrd.AllocatableDevice)
 	for _, device := range s.alldevices {
@@ -377,7 +348,7 @@ func (s *DeviceState) SyncAllocatableDevicesToCRDSpec(spec *nvcrd.NodeAllocation
 	spec.AllocatableDevices = allocatable
 }
 
-func (s *DeviceState) SyncAllocatedDevicesFromCRDSpec(spec *nvcrd.NodeAllocationStateSpec) error {
+func (s *DeviceState) syncAllocatedDevicesFromCRDSpec(spec *nvcrd.NodeAllocationStateSpec) error {
 	gpus, err := getGpus()
 	if err != nil {
 		return fmt.Errorf("error getting GPUs: %v", err)
@@ -443,7 +414,7 @@ func (s *DeviceState) SyncAllocatedDevicesFromCRDSpec(spec *nvcrd.NodeAllocation
 	return nil
 }
 
-func (s *DeviceState) SyncAllocatedDevicesToCRDSpec(spec *nvcrd.NodeAllocationStateSpec) {
+func (s *DeviceState) syncAllocatedDevicesToCRDSpec(spec *nvcrd.NodeAllocationStateSpec) {
 	outcas := make(map[string][]nvcrd.AllocatedDevice)
 	for claim, devices := range s.allocated {
 		var allocated []nvcrd.AllocatedDevice
@@ -472,14 +443,6 @@ func (s *DeviceState) SyncAllocatedDevicesToCRDSpec(spec *nvcrd.NodeAllocationSt
 	spec.ClaimAllocations = outcas
 }
 
-func (s *DeviceState) getAllocatedAsCDIDevices(claimUid string) []string {
-	var devs []string
-	for _, device := range s.allocated[claimUid] {
-		devs = append(devs, s.cdi.DeviceDB().GetDevice(device.CDIDevice()).GetQualifiedName())
-	}
-	return devs
-}
-
 func (ds UnallocatedDevices) DeepCopy() UnallocatedDevices {
 	var newds UnallocatedDevices
 	for _, d := range ds {
@@ -503,4 +466,49 @@ func (ds UnallocatedDevices) DeepCopy() UnallocatedDevices {
 		newds = append(newds, deviceInfo)
 	}
 	return newds
+}
+
+func (uds *UnallocatedDevices) removeGpus(ads AllocatedDevices) {
+	var newuds UnallocatedDevices
+	for _, ud := range *uds {
+		if _, exists := ads[ud.uuid]; !exists {
+			newuds = append(newuds, ud)
+		}
+	}
+	*uds = newuds
+}
+
+func (uds *UnallocatedDevices) removeMigDevices(ads AllocatedDevices) {
+	for _, ud := range *uds {
+		for _, ad := range ads {
+			if ad.Type() == nvcrd.MigDeviceType {
+				if ud.uuid == ad.mig.parent.uuid {
+					ud.migProfiles[ad.mig.profile.String()].count -= 1
+				}
+			}
+		}
+	}
+}
+
+func (uds *UnallocatedDevices) addGpus(ads AllocatedDevices) {
+	for _, ad := range ads {
+		if ad.Type() == nvcrd.GpuDeviceType {
+			ud := UnallocatedDeviceInfo{
+				GpuInfo: ad.gpu,
+			}
+			*uds = append(*uds, ud)
+		}
+	}
+}
+
+func (uds *UnallocatedDevices) addMigDevices(ads AllocatedDevices) {
+	for _, ad := range ads {
+		if ad.Type() == nvcrd.MigDeviceType {
+			for _, ud := range *uds {
+				if ud.uuid == ad.mig.parent.uuid {
+					ud.migProfiles[ad.mig.profile.String()].count += 1
+				}
+			}
+		}
+	}
 }
