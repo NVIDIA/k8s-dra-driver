@@ -378,22 +378,68 @@ func (s *DeviceState) SyncAllocatableDevicesToCRDSpec(spec *nvcrd.NodeAllocation
 }
 
 func (s *DeviceState) SyncAllocatedDevicesFromCRDSpec(spec *nvcrd.NodeAllocationStateSpec) error {
-	//outcas := make(ClaimAllocations)
-	//for claim, devices := range incas {
-	//	outcas[claim] = make(AllocatedDevices)
-	//	for _, d := range devices {
-	//		switch d.Type() {
-	//		case nvcrd.GpuDeviceType:
-	//			outcas[claim][d.Gpu.UUID].Insert(d.Gpu.CDIDeviceName)
-	//		}
-	//	}
-	//}
-	//for claim := range cas {
-	//	delete(cas, claim)
-	//}
-	//for claim := range outcas {
-	//	cas[claim] = outcas[claim]
-	//}
+	gpus, err := getGpus()
+	if err != nil {
+		return fmt.Errorf("error getting GPUs: %v", err)
+	}
+
+	migs := make(map[string]map[string]*MigDeviceInfo)
+	for uuid, gpu := range gpus {
+		ms, err := getMigDevices(gpu)
+		if err != nil {
+			return fmt.Errorf("error getting MIG devices for GPU '%v': %v", uuid, err)
+		}
+		if len(ms) != 0 {
+			migs[uuid] = ms
+		}
+	}
+
+	allocated := make(ClaimAllocations)
+	for claim, devices := range spec.ClaimAllocations {
+		allocated[claim] = make(AllocatedDevices)
+		for _, d := range devices {
+			switch d.Type() {
+			case nvcrd.GpuDeviceType:
+				gpuInfo, err := getGpu(d.Gpu.UUID)
+				if err != nil {
+					return fmt.Errorf("error getting GPU info for %+v: %v", d.Gpu, err)
+				}
+				allocated[claim][gpuInfo.uuid] = AllocatedDeviceInfo{
+					gpu: gpuInfo,
+				}
+			case nvcrd.MigDeviceType:
+				migInfo := migs[d.Mig.ParentUUID][d.Mig.UUID]
+				if migInfo == nil {
+					profile, err := ParseMigProfile(d.Mig.Profile)
+					if err != nil {
+						return fmt.Errorf("error parsing MIG profile for '%v': %v", d.Mig.Profile, err)
+					}
+					placement := &nvml.GpuInstancePlacement{
+						Start: uint32(d.Mig.Placement),
+						Size:  uint32(profile.G),
+					}
+					migInfo, err = createMigDevice(gpus[d.Mig.ParentUUID], profile, placement)
+					if err != nil {
+						return fmt.Errorf("error creating MIG device info for '%v' on GPU '%v': %v", d.Mig.Profile, d.Mig.ParentUUID, err)
+					}
+				} else {
+					delete(migs[d.Mig.ParentUUID], d.Mig.UUID)
+					if len(migs[d.Mig.ParentUUID]) == 0 {
+						delete(migs, d.Mig.ParentUUID)
+					}
+				}
+				allocated[claim][migInfo.uuid] = AllocatedDeviceInfo{
+					mig: migInfo,
+				}
+			}
+		}
+	}
+
+	if len(migs) != 0 {
+		return fmt.Errorf("MIG devices found that aren't allocated to any claim: %+v", migs)
+	}
+
+	s.allocated = allocated
 	return nil
 }
 
