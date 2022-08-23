@@ -135,7 +135,7 @@ func (d driver) Allocate(ctx context.Context, claim *corev1.ResourceClaim, claim
 		err = fmt.Errorf("unknown ResourceClaim.Parameters.Kind: %v", claim.Spec.Parameters.Kind)
 	}
 	if err != nil {
-		return nil, fmt.Errorf("unable to allocate devices: %v", err)
+		return nil, fmt.Errorf("unable to allocate devices on node '%v': %v", selectedNode, err)
 	}
 
 	err = nascrd.Update(&nascrd.Spec)

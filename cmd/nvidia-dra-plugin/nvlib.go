@@ -132,7 +132,7 @@ func createMigDevice(gpu *GpuInfo, profile *MigProfile, placement *nvml.GpuInsta
 
 	device, ret := nvml.DeviceGetHandleByUUID(gpu.uuid)
 	if ret != nvml.SUCCESS {
-		return nil, fmt.Errorf("error getting GPU device handle for '%v': %v", profile, nvml.ErrorString(ret))
+		return nil, fmt.Errorf("error getting GPU device handle: %v", nvml.ErrorString(ret))
 	}
 
 	giProfileInfo, ret := device.GetGpuInstanceProfileInfo(profile.GIProfileID)

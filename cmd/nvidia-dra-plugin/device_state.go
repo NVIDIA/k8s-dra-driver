@@ -120,7 +120,7 @@ func NewDeviceState(config *Config, nascrd *nvcrd.NodeAllocationState) (*DeviceS
 
 	err = state.SyncAllocatedDevicesFromCRDSpec(&nascrd.Spec)
 	if err != nil {
-		return nil, fmt.Errorf("unable to sync allocted devices from CRD: %v", err)
+		return nil, fmt.Errorf("unable to sync allocated devices from CRD: %v", err)
 	}
 
 	for claimUid := range state.allocated {
