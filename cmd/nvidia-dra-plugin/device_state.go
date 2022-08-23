@@ -67,6 +67,16 @@ func (i AllocatedDeviceInfo) Type() string {
 	return nvcrd.UnknownDeviceType
 }
 
+func (i AllocatedDeviceInfo) CDIDevice() string {
+	switch i.Type() {
+	case nvcrd.GpuDeviceType:
+		return i.gpu.CDIDevice()
+	case nvcrd.MigDeviceType:
+		return i.mig.CDIDevice()
+	}
+	return ""
+}
+
 type MigProfileInfo struct {
 	profile            *MigProfile
 	count              int
@@ -419,14 +429,7 @@ func (s *DeviceState) SyncAllocatedDevicesToCRDSpec(spec *nvcrd.NodeAllocationSt
 func (s *DeviceState) getAllocatedAsCDIDevices(claimUid string) []string {
 	var devs []string
 	for _, device := range s.allocated[claimUid] {
-		var cdiDevice string
-		switch device.Type() {
-		case nvcrd.GpuDeviceType:
-			cdiDevice = device.gpu.CDIDevice()
-		case nvcrd.MigDeviceType:
-			cdiDevice = device.mig.CDIDevice()
-		}
-		devs = append(devs, s.cdi.DeviceDB().GetDevice(cdiDevice).GetQualifiedName())
+		devs = append(devs, s.cdi.DeviceDB().GetDevice(device.CDIDevice()).GetQualifiedName())
 	}
 	return devs
 }
