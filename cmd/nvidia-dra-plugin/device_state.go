@@ -78,9 +78,14 @@ func (i AllocatedDeviceInfo) CDIDevice() string {
 }
 
 type MigProfileInfo struct {
-	profile            *MigProfile
-	count              int
-	possiblePlacements []nvml.GpuInstancePlacement
+	profile    *MigProfile
+	available  int
+	placements []*MigDevicePlacement
+}
+
+type MigDevicePlacement struct {
+	nvml.GpuInstancePlacement
+	blockedBy int
 }
 
 type UnallocatedDeviceInfo struct {
@@ -234,7 +239,8 @@ func (s *DeviceState) allocateMigDevices(claimUid string, requirements *nvcrd.Mi
 		if _, exists := gpu.migProfiles[requirements.Profile]; !exists {
 			continue
 		}
-		if gpu.migProfiles[requirements.Profile].count == 0 {
+
+		if gpu.migProfiles[requirements.Profile].available == 0 {
 			continue
 		}
 
@@ -284,7 +290,7 @@ func (s *DeviceState) addtoAvailable(ads AllocatedDevices) {
 
 func (s *DeviceState) syncAllocatableDevicesToCRDSpec(spec *nvcrd.NodeAllocationStateSpec) {
 	gpus := make(map[string]nvcrd.AllocatableDevice)
-	migs := make(map[string]nvcrd.AllocatableDevice)
+	migs := make(map[string]map[string]nvcrd.AllocatableDevice)
 	for _, device := range s.alldevices {
 		if _, exists := gpus[device.name]; !exists {
 			gpus[device.name] = nvcrd.AllocatableDevice{
@@ -301,35 +307,29 @@ func (s *DeviceState) syncAllocatableDevicesToCRDSpec(spec *nvcrd.NodeAllocation
 		}
 
 		for _, mig := range device.migProfiles {
-			if _, exists := migs[mig.profile.String()]; !exists {
-				migs[mig.profile.String()] = nvcrd.AllocatableDevice{
-					Mig: &nvcrd.AllocatableMigDevice{
-						Profile:    mig.profile.String(),
-						Count:      0,
-						Slices:     mig.profile.G,
-						ParentName: device.name,
-					},
-				}
+			if _, exists := migs[device.name]; !exists {
+				migs[device.name] = make(map[string]nvcrd.AllocatableDevice)
+			}
+
+			if _, exists := migs[device.name][mig.profile.String()]; exists {
+				continue
 			}
 
 			var placements []nvcrd.MigDevicePlacement
-			for _, p := range mig.possiblePlacements {
+			for _, p := range mig.placements {
 				placements = append(placements, nvcrd.MigDevicePlacement(p.Start))
 			}
 
-			migs[mig.profile.String()].Mig.Count += mig.count
-			migs[mig.profile.String()].Mig.Placements = placements
-		}
-	}
+			ad := nvcrd.AllocatableDevice{
+				Mig: &nvcrd.AllocatableMigDevice{
+					Profile:    mig.profile.String(),
+					Slices:     mig.profile.G,
+					ParentName: device.name,
+					Placements: placements,
+				},
+			}
 
-	for _, device := range s.available {
-		if !device.migEnabled {
-			gpus[device.name].Gpu.Available += 1
-			continue
-		}
-
-		for _, mig := range device.migProfiles {
-			migs[mig.profile.String()].Mig.Available += mig.count
+			migs[device.name][mig.profile.String()] = ad
 		}
 	}
 
@@ -339,8 +339,8 @@ func (s *DeviceState) syncAllocatableDevicesToCRDSpec(spec *nvcrd.NodeAllocation
 			allocatable = append(allocatable, device)
 		}
 	}
-	for _, device := range migs {
-		if device.Mig.Count > 0 {
+	for _, devices := range migs {
+		for _, device := range devices {
 			allocatable = append(allocatable, device)
 		}
 	}
@@ -430,8 +430,9 @@ func (s *DeviceState) syncAllocatedDevicesToCRDSpec(spec *nvcrd.NodeAllocationSt
 			case nvcrd.MigDeviceType:
 				outdevice.Mig = &nvcrd.AllocatedMigDevice{
 					UUID:       uuid,
-					ParentUUID: device.mig.parent.uuid,
 					Profile:    device.mig.profile.String(),
+					ParentUUID: device.mig.parent.uuid,
+					ParentName: device.mig.parent.name,
 					CDIDevice:  device.mig.CDIDevice(),
 					Placement:  nvcrd.MigDevicePlacement(device.mig.giInfo.Placement.Start),
 				}
@@ -451,10 +452,14 @@ func (ds UnallocatedDevices) DeepCopy() UnallocatedDevices {
 		migProfiles := make(map[string]*MigProfileInfo)
 		for _, p := range d.migProfiles {
 			newp := &MigProfileInfo{
-				profile: p.profile,
-				count:   p.count,
+				profile:    p.profile,
+				available:  p.available,
+				placements: make([]*MigDevicePlacement, len(p.placements)),
 			}
-			copy(newp.possiblePlacements, p.possiblePlacements)
+			for i := range p.placements {
+				p := *p.placements[i]
+				newp.placements[i] = &p
+			}
 			migProfiles[p.profile.String()] = newp
 		}
 
@@ -483,7 +488,9 @@ func (uds *UnallocatedDevices) removeMigDevices(ads AllocatedDevices) {
 		for _, ad := range ads {
 			if ad.Type() == nvcrd.MigDeviceType {
 				if ud.uuid == ad.mig.parent.uuid {
-					ud.migProfiles[ad.mig.profile.String()].count -= 1
+					for _, profile := range ud.migProfiles {
+						profile.removeOverlappingPlacements(&ad.mig.giInfo.Placement)
+					}
 				}
 			}
 		}
@@ -506,9 +513,53 @@ func (uds *UnallocatedDevices) addMigDevices(ads AllocatedDevices) {
 		if ad.Type() == nvcrd.MigDeviceType {
 			for _, ud := range *uds {
 				if ud.uuid == ad.mig.parent.uuid {
-					ud.migProfiles[ad.mig.profile.String()].count += 1
+					for _, profile := range ud.migProfiles {
+						profile.addOverlappingPlacements(&ad.mig.giInfo.Placement)
+					}
 				}
 			}
+		}
+	}
+}
+
+func (m *MigProfileInfo) removeOverlappingPlacements(p *nvml.GpuInstancePlacement) {
+	pFirst := p.Start
+	pLast := p.Start + p.Size - 1
+
+	for _, mpp := range m.placements {
+		mppFirst := mpp.Start
+		mppLast := (mpp.Start + mpp.Size - 1)
+
+		if mppLast < pFirst {
+			continue
+		}
+		if mppFirst > pLast {
+			continue
+		}
+		if mpp.blockedBy == 0 {
+			m.available -= 1
+		}
+		mpp.blockedBy += 1
+	}
+}
+
+func (m *MigProfileInfo) addOverlappingPlacements(p *nvml.GpuInstancePlacement) {
+	pFirst := p.Start
+	pLast := p.Start + p.Size - 1
+
+	for _, mpp := range m.placements {
+		mppFirst := mpp.Start
+		mppLast := (mpp.Start + mpp.Size - 1)
+
+		if mppLast < pFirst {
+			continue
+		}
+		if mppFirst > pLast {
+			continue
+		}
+		mpp.blockedBy -= 1
+		if mpp.blockedBy == 0 {
+			m.available += 1
 		}
 	}
 }
