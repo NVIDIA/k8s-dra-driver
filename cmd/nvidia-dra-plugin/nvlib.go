@@ -109,10 +109,18 @@ func enumerateAllPossibleDevices() (UnallocatedDevices, error) {
 			if ret != nvml.SUCCESS {
 				return nil, fmt.Errorf("error retrieving GpuInstancePossiblePlacements for profile %d on GPU %v", j, i)
 			}
+			var migDevicePlacements []*MigDevicePlacement
+			for _, p := range giPossiblePlacements {
+				mdp := &MigDevicePlacement{
+					GpuInstancePlacement: p,
+					blockedBy:            0,
+				}
+				migDevicePlacements = append(migDevicePlacements, mdp)
+			}
 			profileInfo := &MigProfileInfo{
-				profile:            NewMigProfile(j, j, nvml.COMPUTE_INSTANCE_ENGINE_PROFILE_SHARED, giProfileInfo.SliceCount, giProfileInfo.SliceCount, giProfileInfo.MemorySizeMB, memory.Total),
-				count:              int(giProfileInfo.InstanceCount),
-				possiblePlacements: giPossiblePlacements,
+				profile:    NewMigProfile(j, j, nvml.COMPUTE_INSTANCE_ENGINE_PROFILE_SHARED, giProfileInfo.SliceCount, giProfileInfo.SliceCount, giProfileInfo.MemorySizeMB, memory.Total),
+				available:  len(migDevicePlacements),
+				placements: migDevicePlacements,
 			}
 			deviceInfo.migProfiles[profileInfo.profile.String()] = profileInfo
 		}

@@ -46,14 +46,11 @@ spec:
                       description: AllocatableGpu represents an allocatable GPU on
                         a node
                       properties:
-                        available:
-                          type: integer
                         count:
                           type: integer
                         name:
                           type: string
                       required:
-                      - available
                       - count
                       - name
                       type: object
@@ -61,10 +58,6 @@ spec:
                       description: AllocatableMigDevice represents an allocatable
                         MIG device on a node
                       properties:
-                        available:
-                          type: integer
-                        count:
-                          type: integer
                         parentName:
                           type: string
                         placements:
@@ -78,8 +71,6 @@ spec:
                         slices:
                           type: integer
                       required:
-                      - available
-                      - count
                       - parentName
                       - placements
                       - profile
@@ -114,6 +105,8 @@ spec:
                         properties:
                           cdiDevice:
                             type: string
+                          parentName:
+                            type: string
                           parentUUID:
                             type: string
                           placement:
@@ -126,6 +119,7 @@ spec:
                             type: string
                         required:
                         - cdiDevice
+                        - parentName
                         - parentUUID
                         - placement
                         - profile
