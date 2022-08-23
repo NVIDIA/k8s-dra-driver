@@ -130,7 +130,7 @@ func createMigDevice(gpu *GpuInfo, profile *MigProfile, placement *nvml.GpuInsta
 	}
 	defer tryNvmlShutdown()
 
-	device, ret := nvml.DeviceGetHandleByUUID(gpu.uuid)
+	device, ret := nvml.DeviceGetHandleByUUID(gpu.uuid + string(rune(0)))
 	if ret != nvml.SUCCESS {
 		return nil, fmt.Errorf("error getting GPU device handle: %v", nvml.ErrorString(ret))
 	}
@@ -214,7 +214,7 @@ func deleteMigDevice(mig *MigDeviceInfo) error {
 	}
 	defer tryNvmlShutdown()
 
-	parent, ret := nvml.DeviceGetHandleByUUID(mig.parent.uuid)
+	parent, ret := nvml.DeviceGetHandleByUUID(mig.parent.uuid + string(rune(0)))
 	if ret != nvml.SUCCESS {
 		return fmt.Errorf("error getting device from UUID '%v': %v", mig.parent.uuid, nvml.ErrorString(ret))
 	}
