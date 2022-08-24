@@ -39,6 +39,34 @@ func (g gpudriver) ValidateClaimSpec(claimSpec *nvcrd.GpuClaimSpec) error {
 }
 
 func (g gpudriver) Allocate(crd *nvcrd.NodeAllocationState, claim *corev1.ResourceClaim, claimSpec *nvcrd.GpuClaimSpec, class *corev1.ResourceClass, classSpec *nvcrd.DeviceClassSpec, selectedNode string) error {
+	available := g.available(crd)
+	if claimSpec.Count > available {
+		return fmt.Errorf("not enough devices to satisfy allocation: (available: %v, requested: %v)", available, claimSpec.Count)
+	}
+	crd.Spec.ClaimRequirements[string(claim.UID)] = nvcrd.DeviceRequirements{
+		Gpu: claimSpec,
+	}
+	return nil
+}
+
+func (g gpudriver) UnsuitableNode(crd *nvcrd.NodeAllocationState, cas []*controller.ClaimAllocation, potentialNode string) error {
+	totalRequested := 0
+	for _, ca := range cas {
+		if ca.Claim.Spec.Parameters.Kind != nvcrd.GpuClaimKind {
+			continue
+		}
+		count := ca.ClaimParameters.(*nvcrd.GpuClaimSpec).Count
+		totalRequested += count
+	}
+	if totalRequested > g.available(crd) {
+		for _, ca := range cas {
+			ca.UnsuitableNodes = append(ca.UnsuitableNodes, potentialNode)
+		}
+	}
+	return nil
+}
+
+func (g gpudriver) available(crd *nvcrd.NodeAllocationState) int {
 	allocatable := 0
 	for _, device := range crd.Spec.AllocatableDevices {
 		switch device.Type() {
@@ -46,7 +74,6 @@ func (g gpudriver) Allocate(crd *nvcrd.NodeAllocationState, claim *corev1.Resour
 			allocatable += device.Gpu.Count
 		}
 	}
-
 	allocated := 0
 	for _, requirements := range crd.Spec.ClaimRequirements {
 		switch requirements.Type() {
@@ -54,19 +81,5 @@ func (g gpudriver) Allocate(crd *nvcrd.NodeAllocationState, claim *corev1.Resour
 			allocated += requirements.Gpu.Count
 		}
 	}
-
-	available := allocatable - allocated
-	if claimSpec.Count > available {
-		return fmt.Errorf("not enough devices to satisfy allocation: (available: %v, requested: %v)", available, claimSpec.Count)
-	}
-
-	crd.Spec.ClaimRequirements[string(claim.UID)] = nvcrd.DeviceRequirements{
-		Gpu: claimSpec,
-	}
-
-	return nil
-}
-
-func (g gpudriver) UnsuitableNode(crd *nvcrd.NodeAllocationState, claims []*controller.ClaimAllocation, potentialNode string) error {
-	return nil
+	return allocatable - allocated
 }
