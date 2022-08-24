@@ -301,10 +301,12 @@ func (s *DeviceState) syncAllocatableDevicesToCRDSpec(spec *nvcrd.NodeAllocation
 			}
 		}
 
+		gpus[device.name].Gpu.Count += 1
 		if !device.migEnabled {
-			gpus[device.name].Gpu.Count += 1
+			gpus[device.name].Gpu.MigDisabled = append(gpus[device.name].Gpu.MigDisabled, device.uuid)
 			continue
 		}
+		gpus[device.name].Gpu.MigEnabled = append(gpus[device.name].Gpu.MigEnabled, device.uuid)
 
 		for _, mig := range device.migProfiles {
 			if _, exists := migs[device.name]; !exists {
