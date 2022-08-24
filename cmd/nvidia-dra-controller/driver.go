@@ -81,11 +81,19 @@ func (d driver) GetClaimParameters(ctx context.Context, claim *corev1.ResourceCl
 		if err != nil {
 			return nil, fmt.Errorf("error getting GpuClaim called '%v' in namespace '%v': %v", claim.Spec.Parameters.Name, claim.Namespace, err)
 		}
+		err = d.gpu.ValidateClaimSpec(&gc.Spec)
+		if err != nil {
+			return nil, fmt.Errorf("error validating GpuClaim called '%v' in namespace '%v': %v", claim.Spec.Parameters.Name, claim.Namespace, err)
+		}
 		return &gc.Spec, nil
 	case nvcrd.MigDeviceClaimKind:
 		mc, err := d.clientset.DraV1().MigDeviceClaims(claim.Namespace).Get(ctx, claim.Spec.Parameters.Name, metav1.GetOptions{})
 		if err != nil {
 			return nil, fmt.Errorf("error getting MigDeviceClaim called '%v' in namespace '%v': %v", claim.Spec.Parameters.Name, claim.Namespace, err)
+		}
+		err = d.mig.ValidateClaimSpec(&mc.Spec)
+		if err != nil {
+			return nil, fmt.Errorf("error validating MigDeviceClaim called '%v' in namespace '%v': %v", claim.Spec.Parameters.Name, claim.Namespace, err)
 		}
 		return &mc.Spec, nil
 	}
