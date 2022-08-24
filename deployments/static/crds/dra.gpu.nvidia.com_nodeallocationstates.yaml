@@ -48,6 +48,14 @@ spec:
                       properties:
                         count:
                           type: integer
+                        migDisabled:
+                          items:
+                            type: string
+                          type: array
+                        migEnabled:
+                          items:
+                            type: string
+                          type: array
                         name:
                           type: string
                       required:

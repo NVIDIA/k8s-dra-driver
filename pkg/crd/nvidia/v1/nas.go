@@ -29,8 +29,10 @@ const (
 
 // AllocatableGpu represents an allocatable GPU on a node
 type AllocatableGpu struct {
-	Name  string `json:"name"`
-	Count int    `json:"count"`
+	Name        string   `json:"name"`
+	Count       int      `json:"count"`
+	MigEnabled  []string `json:"migEnabled,omitempty"`
+	MigDisabled []string `json:"migDisabled,omitempty"`
 }
 
 // AllocatableMigDevice represents an allocatable MIG device on a node

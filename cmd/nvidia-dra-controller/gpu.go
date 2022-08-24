@@ -75,7 +75,7 @@ func (g gpudriver) available(crd *nvcrd.NodeAllocationState) int {
 	for _, device := range crd.Spec.AllocatableDevices {
 		switch device.Type() {
 		case nvcrd.GpuDeviceType:
-			allocatable += device.Gpu.Count
+			allocatable += len(device.Gpu.MigDisabled)
 		}
 	}
 	allocated := 0
