@@ -182,6 +182,19 @@ func (d driver) Deallocate(ctx context.Context, claim *corev1.ResourceClaim) err
 		return nil
 	}
 
+	requirement := nascrd.Spec.ClaimRequirements[string(claim.UID)]
+	switch requirement.Type() {
+	case nvcrd.GpuDeviceType:
+		err = d.gpu.Deallocate(nascrd, claim)
+	case nvcrd.MigDeviceType:
+		err = d.mig.Deallocate(nascrd, claim)
+	default:
+		err = fmt.Errorf("unknown DeviceRequirements.Type(): %v", requirement.Type())
+	}
+	if err != nil {
+		return fmt.Errorf("unable to deallocate devices: %v", err)
+	}
+
 	delete(nascrd.Spec.ClaimRequirements, string(claim.UID))
 
 	err = nascrd.Update(&nascrd.Spec)
