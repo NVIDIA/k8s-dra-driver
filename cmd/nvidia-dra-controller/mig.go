@@ -41,6 +41,10 @@ func (g migdriver) Allocate(crd *nvcrd.NodeAllocationState, claim *corev1.Resour
 	return nil
 }
 
+func (m migdriver) Deallocate(crd *nvcrd.NodeAllocationState, claim *corev1.ResourceClaim) error {
+	return nil
+}
+
 func (g migdriver) UnsuitableNode(crd *nvcrd.NodeAllocationState, claims []*controller.ClaimAllocation, potentialNode string) error {
 	return nil
 }

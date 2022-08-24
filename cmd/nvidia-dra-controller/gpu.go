@@ -49,6 +49,10 @@ func (g gpudriver) Allocate(crd *nvcrd.NodeAllocationState, claim *corev1.Resour
 	return nil
 }
 
+func (m gpudriver) Deallocate(crd *nvcrd.NodeAllocationState, claim *corev1.ResourceClaim) error {
+	return nil
+}
+
 func (g gpudriver) UnsuitableNode(crd *nvcrd.NodeAllocationState, cas []*controller.ClaimAllocation, potentialNode string) error {
 	totalRequested := 0
 	for _, ca := range cas {
