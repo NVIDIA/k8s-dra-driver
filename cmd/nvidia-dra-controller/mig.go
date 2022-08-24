@@ -29,6 +29,10 @@ func NewMigDriver() *migdriver {
 	return &migdriver{}
 }
 
+func (g migdriver) ValidateClaimSpec(claimSpec *nvcrd.MigDeviceClaimSpec) error {
+	return nil
+}
+
 func (g migdriver) Allocate(crd *nvcrd.NodeAllocationState, claim *corev1.ResourceClaim, claimSpec *nvcrd.MigDeviceClaimSpec, class *corev1.ResourceClass, classSpec *nvcrd.DeviceClassSpec, selectedNode string) error {
 	//TODO: implement logic to fail if not enough devices available to saatisfy the allocation
 	crd.Spec.ClaimRequirements[string(claim.UID)] = nvcrd.DeviceRequirements{

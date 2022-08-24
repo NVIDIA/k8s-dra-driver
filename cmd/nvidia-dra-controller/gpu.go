@@ -31,12 +31,14 @@ func NewGpuDriver() *gpudriver {
 	return &gpudriver{}
 }
 
-func (g gpudriver) Allocate(crd *nvcrd.NodeAllocationState, claim *corev1.ResourceClaim, claimSpec *nvcrd.GpuClaimSpec, class *corev1.ResourceClass, classSpec *nvcrd.DeviceClassSpec, selectedNode string) error {
-	requested := claimSpec.Count
-	if requested < 1 {
-		return fmt.Errorf("invalid number of GPUs requested: %v", requested)
+func (g gpudriver) ValidateClaimSpec(claimSpec *nvcrd.GpuClaimSpec) error {
+	if claimSpec.Count < 1 {
+		return fmt.Errorf("invalid number of GPUs requested: %v", claimSpec.Count)
 	}
+	return nil
+}
 
+func (g gpudriver) Allocate(crd *nvcrd.NodeAllocationState, claim *corev1.ResourceClaim, claimSpec *nvcrd.GpuClaimSpec, class *corev1.ResourceClass, classSpec *nvcrd.DeviceClassSpec, selectedNode string) error {
 	allocatable := 0
 	for _, device := range crd.Spec.AllocatableDevices {
 		switch device.Type() {
@@ -54,8 +56,8 @@ func (g gpudriver) Allocate(crd *nvcrd.NodeAllocationState, claim *corev1.Resour
 	}
 
 	available := allocatable - allocated
-	if requested > available {
-		return fmt.Errorf("not enough devices to satisfy allocation: (available: %v, requested: %v)", available, requested)
+	if claimSpec.Count > available {
+		return fmt.Errorf("not enough devices to satisfy allocation: (available: %v, requested: %v)", available, claimSpec.Count)
 	}
 
 	crd.Spec.ClaimRequirements[string(claim.UID)] = nvcrd.DeviceRequirements{
