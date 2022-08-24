@@ -186,45 +186,10 @@ func (d driver) Deallocate(ctx context.Context, claim *corev1.ResourceClaim) err
 
 func (d driver) UnsuitableNodes(ctx context.Context, pod *corev1.Pod, cas []*controller.ClaimAllocation, potentialNodes []string) error {
 	for _, node := range potentialNodes {
-		crdconfig := &nvcrd.NodeAllocationStateConfig{
-			Name:      node,
-			Namespace: d.namespace,
-		}
-
-		nascrd := nvcrd.NewNodeAllocationState(crdconfig, d.clientset)
-		err := nascrd.Get()
+		err := d.unsuitableNode(ctx, pod, cas, node)
 		if err != nil {
-			for _, ca := range cas {
-				ca.UnsuitableNodes = append(ca.UnsuitableNodes, node)
-			}
-			continue
+			return fmt.Errorf("error processing node '%v': %v", node, err)
 		}
-
-		if nascrd.Status != nvcrd.NodeAllocationStateStatusReady {
-			for _, ca := range cas {
-				ca.UnsuitableNodes = append(ca.UnsuitableNodes, node)
-			}
-			continue
-		}
-
-		perKindCas := make(map[string][]*controller.ClaimAllocation)
-		for _, ca := range cas {
-			kind := ca.Claim.Spec.Parameters.Kind
-			perKindCas[kind] = append(perKindCas[kind], ca)
-		}
-		for kind, cas := range perKindCas {
-			var err error
-			switch kind {
-			case nvcrd.GpuClaimKind:
-				err = d.gpu.UnsuitableNode(nascrd, cas, node)
-			case nvcrd.MigDeviceClaimKind:
-				err = d.mig.UnsuitableNode(nascrd, cas, node)
-			}
-			if err != nil {
-				return fmt.Errorf("error calling UnsuitableNodes for '%v': %v", kind, err)
-			}
-		}
-
 	}
 
 	for _, ca := range cas {
@@ -236,6 +201,52 @@ func (d driver) UnsuitableNodes(ctx context.Context, pod *corev1.Pod, cas []*con
 
 func (d driver) StopAllocation(ctx context.Context, claim *corev1.ResourceClaim) error {
 	return d.Deallocate(ctx, claim)
+}
+
+func (d driver) unsuitableNode(ctx context.Context, pod *corev1.Pod, cas []*controller.ClaimAllocation, potentialNode string) error {
+	d.lock.Get(potentialNode).Lock()
+	defer d.lock.Get(potentialNode).Unlock()
+
+	crdconfig := &nvcrd.NodeAllocationStateConfig{
+		Name:      potentialNode,
+		Namespace: d.namespace,
+	}
+
+	nascrd := nvcrd.NewNodeAllocationState(crdconfig, d.clientset)
+	err := nascrd.Get()
+	if err != nil {
+		for _, ca := range cas {
+			ca.UnsuitableNodes = append(ca.UnsuitableNodes, potentialNode)
+		}
+		return nil
+	}
+
+	if nascrd.Status != nvcrd.NodeAllocationStateStatusReady {
+		for _, ca := range cas {
+			ca.UnsuitableNodes = append(ca.UnsuitableNodes, potentialNode)
+		}
+		return nil
+	}
+
+	perKindCas := make(map[string][]*controller.ClaimAllocation)
+	for _, ca := range cas {
+		kind := ca.Claim.Spec.Parameters.Kind
+		perKindCas[kind] = append(perKindCas[kind], ca)
+	}
+	for kind, cas := range perKindCas {
+		var err error
+		switch kind {
+		case nvcrd.GpuClaimKind:
+			err = d.gpu.UnsuitableNode(nascrd, cas, potentialNode)
+		case nvcrd.MigDeviceClaimKind:
+			err = d.mig.UnsuitableNode(nascrd, cas, potentialNode)
+		}
+		if err != nil {
+			return fmt.Errorf("error processing '%v': %v", kind, err)
+		}
+	}
+
+	return nil
 }
 
 func buildAllocationResult(selectedNode string, shared bool) *corev1.AllocationResult {
