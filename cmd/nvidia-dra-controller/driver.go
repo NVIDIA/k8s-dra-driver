@@ -258,9 +258,9 @@ func (d driver) unsuitableNode(ctx context.Context, pod *corev1.Pod, cas []*cont
 		var err error
 		switch kind {
 		case nvcrd.GpuClaimKind:
-			err = d.gpu.UnsuitableNode(nascrd, cas, potentialNode)
+			err = d.gpu.UnsuitableNode(nascrd, pod, cas, potentialNode)
 		case nvcrd.MigDeviceClaimKind:
-			err = d.mig.UnsuitableNode(nascrd, cas, potentialNode)
+			err = d.mig.UnsuitableNode(nascrd, pod, cas, potentialNode)
 		}
 		if err != nil {
 			return fmt.Errorf("error processing '%v': %v", kind, err)

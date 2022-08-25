@@ -53,7 +53,7 @@ func (m gpudriver) Deallocate(crd *nvcrd.NodeAllocationState, claim *corev1.Reso
 	return nil
 }
 
-func (g gpudriver) UnsuitableNode(crd *nvcrd.NodeAllocationState, cas []*controller.ClaimAllocation, potentialNode string) error {
+func (g gpudriver) UnsuitableNode(crd *nvcrd.NodeAllocationState, pod *corev1.Pod, cas []*controller.ClaimAllocation, potentialNode string) error {
 	totalRequested := 0
 	for _, ca := range cas {
 		if ca.Claim.Spec.Parameters.Kind != nvcrd.GpuClaimKind {
