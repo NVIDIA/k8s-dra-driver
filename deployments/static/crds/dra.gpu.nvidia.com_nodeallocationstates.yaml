@@ -70,8 +70,6 @@ spec:
                           type: string
                         placements:
                           items:
-                            description: MigDevicePlacement represents the physical
-                              placement of a MIG device relative to others
                             type: integer
                           type: array
                         profile:
@@ -118,11 +116,11 @@ spec:
                           parentUUID:
                             type: string
                           placement:
-                            description: MigDevicePlacement represents the physical
-                              placement of a MIG device relative to others
                             type: integer
                           profile:
                             type: string
+                          slices:
+                            type: integer
                           uuid:
                             type: string
                         required:
@@ -131,6 +129,7 @@ spec:
                         - parentUUID
                         - placement
                         - profile
+                        - slices
                         - uuid
                         type: object
                     type: object

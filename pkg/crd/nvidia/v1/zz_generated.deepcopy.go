@@ -80,7 +80,7 @@ func (in *AllocatableMigDevice) DeepCopyInto(out *AllocatableMigDevice) {
 	*out = *in
 	if in.Placements != nil {
 		in, out := &in.Placements, &out.Placements
-		*out = make([]MigDevicePlacement, len(*in))
+		*out = make([]int, len(*in))
 		copy(*out, *in)
 	}
 }
