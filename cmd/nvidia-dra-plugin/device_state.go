@@ -317,9 +317,9 @@ func (s *DeviceState) syncAllocatableDevicesToCRDSpec(spec *nvcrd.NodeAllocation
 				continue
 			}
 
-			var placements []nvcrd.MigDevicePlacement
+			var placements []int
 			for _, p := range mig.placements {
-				placements = append(placements, nvcrd.MigDevicePlacement(p.Start))
+				placements = append(placements, int(p.Start))
 			}
 
 			ad := nvcrd.AllocatableDevice{
@@ -433,10 +433,11 @@ func (s *DeviceState) syncAllocatedDevicesToCRDSpec(spec *nvcrd.NodeAllocationSt
 				outdevice.Mig = &nvcrd.AllocatedMigDevice{
 					UUID:       uuid,
 					Profile:    device.mig.profile.String(),
+					Slices:     device.mig.profile.G,
 					ParentUUID: device.mig.parent.uuid,
 					ParentName: device.mig.parent.name,
 					CDIDevice:  device.mig.CDIDevice(),
-					Placement:  nvcrd.MigDevicePlacement(device.mig.giInfo.Placement.Start),
+					Placement:  int(device.mig.giInfo.Placement.Start),
 				}
 			}
 			allocated = append(allocated, outdevice)
