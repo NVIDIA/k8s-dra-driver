@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 
+	"k8s.io/client-go/util/retry"
 	"k8s.io/klog/v2"
 	drapbv1 "k8s.io/kubelet/pkg/apis/dra/v1alpha1"
 
@@ -64,15 +65,24 @@ func NewDriver(config *Config) (*driver, error) {
 func (d *driver) NodePrepareResource(ctx context.Context, req *drapbv1.NodePrepareResourceRequest) (*drapbv1.NodePrepareResourceResponse, error) {
 	klog.Infof("NodePrepareResource is called: request: %+v", req)
 
-	allocated, err := d.Allocate(req.ClaimUid)
-	if err != nil {
-		return nil, fmt.Errorf("error allocating devices for claim '%v': %v", req.ClaimUid, err)
-	}
+	var err error
+	var allocated []string
+	err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		allocated, err = d.Allocate(req.ClaimUid)
+		if err != nil {
+			return fmt.Errorf("error allocating devices for claim '%v': %v", req.ClaimUid, err)
+		}
 
-	err = d.crd.Update(d.state.GetUpdatedSpec(&d.crd.Spec))
+		err = d.crd.Update(d.state.GetUpdatedSpec(&d.crd.Spec))
+		if err != nil {
+			d.state.Free(req.ClaimUid)
+			return err
+		}
+
+		return nil
+	})
 	if err != nil {
-		d.state.Free(req.ClaimUid)
-		return nil, fmt.Errorf("error updating Gpu CRD: %v", err)
+		return nil, fmt.Errorf("error preparing resource: %v", err)
 	}
 
 	klog.Infof("Allocated devices for claim '%v': %s", req.ClaimUid, allocated)
@@ -82,14 +92,21 @@ func (d *driver) NodePrepareResource(ctx context.Context, req *drapbv1.NodePrepa
 func (d *driver) NodeUnprepareResource(ctx context.Context, req *drapbv1.NodeUnprepareResourceRequest) (*drapbv1.NodeUnprepareResourceResponse, error) {
 	klog.Infof("NodeUnprepareResource is called: request: %+v", req)
 
-	err := d.Free(req.ClaimUid)
-	if err != nil {
-		return nil, fmt.Errorf("error freeing devices for claim '%v': %v", req.ClaimUid, err)
-	}
+	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		err := d.Free(req.ClaimUid)
+		if err != nil {
+			return fmt.Errorf("error freeing devices for claim '%v': %v", req.ClaimUid, err)
+		}
 
-	err = d.crd.Update(d.state.GetUpdatedSpec(&d.crd.Spec))
+		err = d.crd.Update(d.state.GetUpdatedSpec(&d.crd.Spec))
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
 	if err != nil {
-		return nil, fmt.Errorf("error updating Gpu CRD: %v", err)
+		return nil, fmt.Errorf("error unpreparing resource: %v", err)
 	}
 
 	klog.Infof("Freed devices for claim '%v'", req.ClaimUid)
