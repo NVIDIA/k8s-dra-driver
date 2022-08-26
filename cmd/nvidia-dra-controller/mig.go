@@ -29,8 +29,7 @@ type migdriver struct{}
 
 type MigDevicePlacement struct {
 	ParentUUID string
-	Start      int
-	Size       int
+	Placement  nvcrd.MigDevicePlacement
 }
 
 type MigDevicePlacements map[string][]MigDevicePlacement
@@ -44,26 +43,23 @@ func (m migdriver) ValidateClaimSpec(claimSpec *nvcrd.MigDeviceClaimSpec) error 
 }
 
 func (m *migdriver) Allocate(crd *nvcrd.NodeAllocationState, claim *corev1.ResourceClaim, claimSpec *nvcrd.MigDeviceClaimSpec, class *corev1.ResourceClass, classSpec *nvcrd.DeviceClassSpec, selectedNode string) error {
-	claimSpecs := []*nvcrd.MigDeviceClaimSpec{claimSpec}
-
-	for rclaim, r := range crd.Spec.ClaimRequirements {
-		if r.Type() != nvcrd.MigDeviceType {
-			continue
-		}
-		if _, exists := crd.Spec.ClaimAllocations[rclaim]; exists {
-			continue
-		}
-		claimSpecs = append(claimSpecs, r.Mig)
-	}
-
-	available := m.available(crd)
-	if !m.allocatable(available, claimSpecs...) {
+	placements := m.allocate(crd, claimSpec)
+	if len(placements) == 0 {
 		return fmt.Errorf("no %v MIG devices available", claimSpec.Profile)
 	}
 
-	crd.Spec.ClaimRequirements[string(claim.UID)] = nvcrd.DeviceRequirements{
-		Mig: claimSpec,
+	var devices []nvcrd.RequestedDevice
+	for _, p := range placements {
+		d := nvcrd.RequestedDevice{
+			Mig: &nvcrd.RequestedMigDevice{
+				Profile:    claimSpec.Profile,
+				ParentUUID: p.ParentUUID,
+				Placement:  p.Placement,
+			},
+		}
+		devices = append(devices, d)
 	}
+	crd.Spec.ClaimRequests[string(claim.UID)] = devices
 
 	return nil
 }
@@ -82,18 +78,8 @@ func (m *migdriver) UnsuitableNode(crd *nvcrd.NodeAllocationState, pod *corev1.P
 		claimSpecs = append(claimSpecs, ca.ClaimParameters.(*nvcrd.MigDeviceClaimSpec))
 	}
 
-	for rclaim, r := range crd.Spec.ClaimRequirements {
-		if r.Type() != nvcrd.MigDeviceType {
-			continue
-		}
-		if _, exists := crd.Spec.ClaimAllocations[rclaim]; exists {
-			continue
-		}
-		claimSpecs = append(claimSpecs, r.Mig)
-	}
-
-	available := m.available(crd)
-	if !m.allocatable(available, claimSpecs...) {
+	placements := m.allocate(crd, claimSpecs...)
+	if len(placements) != len(claimSpecs) {
 		for _, ca := range cas {
 			ca.UnsuitableNodes = append(ca.UnsuitableNodes, potentialNode)
 		}
@@ -118,26 +104,31 @@ func (m *migdriver) available(crd *nvcrd.NodeAllocationState) MigDevicePlacement
 	for _, device := range crd.Spec.AllocatableDevices {
 		switch device.Type() {
 		case nvcrd.MigDeviceType:
+			var pps []MigDevicePlacement
 			for _, parentUUID := range parents[device.Mig.ParentName] {
 				var mps []MigDevicePlacement
 				for _, p := range device.Mig.Placements {
 					mp := MigDevicePlacement{
 						ParentUUID: parentUUID,
-						Start:      int(p),
-						Size:       device.Mig.Slices,
+						Placement:  p,
 					}
 					mps = append(mps, mp)
 				}
-				placements[device.Mig.Profile] = mps
+				pps = append(pps, mps...)
 			}
+			placements[device.Mig.Profile] = pps
 		}
 	}
 
-	for _, devices := range crd.Spec.ClaimAllocations {
+	for _, devices := range crd.Spec.ClaimRequests {
 		for _, device := range devices {
 			switch device.Type() {
 			case nvcrd.MigDeviceType:
-				placements.removePlacements(device.Mig)
+				p := MigDevicePlacement{
+					ParentUUID: device.Mig.ParentUUID,
+					Placement:  device.Mig.Placement,
+				}
+				placements.removeOverlapping(&p)
 			}
 		}
 	}
@@ -145,10 +136,12 @@ func (m *migdriver) available(crd *nvcrd.NodeAllocationState) MigDevicePlacement
 	return placements
 }
 
-func (m *migdriver) allocatable(mps MigDevicePlacements, claimSpecs ...*nvcrd.MigDeviceClaimSpec) bool {
+func (m *migdriver) allocate(crd *nvcrd.NodeAllocationState, claimSpecs ...*nvcrd.MigDeviceClaimSpec) []MigDevicePlacement {
+	available := m.available(crd)
+
 	var allPlacements [][]MigDevicePlacement
 	for _, spec := range claimSpecs {
-		for profile, placements := range mps {
+		for profile, placements := range available {
 			if spec.Profile == profile {
 				allPlacements = append(allPlacements, placements)
 			}
@@ -156,48 +149,48 @@ func (m *migdriver) allocatable(mps MigDevicePlacements, claimSpecs ...*nvcrd.Mi
 	}
 
 	if len(allPlacements) == 0 {
-		return false
+		return nil
 	}
 
 	for _, placements := range allPlacements {
 		if len(placements) == 0 {
-			return false
+			return nil
 		}
 	}
 
 	if len(allPlacements) == 1 {
-		return true
+		return allPlacements[0][:1]
 	}
 
-	var iterate func(int, []MigDevicePlacement) bool
-	iterate = func(i int, combos []MigDevicePlacement) bool {
+	var iterate func(int, []MigDevicePlacement) []MigDevicePlacement
+	iterate = func(i int, combos []MigDevicePlacement) []MigDevicePlacement {
 		if i == len(allPlacements) {
 			for j := range combos {
-				if combos[j].NoOverlap(combos[j+1:]...) {
-					return true
+				if !combos[j].NoOverlap(combos[j+1:]...) {
+					return nil
 				}
 			}
-			return false
+			return combos
 		}
 		for j := range allPlacements[i] {
-			allocatable := iterate(i+1, append(combos, allPlacements[i][j]))
-			if allocatable {
-				return true
+			result := iterate(i+1, append(combos, allPlacements[i][j]))
+			if len(result) != 0 {
+				return result
 			}
 		}
-		return false
+		return nil
 	}
 
 	return iterate(0, []MigDevicePlacement{})
 }
 
 func (m *MigDevicePlacement) NoOverlap(m2s ...MigDevicePlacement) bool {
-	mFirst := m.Start
-	mLast := m.Start + m.Size - 1
+	mFirst := m.Placement.Start
+	mLast := m.Placement.Start + m.Placement.Size - 1
 
 	for _, m2 := range m2s {
-		m2First := m2.Start
-		m2Last := (m2.Start + m2.Size - 1)
+		m2First := m2.Placement.Start
+		m2Last := (m2.Placement.Start + m2.Placement.Size - 1)
 
 		if m.ParentUUID != m2.ParentUUID {
 			continue
@@ -215,17 +208,11 @@ func (m *MigDevicePlacement) NoOverlap(m2s ...MigDevicePlacement) bool {
 	return true
 }
 
-func (mps MigDevicePlacements) removePlacements(m *nvcrd.AllocatedMigDevice) {
-	allocatedPlacement := MigDevicePlacement{
-		ParentUUID: m.ParentUUID,
-		Start:      int(m.Placement),
-		Size:       m.Slices,
-	}
-
+func (mps MigDevicePlacements) removeOverlapping(p *MigDevicePlacement) {
 	for profile := range mps {
 		var newps []MigDevicePlacement
 		for _, placement := range mps[profile] {
-			if !placement.NoOverlap(allocatedPlacement) {
+			if !placement.NoOverlap(*p) {
 				continue
 			}
 			newps = append(newps, placement)

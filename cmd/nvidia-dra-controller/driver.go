@@ -119,11 +119,11 @@ func (d driver) Allocate(ctx context.Context, claim *corev1.ResourceClaim, claim
 		return nil, fmt.Errorf("error retrieving node specific Gpu CRD: %v", err)
 	}
 
-	if nascrd.Spec.ClaimRequirements == nil {
-		nascrd.Spec.ClaimRequirements = make(map[string]nvcrd.DeviceRequirements)
+	if nascrd.Spec.ClaimRequests == nil {
+		nascrd.Spec.ClaimRequests = make(map[string]nvcrd.RequestedDevices)
 	}
 
-	if _, exists := nascrd.Spec.ClaimRequirements[string(claim.UID)]; exists {
+	if _, exists := nascrd.Spec.ClaimRequests[string(claim.UID)]; exists {
 		return buildAllocationResult(selectedNode, true), nil
 	}
 
@@ -174,28 +174,28 @@ func (d driver) Deallocate(ctx context.Context, claim *corev1.ResourceClaim) err
 		return fmt.Errorf("error retrieving node specific Gpu CRD: %v", err)
 	}
 
-	if nascrd.Spec.ClaimRequirements == nil {
+	if nascrd.Spec.ClaimRequests == nil {
 		return nil
 	}
 
-	if _, exists := nascrd.Spec.ClaimRequirements[string(claim.UID)]; !exists {
+	if _, exists := nascrd.Spec.ClaimRequests[string(claim.UID)]; !exists {
 		return nil
 	}
 
-	requirement := nascrd.Spec.ClaimRequirements[string(claim.UID)]
-	switch requirement.Type() {
+	devices := nascrd.Spec.ClaimRequests[string(claim.UID)]
+	switch devices.Type() {
 	case nvcrd.GpuDeviceType:
 		err = d.gpu.Deallocate(nascrd, claim)
 	case nvcrd.MigDeviceType:
 		err = d.mig.Deallocate(nascrd, claim)
 	default:
-		err = fmt.Errorf("unknown DeviceRequirements.Type(): %v", requirement.Type())
+		err = fmt.Errorf("unknown RequestedDevices.Type(): %v", devices.Type())
 	}
 	if err != nil {
-		return fmt.Errorf("unable to deallocate devices: %v", err)
+		return fmt.Errorf("unable to deallocate devices '%v': %v", devices, err)
 	}
 
-	delete(nascrd.Spec.ClaimRequirements, string(claim.UID))
+	delete(nascrd.Spec.ClaimRequests, string(claim.UID))
 
 	err = nascrd.Update(&nascrd.Spec)
 	if err != nil {

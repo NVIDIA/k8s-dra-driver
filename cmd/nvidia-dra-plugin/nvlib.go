@@ -43,7 +43,7 @@ func enumerateAllPossibleDevices() (UnallocatedDevices, error) {
 		return nil, fmt.Errorf("error getting device count: %v", nvml.ErrorString(ret))
 	}
 
-	var alldevices UnallocatedDevices
+	alldevices := make(UnallocatedDevices)
 	for i := 0; i < count; i++ {
 		device, ret := nvml.DeviceGetHandleByIndex(i)
 		if ret != nvml.SUCCESS {
@@ -79,7 +79,7 @@ func enumerateAllPossibleDevices() (UnallocatedDevices, error) {
 		}
 
 		if !gpuInfo.migEnabled {
-			alldevices = append(alldevices, deviceInfo)
+			alldevices[uuid] = deviceInfo
 			continue
 		}
 
@@ -125,7 +125,7 @@ func enumerateAllPossibleDevices() (UnallocatedDevices, error) {
 			deviceInfo.migProfiles[profileInfo.profile.String()] = profileInfo
 		}
 
-		alldevices = append(alldevices, deviceInfo)
+		alldevices[uuid] = deviceInfo
 	}
 
 	return alldevices, nil
@@ -336,12 +336,7 @@ func createMigDevice(gpu *GpuInfo, profile *MigProfile, placement *nvml.GpuInsta
 		return nil, fmt.Errorf("error getting GPU instance profile info for '%v': %v", profile, nvml.ErrorString(ret))
 	}
 
-	var gi nvml.GpuInstance
-	if placement == nil {
-		gi, ret = device.CreateGpuInstance(&giProfileInfo)
-	} else {
-		gi, ret = device.CreateGpuInstanceWithPlacement(&giProfileInfo, placement)
-	}
+	gi, ret := device.CreateGpuInstanceWithPlacement(&giProfileInfo, placement)
 	if ret != nvml.SUCCESS {
 		return nil, fmt.Errorf("error creating GPU instance for '%v': %v", profile, nvml.ErrorString(ret))
 	}

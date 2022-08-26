@@ -37,13 +37,18 @@ type NodeAllocationStateConfig struct {
 	Owner     *metav1.OwnerReference
 }
 
+type MigDevicePlacement = nvcrd.MigDevicePlacement
 type AllocatableGpu = nvcrd.AllocatableGpu
 type AllocatableMigDevice = nvcrd.AllocatableMigDevice
 type AllocatableDevice = nvcrd.AllocatableDevice
 type AllocatedGpu = nvcrd.AllocatedGpu
 type AllocatedMigDevice = nvcrd.AllocatedMigDevice
 type AllocatedDevice = nvcrd.AllocatedDevice
-type DeviceRequirements = nvcrd.DeviceRequirements
+type AllocatedDevices = nvcrd.AllocatedDevices
+type RequestedGpu = nvcrd.RequestedGpu
+type RequestedMigDevice = nvcrd.RequestedMigDevice
+type RequestedDevice = nvcrd.RequestedDevice
+type RequestedDevices = nvcrd.RequestedDevices
 type NodeAllocationStateSpec = nvcrd.NodeAllocationStateSpec
 type NodeAllocationStateList = nvcrd.NodeAllocationStateList
 
