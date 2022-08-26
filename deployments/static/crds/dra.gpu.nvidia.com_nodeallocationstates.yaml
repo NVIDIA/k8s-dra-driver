@@ -70,22 +70,31 @@ spec:
                           type: string
                         placements:
                           items:
-                            type: integer
+                            description: MigDevicePlacement represents the placement
+                              of a MIG device within a GPU
+                            properties:
+                              size:
+                                type: integer
+                              start:
+                                type: integer
+                            required:
+                            - size
+                            - start
+                            type: object
                           type: array
                         profile:
                           type: string
-                        slices:
-                          type: integer
                       required:
                       - parentName
                       - placements
                       - profile
-                      - slices
                       type: object
                   type: object
                 type: array
               claimAllocations:
                 additionalProperties:
+                  description: AllocatedDevices represents a list of allocated devices
+                    on a node
                   items:
                     description: AllocatedDevice represents an allocated device on
                       a node
@@ -116,11 +125,19 @@ spec:
                           parentUUID:
                             type: string
                           placement:
-                            type: integer
+                            description: MigDevicePlacement represents the placement
+                              of a MIG device within a GPU
+                            properties:
+                              size:
+                                type: integer
+                              start:
+                                type: integer
+                            required:
+                            - size
+                            - start
+                            type: object
                           profile:
                             type: string
-                          slices:
-                            type: integer
                           uuid:
                             type: string
                         required:
@@ -129,31 +146,53 @@ spec:
                         - parentUUID
                         - placement
                         - profile
-                        - slices
                         - uuid
                         type: object
                     type: object
                   type: array
                 type: object
-              claimRequirements:
+              claimRequests:
                 additionalProperties:
-                  description: DeviceRequirements represents the set of rquirements
-                    for the device to be allocated
-                  properties:
-                    gpu:
-                      description: GpuClaimSpec is the spec for the GpuClaim CRD
-                      properties:
-                        count:
-                          type: integer
-                      type: object
-                    mig:
-                      description: MigDeviceClaimSpec is the spec for the MigDeviceClaim
-                        CRD
-                      properties:
-                        profile:
-                          type: string
-                      type: object
-                  type: object
+                  description: RequestedDevices represents a list of requests for
+                    devices to be allocated
+                  items:
+                    description: RequestedDevices represents a request for a device
+                      to be allocated
+                    properties:
+                      gpu:
+                        description: RequestedGpu represents a GPU being requested
+                          for allocation
+                        properties:
+                          uuid:
+                            type: string
+                        type: object
+                      mig:
+                        description: RequestedMigDevice represents a MIG device being
+                          requested for allocation
+                        properties:
+                          parentUUID:
+                            type: string
+                          placement:
+                            description: MigDevicePlacement represents the placement
+                              of a MIG device within a GPU
+                            properties:
+                              size:
+                                type: integer
+                              start:
+                                type: integer
+                            required:
+                            - size
+                            - start
+                            type: object
+                          profile:
+                            type: string
+                        required:
+                        - parentUUID
+                        - placement
+                        - profile
+                        type: object
+                    type: object
+                  type: array
                 type: object
             type: object
           status:

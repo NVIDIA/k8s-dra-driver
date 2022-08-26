@@ -118,7 +118,7 @@ func (d *driver) Allocate(claimUid string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	allocated, err := d.state.Allocate(claimUid, d.crd.Spec.ClaimRequirements[claimUid])
+	allocated, err := d.state.Allocate(claimUid, d.crd.Spec.ClaimRequests[claimUid])
 	if err != nil {
 		return nil, err
 	}

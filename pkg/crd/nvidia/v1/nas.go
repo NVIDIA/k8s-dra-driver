@@ -27,6 +27,12 @@ const (
 	UnknownDeviceType = "unknown"
 )
 
+// MigDevicePlacement represents the placement of a MIG device within a GPU
+type MigDevicePlacement struct {
+	Start int `json:"start"`
+	Size  int `json:"size"`
+}
+
 // AllocatableGpu represents an allocatable GPU on a node
 type AllocatableGpu struct {
 	Name        string   `json:"name"`
@@ -37,10 +43,9 @@ type AllocatableGpu struct {
 
 // AllocatableMigDevice represents an allocatable MIG device on a node
 type AllocatableMigDevice struct {
-	Profile    string `json:"profile"`
-	Slices     int    `json:"slices"`
-	ParentName string `json:"parentName"`
-	Placements []int  `json:"placements"`
+	Profile    string               `json:"profile"`
+	ParentName string               `json:"parentName"`
+	Placements []MigDevicePlacement `json:"placements"`
 }
 
 // AllocatableDevice represents an allocatable device on a node
@@ -69,13 +74,12 @@ type AllocatedGpu struct {
 
 // AllocatedMigDevice represents an allocated MIG device on a node
 type AllocatedMigDevice struct {
-	UUID       string `json:"uuid"`
-	Profile    string `json:"profile"`
-	ParentUUID string `json:"parentUUID"`
-	ParentName string `json:"parentName"`
-	CDIDevice  string `json:"cdiDevice"`
-	Slices     int    `json:"slices"`
-	Placement  int    `json:"placement"`
+	UUID       string             `json:"uuid"`
+	Profile    string             `json:"profile"`
+	ParentUUID string             `json:"parentUUID"`
+	ParentName string             `json:"parentName"`
+	CDIDevice  string             `json:"cdiDevice"`
+	Placement  MigDevicePlacement `json:"placement"`
 }
 
 // AllocatedDevice represents an allocated device on a node
@@ -95,14 +99,37 @@ func (d AllocatedDevice) Type() string {
 	return UnknownDeviceType
 }
 
-// DeviceRequirements represents the set of rquirements for the device to be allocated
-type DeviceRequirements struct {
-	Gpu *GpuClaimSpec       `json:"gpu,omitempty"`
-	Mig *MigDeviceClaimSpec `json:"mig,omitempty"`
+// AllocatedDevices represents a list of allocated devices on a node
+type AllocatedDevices []AllocatedDevice
+
+// Type returns the type of AllocatedDevices this represents
+func (d AllocatedDevices) Type() string {
+	if len(d) == 0 {
+		return UnknownDeviceType
+	}
+	return d[0].Type()
 }
 
-// Type returns the type of DeviceRequirements this represents
-func (r DeviceRequirements) Type() string {
+// RequestedGpu represents a GPU being requested for allocation
+type RequestedGpu struct {
+	UUID string `json:"uuid,omitempty"`
+}
+
+// RequestedMigDevice represents a MIG device being requested for allocation
+type RequestedMigDevice struct {
+	Profile    string             `json:"profile"`
+	ParentUUID string             `json:"parentUUID"`
+	Placement  MigDevicePlacement `json:"placement"`
+}
+
+// RequestedDevices represents a request for a device to be allocated
+type RequestedDevice struct {
+	Gpu *RequestedGpu       `json:"gpu,omitempty"`
+	Mig *RequestedMigDevice `json:"mig,omitempty"`
+}
+
+// Type returns the type of RequestedDevice this represents
+func (r RequestedDevice) Type() string {
 	if r.Gpu != nil {
 		return GpuDeviceType
 	}
@@ -112,11 +139,22 @@ func (r DeviceRequirements) Type() string {
 	return UnknownDeviceType
 }
 
+// RequestedDevices represents a list of requests for devices to be allocated
+type RequestedDevices []RequestedDevice
+
+// Type returns the type of RequestedDevices this represents
+func (r RequestedDevices) Type() string {
+	if len(r) == 0 {
+		return UnknownDeviceType
+	}
+	return r[0].Type()
+}
+
 // NodeAllocationStateSpec is the spec for the NodeAllocationState CRD
 type NodeAllocationStateSpec struct {
-	AllocatableDevices []AllocatableDevice           `json:"allocatableDevices,omitempty"`
-	ClaimRequirements  map[string]DeviceRequirements `json:"claimRequirements,omitempty"`
-	ClaimAllocations   map[string][]AllocatedDevice  `json:"claimAllocations,omitempty"`
+	AllocatableDevices []AllocatableDevice         `json:"allocatableDevices,omitempty"`
+	ClaimRequests      map[string]RequestedDevices `json:"claimRequests,omitempty"`
+	ClaimAllocations   map[string]AllocatedDevices `json:"claimAllocations,omitempty"`
 }
 
 // +genclient

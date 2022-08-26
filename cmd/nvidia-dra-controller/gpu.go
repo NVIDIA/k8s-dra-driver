@@ -20,6 +20,7 @@ import (
 	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
 
 	"github.com/NVIDIA/k8s-dra-driver/pkg/controller"
 	nvcrd "github.com/NVIDIA/k8s-dra-driver/pkg/crd/nvidia/v1/api"
@@ -40,12 +41,21 @@ func (g gpudriver) ValidateClaimSpec(claimSpec *nvcrd.GpuClaimSpec) error {
 
 func (g gpudriver) Allocate(crd *nvcrd.NodeAllocationState, claim *corev1.ResourceClaim, claimSpec *nvcrd.GpuClaimSpec, class *corev1.ResourceClass, classSpec *nvcrd.DeviceClassSpec, selectedNode string) error {
 	available := g.available(crd)
-	if claimSpec.Count > available {
+	if claimSpec.Count > len(available) {
 		return fmt.Errorf("not enough devices to satisfy allocation: (available: %v, requested: %v)", available, claimSpec.Count)
 	}
-	crd.Spec.ClaimRequirements[string(claim.UID)] = nvcrd.DeviceRequirements{
-		Gpu: claimSpec,
+
+	var devices []nvcrd.RequestedDevice
+	for _, gpu := range available[:claimSpec.Count] {
+		device := nvcrd.RequestedDevice{
+			Gpu: &nvcrd.RequestedGpu{
+				UUID: gpu,
+			},
+		}
+		devices = append(devices, device)
 	}
+	crd.Spec.ClaimRequests[string(claim.UID)] = devices
+
 	return nil
 }
 
@@ -62,7 +72,7 @@ func (g gpudriver) UnsuitableNode(crd *nvcrd.NodeAllocationState, pod *corev1.Po
 		count := ca.ClaimParameters.(*nvcrd.GpuClaimSpec).Count
 		totalRequested += count
 	}
-	if totalRequested > g.available(crd) {
+	if totalRequested > len(g.available(crd)) {
 		for _, ca := range cas {
 			ca.UnsuitableNodes = append(ca.UnsuitableNodes, potentialNode)
 		}
@@ -70,20 +80,22 @@ func (g gpudriver) UnsuitableNode(crd *nvcrd.NodeAllocationState, pod *corev1.Po
 	return nil
 }
 
-func (g gpudriver) available(crd *nvcrd.NodeAllocationState) int {
-	allocatable := 0
+func (g gpudriver) available(crd *nvcrd.NodeAllocationState) []string {
+	allocatable := sets.NewString()
 	for _, device := range crd.Spec.AllocatableDevices {
 		switch device.Type() {
 		case nvcrd.GpuDeviceType:
-			allocatable += len(device.Gpu.MigDisabled)
+			allocatable.Insert(device.Gpu.MigDisabled...)
 		}
 	}
-	allocated := 0
-	for _, requirements := range crd.Spec.ClaimRequirements {
-		switch requirements.Type() {
+	allocated := sets.NewString()
+	for _, requests := range crd.Spec.ClaimRequests {
+		switch requests.Type() {
 		case nvcrd.GpuDeviceType:
-			allocated += requirements.Gpu.Count
+			for _, device := range requests {
+				allocated.Insert(device.Gpu.UUID)
+			}
 		}
 	}
-	return allocatable - allocated
+	return allocatable.Difference(allocated).List()
 }
