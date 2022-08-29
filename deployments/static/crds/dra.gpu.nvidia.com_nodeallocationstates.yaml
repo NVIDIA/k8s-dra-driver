@@ -155,44 +155,68 @@ spec:
                 additionalProperties:
                   description: RequestedDevices represents a list of requests for
                     devices to be allocated
-                  items:
-                    description: RequestedDevices represents a request for a device
-                      to be allocated
-                    properties:
-                      gpu:
-                        description: RequestedGpu represents a GPU being requested
-                          for allocation
+                  properties:
+                    devices:
+                      items:
+                        description: RequestedDevice represents a request for a device
+                          to be allocated
                         properties:
-                          uuid:
-                            type: string
-                        type: object
-                      mig:
-                        description: RequestedMigDevice represents a MIG device being
-                          requested for allocation
-                        properties:
-                          parentUUID:
-                            type: string
-                          placement:
-                            description: MigDevicePlacement represents the placement
-                              of a MIG device within a GPU
+                          gpu:
+                            description: RequestedGpu represents a GPU being requested
+                              for allocation
                             properties:
-                              size:
-                                type: integer
-                              start:
-                                type: integer
-                            required:
-                            - size
-                            - start
+                              uuid:
+                                type: string
                             type: object
-                          profile:
-                            type: string
-                        required:
-                        - parentUUID
-                        - placement
-                        - profile
+                          mig:
+                            description: RequestedMigDevice represents a MIG device
+                              being requested for allocation
+                            properties:
+                              parentUUID:
+                                type: string
+                              placement:
+                                description: MigDevicePlacement represents the placement
+                                  of a MIG device within a GPU
+                                properties:
+                                  size:
+                                    type: integer
+                                  start:
+                                    type: integer
+                                required:
+                                - size
+                                - start
+                                type: object
+                              profile:
+                                type: string
+                            required:
+                            - parentUUID
+                            - placement
+                            - profile
+                            type: object
                         type: object
-                    type: object
-                  type: array
+                      type: array
+                    spec:
+                      description: RequestedDevicesSpec represents the spec for a
+                        specific set of devices to be allocated
+                      properties:
+                        gpu:
+                          description: GpuClaimSpec is the spec for the GpuClaim CRD
+                          properties:
+                            count:
+                              type: integer
+                          type: object
+                        mig:
+                          description: MigDeviceClaimSpec is the spec for the MigDeviceClaim
+                            CRD
+                          properties:
+                            profile:
+                              type: string
+                          type: object
+                      type: object
+                  required:
+                  - devices
+                  - spec
+                  type: object
                 type: object
             type: object
           status:

@@ -135,7 +135,7 @@ func NewDeviceState(config *Config, nascrd *nvcrd.NodeAllocationState) (*DeviceS
 	return state, nil
 }
 
-func (s *DeviceState) Allocate(claimUid string, devices nvcrd.RequestedDevices) ([]string, error) {
+func (s *DeviceState) Allocate(claimUid string, request nvcrd.RequestedDevices) ([]string, error) {
 	s.Lock()
 	defer s.Unlock()
 
@@ -146,7 +146,7 @@ func (s *DeviceState) Allocate(claimUid string, devices nvcrd.RequestedDevices) 
 	s.allocated[claimUid] = make(AllocatedDevices)
 
 	var err error
-	for _, device := range devices {
+	for _, device := range request.Devices {
 		switch device.Type() {
 		case nvcrd.GpuDeviceType:
 			err = s.allocateGpu(claimUid, device.Gpu)

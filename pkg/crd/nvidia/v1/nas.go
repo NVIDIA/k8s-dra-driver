@@ -122,7 +122,7 @@ type RequestedMigDevice struct {
 	Placement  MigDevicePlacement `json:"placement"`
 }
 
-// RequestedDevices represents a request for a device to be allocated
+// RequestedDevice represents a request for a device to be allocated
 type RequestedDevice struct {
 	Gpu *RequestedGpu       `json:"gpu,omitempty"`
 	Mig *RequestedMigDevice `json:"mig,omitempty"`
@@ -139,15 +139,32 @@ func (r RequestedDevice) Type() string {
 	return UnknownDeviceType
 }
 
+// RequestedDevicesSpec represents the spec for a specific set of devices to be allocated
+type RequestedDevicesSpec struct {
+	Gpu *GpuClaimSpec       `json:"gpu,omitempty"`
+	Mig *MigDeviceClaimSpec `json:"mig,omitempty"`
+}
+
+// Type returns the type of RequestedDevicesSpec this represents
+func (s RequestedDevicesSpec) Type() string {
+	if s.Gpu != nil {
+		return GpuDeviceType
+	}
+	if s.Mig != nil {
+		return MigDeviceType
+	}
+	return UnknownDeviceType
+}
+
 // RequestedDevices represents a list of requests for devices to be allocated
-type RequestedDevices []RequestedDevice
+type RequestedDevices struct {
+	Spec    RequestedDevicesSpec `json:"spec"`
+	Devices []RequestedDevice    `json:"devices"`
+}
 
 // Type returns the type of RequestedDevices this represents
 func (r RequestedDevices) Type() string {
-	if len(r) == 0 {
-		return UnknownDeviceType
-	}
-	return r[0].Type()
+	return r.Spec.Type()
 }
 
 // NodeAllocationStateSpec is the spec for the NodeAllocationState CRD

@@ -54,7 +54,13 @@ func (g gpudriver) Allocate(crd *nvcrd.NodeAllocationState, claim *corev1.Resour
 		}
 		devices = append(devices, device)
 	}
-	crd.Spec.ClaimRequests[string(claim.UID)] = devices
+
+	crd.Spec.ClaimRequests[string(claim.UID)] = nvcrd.RequestedDevices{
+		Spec: nvcrd.RequestedDevicesSpec{
+			Gpu: claimSpec,
+		},
+		Devices: devices,
+	}
 
 	return nil
 }
@@ -89,10 +95,10 @@ func (g gpudriver) available(crd *nvcrd.NodeAllocationState) []string {
 		}
 	}
 	allocated := sets.NewString()
-	for _, requests := range crd.Spec.ClaimRequests {
-		switch requests.Type() {
+	for _, request := range crd.Spec.ClaimRequests {
+		switch request.Type() {
 		case nvcrd.GpuDeviceType:
-			for _, device := range requests {
+			for _, device := range request.Devices {
 				allocated.Insert(device.Gpu.UUID)
 			}
 		}
