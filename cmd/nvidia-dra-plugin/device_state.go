@@ -290,28 +290,24 @@ func (s *DeviceState) addtoAvailable(ads AllocatedDevices) {
 }
 
 func (s *DeviceState) syncAllocatableDevicesToCRDSpec(spec *nvcrd.NodeAllocationStateSpec) {
-	gpus := make(map[string]nvcrd.AllocatableDevice)
-	migs := make(map[string]map[string]nvcrd.AllocatableDevice)
+	gpus := make(map[string]nvcrd.AllocatableDevices)
+	migs := make(map[string]map[string]nvcrd.AllocatableDevices)
 	for _, device := range s.alldevices {
-		if _, exists := gpus[device.name]; !exists {
-			gpus[device.name] = nvcrd.AllocatableDevice{
-				Gpu: &nvcrd.AllocatableGpu{
-					Name:  device.name,
-					Count: 0,
-				},
-			}
+		gpus[device.uuid] = nvcrd.AllocatableDevices{
+			Gpu: &nvcrd.AllocatableGpu{
+				Name:       device.name,
+				UUID:       device.uuid,
+				MigEnabled: device.migEnabled,
+			},
 		}
 
-		gpus[device.name].Gpu.Count += 1
 		if !device.migEnabled {
-			gpus[device.name].Gpu.MigDisabled = append(gpus[device.name].Gpu.MigDisabled, device.uuid)
 			continue
 		}
-		gpus[device.name].Gpu.MigEnabled = append(gpus[device.name].Gpu.MigEnabled, device.uuid)
 
 		for _, mig := range device.migProfiles {
 			if _, exists := migs[device.name]; !exists {
-				migs[device.name] = make(map[string]nvcrd.AllocatableDevice)
+				migs[device.name] = make(map[string]nvcrd.AllocatableDevices)
 			}
 
 			if _, exists := migs[device.name][mig.profile.String()]; exists {
@@ -327,8 +323,8 @@ func (s *DeviceState) syncAllocatableDevicesToCRDSpec(spec *nvcrd.NodeAllocation
 				placements = append(placements, p)
 			}
 
-			ad := nvcrd.AllocatableDevice{
-				Mig: &nvcrd.AllocatableMigDevice{
+			ad := nvcrd.AllocatableDevices{
+				Mig: &nvcrd.AllocatableMigDevices{
 					Profile:    mig.profile.String(),
 					ParentName: device.name,
 					Placements: placements,
@@ -339,11 +335,9 @@ func (s *DeviceState) syncAllocatableDevicesToCRDSpec(spec *nvcrd.NodeAllocation
 		}
 	}
 
-	var allocatable []nvcrd.AllocatableDevice
+	var allocatable []nvcrd.AllocatableDevices
 	for _, device := range gpus {
-		if device.Gpu.Count > 0 {
-			allocatable = append(allocatable, device)
-		}
+		allocatable = append(allocatable, device)
 	}
 	for _, devices := range migs {
 		for _, device := range devices {
