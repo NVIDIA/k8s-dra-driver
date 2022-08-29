@@ -48,20 +48,20 @@ spec:
                       properties:
                         migEnabled:
                           type: boolean
-                        name:
+                        model:
                           type: string
                         uuid:
                           type: string
                       required:
                       - migEnabled
-                      - name
+                      - model
                       - uuid
                       type: object
                     mig:
                       description: AllocatableMigDevices represents a set of allocatable
                         MIG devices on a given type of GPU
                       properties:
-                        parentName:
+                        parentModel:
                           type: string
                         placements:
                           items:
@@ -80,7 +80,7 @@ spec:
                         profile:
                           type: string
                       required:
-                      - parentName
+                      - parentModel
                       - placements
                       - profile
                       type: object
@@ -100,13 +100,13 @@ spec:
                         properties:
                           cdiDevice:
                             type: string
-                          name:
+                          model:
                             type: string
                           uuid:
                             type: string
                         required:
                         - cdiDevice
-                        - name
+                        - model
                         - uuid
                         type: object
                       mig:
@@ -115,7 +115,7 @@ spec:
                         properties:
                           cdiDevice:
                             type: string
-                          parentName:
+                          parentModel:
                             type: string
                           parentUUID:
                             type: string
@@ -137,7 +137,7 @@ spec:
                             type: string
                         required:
                         - cdiDevice
-                        - parentName
+                        - parentModel
                         - parentUUID
                         - placement
                         - profile

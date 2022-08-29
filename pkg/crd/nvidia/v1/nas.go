@@ -35,16 +35,16 @@ type MigDevicePlacement struct {
 
 // AllocatableGpu represents an allocatable GPU on a node
 type AllocatableGpu struct {
-	Name       string `json:"name"`
+	Model      string `json:"model"`
 	UUID       string `json:"uuid"`
 	MigEnabled bool   `json:"migEnabled"`
 }
 
 // AllocatableMigDevices represents a set of allocatable MIG devices on a given type of GPU
 type AllocatableMigDevices struct {
-	Profile    string               `json:"profile"`
-	ParentName string               `json:"parentName"`
-	Placements []MigDevicePlacement `json:"placements"`
+	Profile     string               `json:"profile"`
+	ParentModel string               `json:"parentModel"`
+	Placements  []MigDevicePlacement `json:"placements"`
 }
 
 // AllocatableDevices represents a set of allocatable devices on a node
@@ -66,19 +66,19 @@ func (d AllocatableDevices) Type() string {
 
 // AllocatedGpu represents an allocated GPU on a node
 type AllocatedGpu struct {
-	Name      string `json:"name"`
+	Model     string `json:"model"`
 	UUID      string `json:"uuid"`
 	CDIDevice string `json:"cdiDevice"`
 }
 
 // AllocatedMigDevice represents an allocated MIG device on a node
 type AllocatedMigDevice struct {
-	UUID       string             `json:"uuid"`
-	Profile    string             `json:"profile"`
-	ParentUUID string             `json:"parentUUID"`
-	ParentName string             `json:"parentName"`
-	CDIDevice  string             `json:"cdiDevice"`
-	Placement  MigDevicePlacement `json:"placement"`
+	UUID        string             `json:"uuid"`
+	Profile     string             `json:"profile"`
+	ParentUUID  string             `json:"parentUUID"`
+	ParentModel string             `json:"parentModel"`
+	CDIDevice   string             `json:"cdiDevice"`
+	Placement   MigDevicePlacement `json:"placement"`
 }
 
 // AllocatedDevice represents an allocated device on a node
