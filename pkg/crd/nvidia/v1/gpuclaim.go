@@ -22,7 +22,8 @@ import (
 
 // GpuClaimSpec is the spec for the GpuClaim CRD
 type GpuClaimSpec struct {
-	Count int `json:"count,omitempty"`
+	Count      int  `json:"count,omitempty"`
+	MigEnabled bool `json:"migEnabled,omitempty"`
 }
 
 // +genclient

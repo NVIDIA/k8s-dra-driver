@@ -210,10 +210,6 @@ func (s *DeviceState) allocateGpu(claimUid string, device *nvcrd.RequestedGpu) e
 		return fmt.Errorf("requested GPU not available: %v", device.UUID)
 	}
 
-	if s.available[device.UUID].migEnabled {
-		return fmt.Errorf("cannot allocate a GPU with MIG mode enabled: %v", device.UUID)
-	}
-
 	allocated := AllocatedDevices{
 		device.UUID: AllocatedDeviceInfo{
 			gpu: s.available[device.UUID].GpuInfo,
