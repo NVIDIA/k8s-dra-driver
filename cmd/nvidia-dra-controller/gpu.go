@@ -101,6 +101,10 @@ func (g gpudriver) allocate(crd *nvcrd.NodeAllocationState, claimSpecs ...*nvcrd
 			for _, device := range request.Gpu.Devices {
 				delete(available, device.UUID)
 			}
+		case nvcrd.MigDeviceType:
+			for _, device := range request.Mig.Devices {
+				delete(available, device.ParentUUID)
+			}
 		}
 	}
 
