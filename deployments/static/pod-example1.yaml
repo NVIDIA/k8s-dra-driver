@@ -1,43 +1,37 @@
 # Two pods, one container each
 # Each container asking for 2 distinct GPUs
 
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: gpu-example1
+
+---
 apiVersion: dra.gpu.nvidia.com/v1
 kind: GpuClaim
 metadata:
-  name: gpu-example1-test-parameters
+  namespace: gpu-example1
+  name: two-gpus
 spec:
   count: 2
 
 ---
-apiVersion: v1
-kind: Pod
+apiVersion: dra.gpu.nvidia.com/v1
+kind: GpuClaim
 metadata:
-  name: gpu-example1-test1
+  namespace: gpu-example1
+  name: two-mig-gpus
 spec:
-  restartPolicy: Never
-  containers:
-  - name: ctr
-    image: ubuntu:22.04
-    command: ["sleep", "99999"]
-    resources:
-      claims:
-      - gpus
-  resourceClaims:
-  - name: gpus
-    claim:
-      template:
-        spec:
-          resourceClassName: gpu.nvidia.com
-          parameters:
-            apiVersion: dra.gpu.nvidia.com/v1
-            kind: GpuClaim
-            name: gpu-example1-test-parameters
+  count: 2
+  migEnabled: true
 
 ---
 apiVersion: v1
 kind: Pod
 metadata:
-  name: gpu-example1-test2
+  namespace: gpu-example1
+  name: test-pod1
 spec:
   restartPolicy: Never
   containers:
@@ -56,4 +50,30 @@ spec:
           parameters:
             apiVersion: dra.gpu.nvidia.com/v1
             kind: GpuClaim
-            name: gpu-example1-test-parameters
+            name: two-gpus
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  namespace: gpu-example1
+  name: test-pod2
+spec:
+  restartPolicy: Never
+  containers:
+  - name: ctr
+    image: ubuntu:22.04
+    command: ["sleep", "99999"]
+    resources:
+      claims:
+      - gpus
+  resourceClaims:
+  - name: gpus
+    claim:
+      template:
+        spec:
+          resourceClassName: gpu.nvidia.com
+          parameters:
+            apiVersion: dra.gpu.nvidia.com/v1
+            kind: GpuClaim
+            name: two-mig-gpus

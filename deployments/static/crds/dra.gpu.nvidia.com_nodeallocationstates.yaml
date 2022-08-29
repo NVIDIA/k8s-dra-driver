@@ -199,6 +199,8 @@ spec:
                           properties:
                             count:
                               type: integer
+                            migEnabled:
+                              type: boolean
                           type: object
                         mig:
                           description: MigDeviceClaimSpec is the spec for the MigDeviceClaim

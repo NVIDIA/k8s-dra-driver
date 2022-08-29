@@ -38,6 +38,8 @@ spec:
             properties:
               count:
                 type: integer
+              migEnabled:
+                type: boolean
             type: object
         type: object
     served: true

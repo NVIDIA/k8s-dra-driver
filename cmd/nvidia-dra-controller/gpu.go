@@ -20,7 +20,6 @@ import (
 	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/util/sets"
 
 	"github.com/NVIDIA/k8s-dra-driver/pkg/controller"
 	nvcrd "github.com/NVIDIA/k8s-dra-driver/pkg/crd/nvidia/v1/api"
@@ -40,13 +39,13 @@ func (g gpudriver) ValidateClaimSpec(claimSpec *nvcrd.GpuClaimSpec) error {
 }
 
 func (g gpudriver) Allocate(crd *nvcrd.NodeAllocationState, claim *corev1.ResourceClaim, claimSpec *nvcrd.GpuClaimSpec, class *corev1.ResourceClass, classSpec *nvcrd.DeviceClassSpec, selectedNode string) error {
-	available := g.available(crd)
-	if claimSpec.Count > len(available) {
-		return fmt.Errorf("not enough devices to satisfy allocation: (available: %v, requested: %v)", available, claimSpec.Count)
+	allocated := g.allocate(crd, claimSpec)
+	if claimSpec.Count > len(allocated) {
+		return fmt.Errorf("not enough devices to satisfy allocation: (available: %v, requested: %v)", len(allocated), claimSpec.Count)
 	}
 
 	var devices []nvcrd.RequestedDevice
-	for _, gpu := range available[:claimSpec.Count] {
+	for _, gpu := range allocated {
 		device := nvcrd.RequestedDevice{
 			Gpu: &nvcrd.RequestedGpu{
 				UUID: gpu,
@@ -71,14 +70,16 @@ func (m gpudriver) Deallocate(crd *nvcrd.NodeAllocationState, claim *corev1.Reso
 
 func (g gpudriver) UnsuitableNode(crd *nvcrd.NodeAllocationState, pod *corev1.Pod, cas []*controller.ClaimAllocation, potentialNode string) error {
 	totalRequested := 0
+	var claimSpecs []*nvcrd.GpuClaimSpec
 	for _, ca := range cas {
 		if ca.Claim.Spec.Parameters.Kind != nvcrd.GpuClaimKind {
 			continue
 		}
-		count := ca.ClaimParameters.(*nvcrd.GpuClaimSpec).Count
-		totalRequested += count
+		claimSpec := ca.ClaimParameters.(*nvcrd.GpuClaimSpec)
+		claimSpecs = append(claimSpecs, claimSpec)
+		totalRequested += claimSpec.Count
 	}
-	if totalRequested > len(g.available(crd)) {
+	if totalRequested != len(g.allocate(crd, claimSpecs...)) {
 		for _, ca := range cas {
 			ca.UnsuitableNodes = append(ca.UnsuitableNodes, potentialNode)
 		}
@@ -86,25 +87,37 @@ func (g gpudriver) UnsuitableNode(crd *nvcrd.NodeAllocationState, pod *corev1.Po
 	return nil
 }
 
-func (g gpudriver) available(crd *nvcrd.NodeAllocationState) []string {
-	allocatable := sets.NewString()
+func (g gpudriver) allocate(crd *nvcrd.NodeAllocationState, claimSpecs ...*nvcrd.GpuClaimSpec) []string {
+	available := make(map[string]*nvcrd.AllocatableGpu)
+
 	for _, device := range crd.Spec.AllocatableDevices {
 		switch device.Type() {
 		case nvcrd.GpuDeviceType:
-			if device.Gpu.MigEnabled {
-				continue
-			}
-			allocatable.Insert(device.Gpu.UUID)
+			available[device.Gpu.UUID] = device.Gpu
 		}
 	}
-	allocated := sets.NewString()
+
 	for _, request := range crd.Spec.ClaimRequests {
 		switch request.Type() {
 		case nvcrd.GpuDeviceType:
 			for _, device := range request.Devices {
-				allocated.Insert(device.Gpu.UUID)
+				delete(available, device.Gpu.UUID)
 			}
 		}
 	}
-	return allocatable.Difference(allocated).List()
+
+	var allocated []string
+	for _, claimSpec := range claimSpecs {
+		for i := 0; i < claimSpec.Count; i++ {
+			for _, device := range available {
+				if device.MigEnabled == claimSpec.MigEnabled {
+					allocated = append(allocated, device.UUID)
+					delete(available, device.UUID)
+					break
+				}
+			}
+		}
+	}
+
+	return allocated
 }
