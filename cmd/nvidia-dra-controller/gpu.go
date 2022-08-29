@@ -44,21 +44,19 @@ func (g gpudriver) Allocate(crd *nvcrd.NodeAllocationState, claim *corev1.Resour
 		return fmt.Errorf("not enough devices to satisfy allocation: (available: %v, requested: %v)", len(allocated), claimSpec.Count)
 	}
 
-	var devices []nvcrd.RequestedDevice
+	var devices []nvcrd.RequestedGpu
 	for _, gpu := range allocated {
-		device := nvcrd.RequestedDevice{
-			Gpu: &nvcrd.RequestedGpu{
-				UUID: gpu,
-			},
+		device := nvcrd.RequestedGpu{
+			UUID: gpu,
 		}
 		devices = append(devices, device)
 	}
 
 	crd.Spec.ClaimRequests[string(claim.UID)] = nvcrd.RequestedDevices{
-		Spec: nvcrd.RequestedDevicesSpec{
-			Gpu: claimSpec,
+		Gpu: &nvcrd.RequestedGpus{
+			Spec:    *claimSpec,
+			Devices: devices,
 		},
-		Devices: devices,
 	}
 
 	return nil
@@ -100,8 +98,8 @@ func (g gpudriver) allocate(crd *nvcrd.NodeAllocationState, claimSpecs ...*nvcrd
 	for _, request := range crd.Spec.ClaimRequests {
 		switch request.Type() {
 		case nvcrd.GpuDeviceType:
-			for _, device := range request.Devices {
-				delete(available, device.Gpu.UUID)
+			for _, device := range request.Gpu.Devices {
+				delete(available, device.UUID)
 			}
 		}
 	}

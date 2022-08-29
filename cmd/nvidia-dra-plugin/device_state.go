@@ -146,16 +146,14 @@ func (s *DeviceState) Allocate(claimUid string, request nvcrd.RequestedDevices) 
 	s.allocated[claimUid] = make(AllocatedDevices)
 
 	var err error
-	for _, device := range request.Devices {
-		switch device.Type() {
-		case nvcrd.GpuDeviceType:
-			err = s.allocateGpu(claimUid, device.Gpu)
-		case nvcrd.MigDeviceType:
-			err = s.allocateMigDevice(claimUid, device.Mig)
-		}
-		if err != nil {
-			return nil, fmt.Errorf("allocation failed: %v", err)
-		}
+	switch request.Type() {
+	case nvcrd.GpuDeviceType:
+		err = s.allocateGpus(claimUid, request.Gpu.Devices)
+	case nvcrd.MigDeviceType:
+		err = s.allocateMigDevices(claimUid, request.Mig.Devices)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("allocation failed: %v", err)
 	}
 
 	return s.getAllocatedAsCDIDevices(claimUid), nil
@@ -205,60 +203,64 @@ func (s *DeviceState) getAllocatedAsCDIDevices(claimUid string) []string {
 	return devs
 }
 
-func (s *DeviceState) allocateGpu(claimUid string, device *nvcrd.RequestedGpu) error {
-	if _, exists := s.available[device.UUID]; !exists {
-		return fmt.Errorf("requested GPU not available: %v", device.UUID)
-	}
+func (s *DeviceState) allocateGpus(claimUid string, devices []nvcrd.RequestedGpu) error {
+	for _, device := range devices {
+		if _, exists := s.available[device.UUID]; !exists {
+			return fmt.Errorf("requested GPU not available: %v", device.UUID)
+		}
 
-	allocated := AllocatedDevices{
-		device.UUID: AllocatedDeviceInfo{
-			gpu: s.available[device.UUID].GpuInfo,
-		},
-	}
+		allocated := AllocatedDevices{
+			device.UUID: AllocatedDeviceInfo{
+				gpu: s.available[device.UUID].GpuInfo,
+			},
+		}
 
-	s.allocated[claimUid][device.UUID] = allocated[device.UUID]
-	s.removeFromAvailable(allocated)
+		s.allocated[claimUid][device.UUID] = allocated[device.UUID]
+		s.removeFromAvailable(allocated)
+	}
 
 	return nil
 }
 
-func (s *DeviceState) allocateMigDevice(claimUid string, device *nvcrd.RequestedMigDevice) error {
-	if _, exists := s.available[device.ParentUUID]; !exists {
-		return fmt.Errorf("requested GPU not available: %v", device.ParentUUID)
+func (s *DeviceState) allocateMigDevices(claimUid string, devices []nvcrd.RequestedMigDevice) error {
+	for _, device := range devices {
+		if _, exists := s.available[device.ParentUUID]; !exists {
+			return fmt.Errorf("requested GPU not available: %v", device.ParentUUID)
+		}
+
+		parent := s.available[device.ParentUUID]
+
+		if !parent.migEnabled {
+			return fmt.Errorf("cannot allocate a GPU with MIG mode disabled: %v", device.ParentUUID)
+		}
+
+		if _, exists := parent.migProfiles[device.Profile]; !exists {
+			return fmt.Errorf("MIG profile %v does not exist on GPU: %v", device.Profile, device.ParentUUID)
+		}
+
+		if parent.migProfiles[device.Profile].available == 0 {
+			return fmt.Errorf("no MIG devices available for profile %v on GPU: %v", device.Profile, device.ParentUUID)
+		}
+
+		placement := nvml.GpuInstancePlacement{
+			Start: uint32(device.Placement.Start),
+			Size:  uint32(device.Placement.Size),
+		}
+
+		migInfo, err := createMigDevice(parent.GpuInfo, parent.migProfiles[device.Profile].profile, &placement)
+		if err != nil {
+			return fmt.Errorf("error creating MIG device: %v", err)
+		}
+
+		allocated := AllocatedDevices{
+			migInfo.uuid: AllocatedDeviceInfo{
+				mig: migInfo,
+			},
+		}
+
+		s.allocated[claimUid][migInfo.uuid] = allocated[migInfo.uuid]
+		s.removeFromAvailable(allocated)
 	}
-
-	parent := s.available[device.ParentUUID]
-
-	if !parent.migEnabled {
-		return fmt.Errorf("cannot allocate a GPU with MIG mode disabled: %v", device.ParentUUID)
-	}
-
-	if _, exists := parent.migProfiles[device.Profile]; !exists {
-		return fmt.Errorf("MIG profile %v does not exist on GPU: %v", device.Profile, device.ParentUUID)
-	}
-
-	if parent.migProfiles[device.Profile].available == 0 {
-		return fmt.Errorf("no MIG devices available for profile %v on GPU: %v", device.Profile, device.ParentUUID)
-	}
-
-	placement := nvml.GpuInstancePlacement{
-		Start: uint32(device.Placement.Start),
-		Size:  uint32(device.Placement.Size),
-	}
-
-	migInfo, err := createMigDevice(parent.GpuInfo, parent.migProfiles[device.Profile].profile, &placement)
-	if err != nil {
-		return fmt.Errorf("error creating MIG device: %v", err)
-	}
-
-	allocated := AllocatedDevices{
-		migInfo.uuid: AllocatedDeviceInfo{
-			mig: migInfo,
-		},
-	}
-
-	s.allocated[claimUid][migInfo.uuid] = allocated[migInfo.uuid]
-	s.removeFromAvailable(allocated)
 
 	return nil
 }

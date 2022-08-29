@@ -121,14 +121,26 @@ type RequestedMigDevice struct {
 	Placement  MigDevicePlacement `json:"placement"`
 }
 
-// RequestedDevice represents a request for a device to be allocated
-type RequestedDevice struct {
-	Gpu *RequestedGpu       `json:"gpu,omitempty"`
-	Mig *RequestedMigDevice `json:"mig,omitempty"`
+// RequestedGpus represents a set of GPUs being requested for allocation
+type RequestedGpus struct {
+	Spec    GpuClaimSpec   `json:"spec"`
+	Devices []RequestedGpu `json:"devices"`
 }
 
-// Type returns the type of RequestedDevice this represents
-func (r RequestedDevice) Type() string {
+// RequestedMigDevices represents a set of MIG device being requested for allocation
+type RequestedMigDevices struct {
+	Spec    MigDeviceClaimSpec   `json:"spec"`
+	Devices []RequestedMigDevice `json:"devices"`
+}
+
+// RequestedDevices represents a list of requests for devices to be allocated
+type RequestedDevices struct {
+	Gpu *RequestedGpus       `json:"gpu,omitempty"`
+	Mig *RequestedMigDevices `json:"mig,omitempty"`
+}
+
+// Type returns the type of RequestedDevices this represents
+func (r RequestedDevices) Type() string {
 	if r.Gpu != nil {
 		return GpuDeviceType
 	}
@@ -136,34 +148,6 @@ func (r RequestedDevice) Type() string {
 		return MigDeviceType
 	}
 	return UnknownDeviceType
-}
-
-// RequestedDevicesSpec represents the spec for a specific set of devices to be allocated
-type RequestedDevicesSpec struct {
-	Gpu *GpuClaimSpec       `json:"gpu,omitempty"`
-	Mig *MigDeviceClaimSpec `json:"mig,omitempty"`
-}
-
-// Type returns the type of RequestedDevicesSpec this represents
-func (s RequestedDevicesSpec) Type() string {
-	if s.Gpu != nil {
-		return GpuDeviceType
-	}
-	if s.Mig != nil {
-		return MigDeviceType
-	}
-	return UnknownDeviceType
-}
-
-// RequestedDevices represents a list of requests for devices to be allocated
-type RequestedDevices struct {
-	Spec    RequestedDevicesSpec `json:"spec"`
-	Devices []RequestedDevice    `json:"devices"`
-}
-
-// Type returns the type of RequestedDevices this represents
-func (r RequestedDevices) Type() string {
-	return r.Spec.Type()
 }
 
 // NodeAllocationStateSpec is the spec for the NodeAllocationState CRD
