@@ -39,8 +39,8 @@ type NodeAllocationStateConfig struct {
 
 type MigDevicePlacement = nvcrd.MigDevicePlacement
 type AllocatableGpu = nvcrd.AllocatableGpu
-type AllocatableMigDevice = nvcrd.AllocatableMigDevice
-type AllocatableDevice = nvcrd.AllocatableDevice
+type AllocatableMigDevices = nvcrd.AllocatableMigDevices
+type AllocatableDevices = nvcrd.AllocatableDevices
 type AllocatedGpu = nvcrd.AllocatedGpu
 type AllocatedMigDevice = nvcrd.AllocatedMigDevice
 type AllocatedDevice = nvcrd.AllocatedDevice

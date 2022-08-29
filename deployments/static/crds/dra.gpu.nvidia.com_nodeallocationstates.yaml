@@ -39,32 +39,27 @@ spec:
             properties:
               allocatableDevices:
                 items:
-                  description: AllocatableDevice represents an allocatable device
-                    on a node
+                  description: AllocatableDevices represents a set of allocatable
+                    devices on a node
                   properties:
                     gpu:
                       description: AllocatableGpu represents an allocatable GPU on
                         a node
                       properties:
-                        count:
-                          type: integer
-                        migDisabled:
-                          items:
-                            type: string
-                          type: array
                         migEnabled:
-                          items:
-                            type: string
-                          type: array
+                          type: boolean
                         name:
                           type: string
+                        uuid:
+                          type: string
                       required:
-                      - count
+                      - migEnabled
                       - name
+                      - uuid
                       type: object
                     mig:
-                      description: AllocatableMigDevice represents an allocatable
-                        MIG device on a node
+                      description: AllocatableMigDevices represents a set of allocatable
+                        MIG devices on a given type of GPU
                       properties:
                         parentName:
                           type: string

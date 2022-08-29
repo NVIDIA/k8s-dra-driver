@@ -35,27 +35,26 @@ type MigDevicePlacement struct {
 
 // AllocatableGpu represents an allocatable GPU on a node
 type AllocatableGpu struct {
-	Name        string   `json:"name"`
-	Count       int      `json:"count"`
-	MigEnabled  []string `json:"migEnabled,omitempty"`
-	MigDisabled []string `json:"migDisabled,omitempty"`
+	Name       string `json:"name"`
+	UUID       string `json:"uuid"`
+	MigEnabled bool   `json:"migEnabled"`
 }
 
-// AllocatableMigDevice represents an allocatable MIG device on a node
-type AllocatableMigDevice struct {
+// AllocatableMigDevices represents a set of allocatable MIG devices on a given type of GPU
+type AllocatableMigDevices struct {
 	Profile    string               `json:"profile"`
 	ParentName string               `json:"parentName"`
 	Placements []MigDevicePlacement `json:"placements"`
 }
 
-// AllocatableDevice represents an allocatable device on a node
-type AllocatableDevice struct {
-	Gpu *AllocatableGpu       `json:"gpu,omitempty"`
-	Mig *AllocatableMigDevice `json:"mig,omitempty"`
+// AllocatableDevices represents a set of allocatable devices on a node
+type AllocatableDevices struct {
+	Gpu *AllocatableGpu        `json:"gpu,omitempty"`
+	Mig *AllocatableMigDevices `json:"mig,omitempty"`
 }
 
-// Type returns the type of AllocatableDevice this represents
-func (d AllocatableDevice) Type() string {
+// Type returns the type of AllocatableDevices this represents
+func (d AllocatableDevices) Type() string {
 	if d.Gpu != nil {
 		return GpuDeviceType
 	}
@@ -169,7 +168,7 @@ func (r RequestedDevices) Type() string {
 
 // NodeAllocationStateSpec is the spec for the NodeAllocationState CRD
 type NodeAllocationStateSpec struct {
-	AllocatableDevices []AllocatableDevice         `json:"allocatableDevices,omitempty"`
+	AllocatableDevices []AllocatableDevices        `json:"allocatableDevices,omitempty"`
 	ClaimRequests      map[string]RequestedDevices `json:"claimRequests,omitempty"`
 	ClaimAllocations   map[string]AllocatedDevices `json:"claimAllocations,omitempty"`
 }

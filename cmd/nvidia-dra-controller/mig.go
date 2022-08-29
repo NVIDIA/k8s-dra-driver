@@ -101,9 +101,10 @@ func (m *migdriver) available(crd *nvcrd.NodeAllocationState) MigDevicePlacement
 	for _, device := range crd.Spec.AllocatableDevices {
 		switch device.Type() {
 		case nvcrd.GpuDeviceType:
-			for _, uuid := range device.Gpu.MigEnabled {
-				parents[device.Gpu.Name] = append(parents[device.Gpu.Name], uuid)
+			if !device.Gpu.MigEnabled {
+				continue
 			}
+			parents[device.Gpu.Name] = append(parents[device.Gpu.Name], device.Gpu.UUID)
 		}
 	}
 
