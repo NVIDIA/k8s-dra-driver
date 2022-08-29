@@ -31,7 +31,7 @@ type ClaimAllocations map[string]AllocatedDevices
 
 type GpuInfo struct {
 	uuid       string
-	name       string
+	model      string
 	minor      int
 	migEnabled bool
 }
@@ -295,7 +295,7 @@ func (s *DeviceState) syncAllocatableDevicesToCRDSpec(spec *nvcrd.NodeAllocation
 	for _, device := range s.alldevices {
 		gpus[device.uuid] = nvcrd.AllocatableDevices{
 			Gpu: &nvcrd.AllocatableGpu{
-				Name:       device.name,
+				Model:      device.model,
 				UUID:       device.uuid,
 				MigEnabled: device.migEnabled,
 			},
@@ -306,11 +306,11 @@ func (s *DeviceState) syncAllocatableDevicesToCRDSpec(spec *nvcrd.NodeAllocation
 		}
 
 		for _, mig := range device.migProfiles {
-			if _, exists := migs[device.name]; !exists {
-				migs[device.name] = make(map[string]nvcrd.AllocatableDevices)
+			if _, exists := migs[device.model]; !exists {
+				migs[device.model] = make(map[string]nvcrd.AllocatableDevices)
 			}
 
-			if _, exists := migs[device.name][mig.profile.String()]; exists {
+			if _, exists := migs[device.model][mig.profile.String()]; exists {
 				continue
 			}
 
@@ -325,13 +325,13 @@ func (s *DeviceState) syncAllocatableDevicesToCRDSpec(spec *nvcrd.NodeAllocation
 
 			ad := nvcrd.AllocatableDevices{
 				Mig: &nvcrd.AllocatableMigDevices{
-					Profile:    mig.profile.String(),
-					ParentName: device.name,
-					Placements: placements,
+					Profile:     mig.profile.String(),
+					ParentModel: device.model,
+					Placements:  placements,
 				},
 			}
 
-			migs[device.name][mig.profile.String()] = ad
+			migs[device.model][mig.profile.String()] = ad
 		}
 	}
 
@@ -424,7 +424,7 @@ func (s *DeviceState) syncAllocatedDevicesToCRDSpec(spec *nvcrd.NodeAllocationSt
 			case nvcrd.GpuDeviceType:
 				outdevice.Gpu = &nvcrd.AllocatedGpu{
 					UUID:      uuid,
-					Name:      device.gpu.name,
+					Model:     device.gpu.model,
 					CDIDevice: device.gpu.CDIDevice(),
 				}
 			case nvcrd.MigDeviceType:
@@ -433,12 +433,12 @@ func (s *DeviceState) syncAllocatedDevicesToCRDSpec(spec *nvcrd.NodeAllocationSt
 					Size:  int(device.mig.giInfo.Placement.Size),
 				}
 				outdevice.Mig = &nvcrd.AllocatedMigDevice{
-					UUID:       uuid,
-					Profile:    device.mig.profile.String(),
-					ParentUUID: device.mig.parent.uuid,
-					ParentName: device.mig.parent.name,
-					CDIDevice:  device.mig.CDIDevice(),
-					Placement:  placement,
+					UUID:        uuid,
+					Profile:     device.mig.profile.String(),
+					ParentUUID:  device.mig.parent.uuid,
+					ParentModel: device.mig.parent.model,
+					CDIDevice:   device.mig.CDIDevice(),
+					Placement:   placement,
 				}
 			}
 			allocated = append(allocated, outdevice)

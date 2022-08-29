@@ -69,7 +69,7 @@ func enumerateAllPossibleDevices() (UnallocatedDevices, error) {
 		gpuInfo := &GpuInfo{
 			uuid:       uuid,
 			minor:      minor,
-			name:       name,
+			model:      name,
 			migEnabled: migMode == nvml.DEVICE_MIG_ENABLE,
 		}
 
@@ -169,7 +169,7 @@ func getGpus() (map[string]*GpuInfo, error) {
 		gpuInfo := &GpuInfo{
 			uuid:       uuid,
 			minor:      minor,
-			name:       name,
+			model:      name,
 			migEnabled: migMode == nvml.DEVICE_MIG_ENABLE,
 		}
 
@@ -206,7 +206,7 @@ func getGpu(uuid string) (*GpuInfo, error) {
 	gpuInfo := &GpuInfo{
 		uuid:       uuid,
 		minor:      minor,
-		name:       name,
+		model:      name,
 		migEnabled: migMode == nvml.DEVICE_MIG_ENABLE,
 	}
 
