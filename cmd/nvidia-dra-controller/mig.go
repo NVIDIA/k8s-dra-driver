@@ -48,23 +48,21 @@ func (m *migdriver) Allocate(crd *nvcrd.NodeAllocationState, claim *corev1.Resou
 		return fmt.Errorf("no %v MIG devices available", claimSpec.Profile)
 	}
 
-	var devices []nvcrd.RequestedDevice
+	var devices []nvcrd.RequestedMigDevice
 	for _, p := range placements {
-		d := nvcrd.RequestedDevice{
-			Mig: &nvcrd.RequestedMigDevice{
-				Profile:    claimSpec.Profile,
-				ParentUUID: p.ParentUUID,
-				Placement:  p.Placement,
-			},
+		d := nvcrd.RequestedMigDevice{
+			Profile:    claimSpec.Profile,
+			ParentUUID: p.ParentUUID,
+			Placement:  p.Placement,
 		}
 		devices = append(devices, d)
 	}
 
 	crd.Spec.ClaimRequests[string(claim.UID)] = nvcrd.RequestedDevices{
-		Spec: nvcrd.RequestedDevicesSpec{
-			Mig: claimSpec,
+		Mig: &nvcrd.RequestedMigDevices{
+			Spec:    *claimSpec,
+			Devices: devices,
 		},
-		Devices: devices,
 	}
 
 	return nil
@@ -95,7 +93,7 @@ func (m *migdriver) UnsuitableNode(crd *nvcrd.NodeAllocationState, pod *corev1.P
 }
 
 func (m *migdriver) available(crd *nvcrd.NodeAllocationState) MigDevicePlacements {
-	parents := make(map[string][]string)
+	parents := make(map[string]map[string]*nvcrd.AllocatableGpu)
 	placements := make(MigDevicePlacements)
 
 	for _, device := range crd.Spec.AllocatableDevices {
@@ -104,7 +102,21 @@ func (m *migdriver) available(crd *nvcrd.NodeAllocationState) MigDevicePlacement
 			if !device.Gpu.MigEnabled {
 				continue
 			}
-			parents[device.Gpu.Model] = append(parents[device.Gpu.Model], device.Gpu.UUID)
+			if _, exists := parents[device.Gpu.Model]; !exists {
+				parents[device.Gpu.Model] = make(map[string]*nvcrd.AllocatableGpu)
+			}
+			parents[device.Gpu.Model][device.Gpu.UUID] = device.Gpu
+		}
+	}
+
+	for _, request := range crd.Spec.ClaimRequests {
+		switch request.Type() {
+		case nvcrd.GpuDeviceType:
+			for model := range parents {
+				for _, device := range request.Gpu.Devices {
+					delete(parents[model], device.UUID)
+				}
+			}
 		}
 	}
 
@@ -112,7 +124,7 @@ func (m *migdriver) available(crd *nvcrd.NodeAllocationState) MigDevicePlacement
 		switch device.Type() {
 		case nvcrd.MigDeviceType:
 			var pps []MigDevicePlacement
-			for _, parentUUID := range parents[device.Mig.ParentModel] {
+			for parentUUID := range parents[device.Mig.ParentModel] {
 				var mps []MigDevicePlacement
 				for _, p := range device.Mig.Placements {
 					mp := MigDevicePlacement{
@@ -128,12 +140,12 @@ func (m *migdriver) available(crd *nvcrd.NodeAllocationState) MigDevicePlacement
 	}
 
 	for _, request := range crd.Spec.ClaimRequests {
-		for _, device := range request.Devices {
-			switch device.Type() {
-			case nvcrd.MigDeviceType:
+		switch request.Type() {
+		case nvcrd.MigDeviceType:
+			for _, device := range request.Mig.Devices {
 				p := MigDevicePlacement{
-					ParentUUID: device.Mig.ParentUUID,
-					Placement:  device.Mig.Placement,
+					ParentUUID: device.ParentUUID,
+					Placement:  device.Placement,
 				}
 				placements.removeOverlapping(&p)
 			}

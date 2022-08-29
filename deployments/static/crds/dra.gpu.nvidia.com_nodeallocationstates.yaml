@@ -151,19 +151,37 @@ spec:
                   description: RequestedDevices represents a list of requests for
                     devices to be allocated
                   properties:
-                    devices:
-                      items:
-                        description: RequestedDevice represents a request for a device
-                          to be allocated
-                        properties:
-                          gpu:
+                    gpu:
+                      description: RequestedGpus represents a set of GPUs being requested
+                        for allocation
+                      properties:
+                        devices:
+                          items:
                             description: RequestedGpu represents a GPU being requested
                               for allocation
                             properties:
                               uuid:
                                 type: string
                             type: object
-                          mig:
+                          type: array
+                        spec:
+                          description: GpuClaimSpec is the spec for the GpuClaim CRD
+                          properties:
+                            count:
+                              type: integer
+                            migEnabled:
+                              type: boolean
+                          type: object
+                      required:
+                      - devices
+                      - spec
+                      type: object
+                    mig:
+                      description: RequestedMigDevices represents a set of MIG device
+                        being requested for allocation
+                      properties:
+                        devices:
+                          items:
                             description: RequestedMigDevice represents a MIG device
                               being requested for allocation
                             properties:
@@ -188,31 +206,18 @@ spec:
                             - placement
                             - profile
                             type: object
-                        type: object
-                      type: array
-                    spec:
-                      description: RequestedDevicesSpec represents the spec for a
-                        specific set of devices to be allocated
-                      properties:
-                        gpu:
-                          description: GpuClaimSpec is the spec for the GpuClaim CRD
-                          properties:
-                            count:
-                              type: integer
-                            migEnabled:
-                              type: boolean
-                          type: object
-                        mig:
+                          type: array
+                        spec:
                           description: MigDeviceClaimSpec is the spec for the MigDeviceClaim
                             CRD
                           properties:
                             profile:
                               type: string
                           type: object
+                      required:
+                      - devices
+                      - spec
                       type: object
-                  required:
-                  - devices
-                  - spec
                   type: object
                 type: object
             type: object
