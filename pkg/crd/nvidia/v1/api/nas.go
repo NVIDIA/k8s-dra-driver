@@ -48,6 +48,7 @@ type AllocatedDevices = nvcrd.AllocatedDevices
 type RequestedGpu = nvcrd.RequestedGpu
 type RequestedMigDevice = nvcrd.RequestedMigDevice
 type RequestedDevice = nvcrd.RequestedDevice
+type RequestedDevicesSpec = nvcrd.RequestedDevicesSpec
 type RequestedDevices = nvcrd.RequestedDevices
 type NodeAllocationStateSpec = nvcrd.NodeAllocationStateSpec
 type NodeAllocationStateList = nvcrd.NodeAllocationStateList

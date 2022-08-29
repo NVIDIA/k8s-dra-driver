@@ -59,7 +59,13 @@ func (m *migdriver) Allocate(crd *nvcrd.NodeAllocationState, claim *corev1.Resou
 		}
 		devices = append(devices, d)
 	}
-	crd.Spec.ClaimRequests[string(claim.UID)] = devices
+
+	crd.Spec.ClaimRequests[string(claim.UID)] = nvcrd.RequestedDevices{
+		Spec: nvcrd.RequestedDevicesSpec{
+			Mig: claimSpec,
+		},
+		Devices: devices,
+	}
 
 	return nil
 }
@@ -120,8 +126,8 @@ func (m *migdriver) available(crd *nvcrd.NodeAllocationState) MigDevicePlacement
 		}
 	}
 
-	for _, devices := range crd.Spec.ClaimRequests {
-		for _, device := range devices {
+	for _, request := range crd.Spec.ClaimRequests {
+		for _, device := range request.Devices {
 			switch device.Type() {
 			case nvcrd.MigDeviceType:
 				p := MigDevicePlacement{
