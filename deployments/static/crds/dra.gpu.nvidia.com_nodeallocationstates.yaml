@@ -211,6 +211,8 @@ spec:
                           description: MigDeviceClaimSpec is the spec for the MigDeviceClaim
                             CRD
                           properties:
+                            gpuClaimName:
+                              type: string
                             profile:
                               type: string
                           type: object
