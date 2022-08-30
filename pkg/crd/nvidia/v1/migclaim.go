@@ -22,7 +22,8 @@ import (
 
 // MigDeviceClaimSpec is the spec for the MigDeviceClaim CRD
 type MigDeviceClaimSpec struct {
-	Profile string `json:"profile,omitempty"`
+	Profile      string `json:"profile,omitempty"`
+	GpuClaimName string `json:"gpuClaimName,omitempty"`
 }
 
 // +genclient

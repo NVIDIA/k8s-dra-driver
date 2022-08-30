@@ -34,6 +34,8 @@ const (
 	DriverAPIVersion = DriverName + "/" + DriverVersion
 )
 
+type OnSuccessCallback func()
+
 type driver struct {
 	lock      *PerNodeMutex
 	namespace string
@@ -131,14 +133,15 @@ func (d driver) Allocate(ctx context.Context, claim *corev1.ResourceClaim, claim
 		return nil, fmt.Errorf("NodeAllocationStateStatus: %v", nascrd.Status)
 	}
 
+	var onSuccess OnSuccessCallback
 	classSpec := classParameters.(*nvcrd.DeviceClassSpec)
 	switch claim.Spec.Parameters.Kind {
 	case nvcrd.GpuClaimKind:
 		claimSpec := claimParameters.(*nvcrd.GpuClaimSpec)
-		err = d.gpu.Allocate(nascrd, claim, claimSpec, class, classSpec, selectedNode)
+		onSuccess, err = d.gpu.Allocate(nascrd, claim, claimSpec, class, classSpec, selectedNode)
 	case nvcrd.MigDeviceClaimKind:
 		claimSpec := claimParameters.(*nvcrd.MigDeviceClaimSpec)
-		err = d.mig.Allocate(nascrd, claim, claimSpec, class, classSpec, selectedNode)
+		onSuccess, err = d.mig.Allocate(nascrd, claim, claimSpec, class, classSpec, selectedNode)
 	default:
 		err = fmt.Errorf("unknown ResourceClaim.Parameters.Kind: %v", claim.Spec.Parameters.Kind)
 	}
@@ -150,6 +153,8 @@ func (d driver) Allocate(ctx context.Context, claim *corev1.ResourceClaim, claim
 	if err != nil {
 		return nil, fmt.Errorf("error updating NodeAllocationState CRD: %v", err)
 	}
+
+	onSuccess()
 
 	return buildAllocationResult(selectedNode, true), nil
 }
@@ -224,7 +229,7 @@ func (d driver) StopAllocation(ctx context.Context, claim *corev1.ResourceClaim)
 	return d.Deallocate(ctx, claim)
 }
 
-func (d driver) unsuitableNode(ctx context.Context, pod *corev1.Pod, cas []*controller.ClaimAllocation, potentialNode string) error {
+func (d driver) unsuitableNode(ctx context.Context, pod *corev1.Pod, allcas []*controller.ClaimAllocation, potentialNode string) error {
 	d.lock.Get(potentialNode).Lock()
 	defer d.lock.Get(potentialNode).Unlock()
 
@@ -236,31 +241,35 @@ func (d driver) unsuitableNode(ctx context.Context, pod *corev1.Pod, cas []*cont
 	nascrd := nvcrd.NewNodeAllocationState(crdconfig, d.clientset)
 	err := nascrd.Get()
 	if err != nil {
-		for _, ca := range cas {
+		for _, ca := range allcas {
 			ca.UnsuitableNodes = append(ca.UnsuitableNodes, potentialNode)
 		}
 		return nil
 	}
 
 	if nascrd.Status != nvcrd.NodeAllocationStateStatusReady {
-		for _, ca := range cas {
+		for _, ca := range allcas {
 			ca.UnsuitableNodes = append(ca.UnsuitableNodes, potentialNode)
 		}
 		return nil
 	}
 
+	if nascrd.Spec.ClaimRequests == nil {
+		nascrd.Spec.ClaimRequests = make(map[string]nvcrd.RequestedDevices)
+	}
+
 	perKindCas := make(map[string][]*controller.ClaimAllocation)
-	for _, ca := range cas {
+	for _, ca := range allcas {
 		kind := ca.Claim.Spec.Parameters.Kind
 		perKindCas[kind] = append(perKindCas[kind], ca)
 	}
-	for kind, cas := range perKindCas {
+	for _, kind := range []string{nvcrd.GpuClaimKind, nvcrd.MigDeviceClaimKind} {
 		var err error
 		switch kind {
 		case nvcrd.GpuClaimKind:
-			err = d.gpu.UnsuitableNode(nascrd, pod, cas, potentialNode)
+			err = d.gpu.UnsuitableNode(nascrd, pod, perKindCas[kind], allcas, potentialNode)
 		case nvcrd.MigDeviceClaimKind:
-			err = d.mig.UnsuitableNode(nascrd, pod, cas, potentialNode)
+			err = d.mig.UnsuitableNode(nascrd, pod, perKindCas[kind], allcas, potentialNode)
 		}
 		if err != nil {
 			return fmt.Errorf("error processing '%v': %v", kind, err)
