@@ -28,6 +28,7 @@ import (
 
 type DraV1Interface interface {
 	RESTClient() rest.Interface
+	ComputeInstanceClaimsGetter
 	DeviceClassesGetter
 	GpuClaimsGetter
 	MigDeviceClaimsGetter
@@ -37,6 +38,10 @@ type DraV1Interface interface {
 // DraV1Client is used to interact with features provided by the dra.gpu.nvidia.com group.
 type DraV1Client struct {
 	restClient rest.Interface
+}
+
+func (c *DraV1Client) ComputeInstanceClaims(namespace string) ComputeInstanceClaimInterface {
+	return newComputeInstanceClaims(c, namespace)
 }
 
 func (c *DraV1Client) DeviceClasses() DeviceClassInterface {

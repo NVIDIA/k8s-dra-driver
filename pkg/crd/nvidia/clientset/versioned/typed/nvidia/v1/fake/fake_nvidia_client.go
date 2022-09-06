@@ -28,6 +28,10 @@ type FakeDraV1 struct {
 	*testing.Fake
 }
 
+func (c *FakeDraV1) ComputeInstanceClaims(namespace string) v1.ComputeInstanceClaimInterface {
+	return &FakeComputeInstanceClaims{c, namespace}
+}
+
 func (c *FakeDraV1) DeviceClasses() v1.DeviceClassInterface {
 	return &FakeDeviceClasses{c}
 }

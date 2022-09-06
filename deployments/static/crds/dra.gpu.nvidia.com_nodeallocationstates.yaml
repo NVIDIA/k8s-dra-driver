@@ -215,6 +215,8 @@ spec:
                               type: string
                             profile:
                               type: string
+                            uninitialized:
+                              type: boolean
                           type: object
                       required:
                       - devices
