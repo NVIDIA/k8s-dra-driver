@@ -23,3 +23,9 @@ import (
 type GpuClaimSpec = nvcrd.GpuClaimSpec
 type GpuClaim = nvcrd.GpuClaim
 type GpuClaimList = nvcrd.GpuClaimList
+
+func DefaultGpuClaimSpec() *GpuClaimSpec {
+	return &GpuClaimSpec{
+		Count: 1,
+	}
+}

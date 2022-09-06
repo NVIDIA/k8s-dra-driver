@@ -72,7 +72,7 @@ func (d driver) GetClassParameters(ctx context.Context, class *corev1.ResourceCl
 
 func (d driver) GetClaimParameters(ctx context.Context, claim *corev1.ResourceClaim, class *corev1.ResourceClass, classParameters interface{}) (interface{}, error) {
 	if claim.Spec.Parameters == nil {
-		return nil, fmt.Errorf("missing claim parameters")
+		return nvcrd.DefaultGpuClaimSpec(), nil
 	}
 	if claim.Spec.Parameters.APIVersion != DriverAPIVersion {
 		return nil, fmt.Errorf("incorrect API group and version: %v", claim.Spec.Parameters.APIVersion)
@@ -135,12 +135,10 @@ func (d driver) Allocate(ctx context.Context, claim *corev1.ResourceClaim, claim
 
 	var onSuccess OnSuccessCallback
 	classSpec := classParameters.(*nvcrd.DeviceClassSpec)
-	switch claim.Spec.Parameters.Kind {
-	case nvcrd.GpuClaimKind:
-		claimSpec := claimParameters.(*nvcrd.GpuClaimSpec)
+	switch claimSpec := claimParameters.(type) {
+	case *nvcrd.GpuClaimSpec:
 		onSuccess, err = d.gpu.Allocate(nascrd, claim, claimSpec, class, classSpec, selectedNode)
-	case nvcrd.MigDeviceClaimKind:
-		claimSpec := claimParameters.(*nvcrd.MigDeviceClaimSpec)
+	case *nvcrd.MigDeviceClaimSpec:
 		onSuccess, err = d.mig.Allocate(nascrd, claim, claimSpec, class, classSpec, selectedNode)
 	default:
 		err = fmt.Errorf("unknown ResourceClaim.Parameters.Kind: %v", claim.Spec.Parameters.Kind)
@@ -260,7 +258,13 @@ func (d driver) unsuitableNode(ctx context.Context, pod *corev1.Pod, allcas []*c
 
 	perKindCas := make(map[string][]*controller.ClaimAllocation)
 	for _, ca := range allcas {
-		kind := ca.Claim.Spec.Parameters.Kind
+		var kind string
+		switch ca.ClaimParameters.(type) {
+		case *nvcrd.GpuClaimSpec:
+			kind = nvcrd.GpuClaimKind
+		case *nvcrd.MigDeviceClaimSpec:
+			kind = nvcrd.MigDeviceClaimKind
+		}
 		perKindCas[kind] = append(perKindCas[kind], ca)
 	}
 	for _, kind := range []string{nvcrd.GpuClaimKind, nvcrd.MigDeviceClaimKind} {
