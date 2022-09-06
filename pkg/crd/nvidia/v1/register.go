@@ -48,14 +48,14 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(SchemeGroupVersion,
 		&NodeAllocationState{},
 		&NodeAllocationStateList{},
-		&DeviceClass{},
-		&DeviceClassList{},
-		&GpuClaim{},
-		&GpuClaimList{},
-		&MigDeviceClaim{},
-		&MigDeviceClaimList{},
-		&ComputeInstanceClaim{},
-		&ComputeInstanceClaimList{},
+		&DeviceClassParameters{},
+		&DeviceClassParametersList{},
+		&GpuClaimParameters{},
+		&GpuClaimParametersList{},
+		&MigDeviceClaimParameters{},
+		&MigDeviceClaimParametersList{},
+		&ComputeInstanceClaimParameters{},
+		&ComputeInstanceClaimParametersList{},
 	)
 	metav1.AddToGroupVersion(scheme, SchemeGroupVersion)
 	return nil

@@ -9,7 +9,7 @@ metadata:
 
 ---
 apiVersion: dra.gpu.nvidia.com/v1
-kind: GpuClaim
+kind: GpuClaimParameters
 metadata:
   namespace: gpu-example1
   name: two-gpus
@@ -18,7 +18,7 @@ spec:
 
 ---
 apiVersion: dra.gpu.nvidia.com/v1
-kind: GpuClaim
+kind: GpuClaimParameters
 metadata:
   namespace: gpu-example1
   name: two-mig-gpus
@@ -49,7 +49,7 @@ spec:
           resourceClassName: gpu.nvidia.com
           parameters:
             apiVersion: dra.gpu.nvidia.com/v1
-            kind: GpuClaim
+            kind: GpuClaimParameters
             name: two-gpus
 
 ---
@@ -75,5 +75,5 @@ spec:
           resourceClassName: gpu.nvidia.com
           parameters:
             apiVersion: dra.gpu.nvidia.com/v1
-            kind: GpuClaim
+            kind: GpuClaimParameters
             name: two-mig-gpus

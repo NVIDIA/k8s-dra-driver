@@ -2,7 +2,7 @@
 # Each container asking for 1 distinct GPU
 
 apiVersion: dra.gpu.nvidia.com/v1
-kind: GpuClaim
+kind: GpuClaimParameters
 metadata:
   name: gpu-example3-test-parameters
 spec:
@@ -36,7 +36,7 @@ spec:
           resourceClassName: gpu.nvidia.com
           parameters:
             apiVersion: dra.gpu.nvidia.com/v1
-            kind: GpuClaim
+            kind: GpuClaimParameters
             name: gpu-example3-test-parameters
   - name: gpus2
     claim:
@@ -45,5 +45,5 @@ spec:
           resourceClassName: gpu.nvidia.com
           parameters:
             apiVersion: dra.gpu.nvidia.com/v1
-            kind: GpuClaim
+            kind: GpuClaimParameters
             name: gpu-example3-test-parameters

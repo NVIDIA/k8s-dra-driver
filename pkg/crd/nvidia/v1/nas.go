@@ -123,14 +123,14 @@ type RequestedMigDevice struct {
 
 // RequestedGpus represents a set of GPUs being requested for allocation
 type RequestedGpus struct {
-	Spec    GpuClaimSpec   `json:"spec"`
-	Devices []RequestedGpu `json:"devices"`
+	Spec    GpuClaimParametersSpec `json:"spec"`
+	Devices []RequestedGpu         `json:"devices"`
 }
 
 // RequestedMigDevices represents a set of MIG device being requested for allocation
 type RequestedMigDevices struct {
-	Spec    MigDeviceClaimSpec   `json:"spec"`
-	Devices []RequestedMigDevice `json:"devices"`
+	Spec    MigDeviceClaimParametersSpec `json:"spec"`
+	Devices []RequestedMigDevice         `json:"devices"`
 }
 
 // RequestedDevices represents a list of requests for devices to be allocated

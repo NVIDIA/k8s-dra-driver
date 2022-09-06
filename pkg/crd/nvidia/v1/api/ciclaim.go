@@ -20,6 +20,6 @@ import (
 	nvcrd "github.com/NVIDIA/k8s-dra-driver/pkg/crd/nvidia/v1"
 )
 
-type ComputeInstanceClaimSpec = nvcrd.ComputeInstanceClaimSpec
-type ComputeInstanceClaim = nvcrd.ComputeInstanceClaim
-type ComputeInstanceClaimList = nvcrd.ComputeInstanceClaimList
+type ComputeInstanceClaimParametersSpec = nvcrd.ComputeInstanceClaimParametersSpec
+type ComputeInstanceClaimParameters = nvcrd.ComputeInstanceClaimParameters
+type ComputeInstanceClaimParametersList = nvcrd.ComputeInstanceClaimParametersList

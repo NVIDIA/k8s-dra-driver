@@ -47,11 +47,11 @@ func NewMigDriver() *migdriver {
 	}
 }
 
-func (m migdriver) ValidateClaimSpec(claimSpec *nvcrd.MigDeviceClaimSpec) error {
+func (m migdriver) ValidateClaimParameters(claimParams *nvcrd.MigDeviceClaimParametersSpec) error {
 	return nil
 }
 
-func (m *migdriver) Allocate(crd *nvcrd.NodeAllocationState, claim *corev1.ResourceClaim, claimSpec *nvcrd.MigDeviceClaimSpec, class *corev1.ResourceClass, classSpec *nvcrd.DeviceClassSpec, selectedNode string) (OnSuccessCallback, error) {
+func (m *migdriver) Allocate(crd *nvcrd.NodeAllocationState, claim *corev1.ResourceClaim, claimParams *nvcrd.MigDeviceClaimParametersSpec, class *corev1.ResourceClass, classParams *nvcrd.DeviceClassParametersSpec, selectedNode string) (OnSuccessCallback, error) {
 	claimUID := string(claim.UID)
 
 	if !m.PendingClaimRequests.Exists(claimUID, selectedNode) {
@@ -59,7 +59,7 @@ func (m *migdriver) Allocate(crd *nvcrd.NodeAllocationState, claim *corev1.Resou
 	}
 
 	request := m.PendingClaimRequests.Get(claimUID, selectedNode).Mig
-	if request.Spec.GpuClaimName != "" {
+	if request.Spec.GpuClaimParametersName != "" {
 		for _, device := range request.Devices {
 			if !m.gpuIsAllocated(crd, device.ParentUUID) {
 				return nil, fmt.Errorf("dependent claim for parent GPU not yet allocated: %v", device.ParentUUID)
@@ -99,11 +99,11 @@ func (m *migdriver) UnsuitableNode(crd *nvcrd.NodeAllocationState, pod *corev1.P
 
 	for _, ca := range migcas {
 		claimUID := string(ca.Claim.UID)
-		claimSpec := ca.ClaimParameters.(*nvcrd.MigDeviceClaimSpec)
+		claimParams := ca.ClaimParameters.(*nvcrd.MigDeviceClaimParametersSpec)
 
 		devices := []nvcrd.RequestedMigDevice{
 			{
-				Profile:    claimSpec.Profile,
+				Profile:    claimParams.Profile,
 				ParentUUID: placements[ca].ParentUUID,
 				Placement:  placements[ca].Placement,
 			},
@@ -111,7 +111,7 @@ func (m *migdriver) UnsuitableNode(crd *nvcrd.NodeAllocationState, pod *corev1.P
 
 		requestedDevices := nvcrd.RequestedDevices{
 			Mig: &nvcrd.RequestedMigDevices{
-				Spec:    *claimSpec,
+				Spec:    *claimParams,
 				Devices: devices,
 			},
 		}
@@ -190,23 +190,23 @@ func (m *migdriver) allocate(crd *nvcrd.NodeAllocationState, pod *corev1.Pod, mi
 			continue
 		}
 
-		claimSpec := ca.ClaimParameters.(*nvcrd.MigDeviceClaimSpec)
-		if _, exists := available[claimSpec.Profile]; !exists {
+		claimParams := ca.ClaimParameters.(*nvcrd.MigDeviceClaimParametersSpec)
+		if _, exists := available[claimParams.Profile]; !exists {
 			possiblePlacements[ca] = nil
 			continue
 		}
 
 		var filtered []MigDevicePlacement
-		for _, p := range available[claimSpec.Profile] {
+		for _, p := range available[claimParams.Profile] {
 			if claimInfo, exists := gpuClaimInfo[p.ParentUUID]; exists {
-				if claimInfo.Name == pod.Name+"-"+claimSpec.GpuClaimName {
+				if claimInfo.Name == pod.Name+"-"+claimParams.GpuClaimParametersName {
 					filtered = append(filtered, p)
-				} else if claimInfo.Name == claimSpec.GpuClaimName {
+				} else if claimInfo.Name == claimParams.GpuClaimParametersName {
 					filtered = append(filtered, p)
 				}
 				continue
 			}
-			if claimSpec.GpuClaimName == "" {
+			if claimParams.GpuClaimParametersName == "" {
 				filtered = append(filtered, p)
 			}
 		}
@@ -248,8 +248,8 @@ func (m *migdriver) allocate(crd *nvcrd.NodeAllocationState, pod *corev1.Pod, mi
 
 		for _, newplacement := range possiblePlacements[migcas[i]] {
 			newcombo := make(map[*controller.ClaimAllocation]MigDevicePlacement)
-			for claimSpec, placement := range combo {
-				newcombo[claimSpec] = placement
+			for claimParams, placement := range combo {
+				newcombo[claimParams] = placement
 			}
 			newcombo[migcas[i]] = newplacement
 

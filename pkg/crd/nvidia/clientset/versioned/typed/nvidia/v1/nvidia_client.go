@@ -28,10 +28,10 @@ import (
 
 type DraV1Interface interface {
 	RESTClient() rest.Interface
-	ComputeInstanceClaimsGetter
-	DeviceClassesGetter
-	GpuClaimsGetter
-	MigDeviceClaimsGetter
+	ComputeInstanceClaimParametersesGetter
+	DeviceClassParametersGetter
+	GpuClaimParametersGetter
+	MigDeviceClaimParametersGetter
 	NodeAllocationStatesGetter
 }
 
@@ -40,20 +40,20 @@ type DraV1Client struct {
 	restClient rest.Interface
 }
 
-func (c *DraV1Client) ComputeInstanceClaims(namespace string) ComputeInstanceClaimInterface {
-	return newComputeInstanceClaims(c, namespace)
+func (c *DraV1Client) ComputeInstanceClaimParameterses(namespace string) ComputeInstanceClaimParametersInterface {
+	return newComputeInstanceClaimParameterses(c, namespace)
 }
 
-func (c *DraV1Client) DeviceClasses() DeviceClassInterface {
-	return newDeviceClasses(c)
+func (c *DraV1Client) DeviceClassParameters() DeviceClassParametersInterface {
+	return newDeviceClassParameters(c)
 }
 
-func (c *DraV1Client) GpuClaims(namespace string) GpuClaimInterface {
-	return newGpuClaims(c, namespace)
+func (c *DraV1Client) GpuClaimParameters(namespace string) GpuClaimParametersInterface {
+	return newGpuClaimParameters(c, namespace)
 }
 
-func (c *DraV1Client) MigDeviceClaims(namespace string) MigDeviceClaimInterface {
-	return newMigDeviceClaims(c, namespace)
+func (c *DraV1Client) MigDeviceClaimParameters(namespace string) MigDeviceClaimParametersInterface {
+	return newMigDeviceClaimParameters(c, namespace)
 }
 
 func (c *DraV1Client) NodeAllocationStates(namespace string) NodeAllocationStateInterface {

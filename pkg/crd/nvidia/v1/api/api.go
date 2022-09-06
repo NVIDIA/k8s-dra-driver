@@ -28,6 +28,6 @@ const (
 	MigDeviceType     = nvcrd.MigDeviceType
 	UnknownDeviceType = nvcrd.UnknownDeviceType
 
-	GpuClaimKind       = "GpuClaim"
-	MigDeviceClaimKind = "MigDeviceClaim"
+	GpuClaimParametersKind       = "GpuClaimParameters"
+	MigDeviceClaimParametersKind = "MigDeviceClaimParameters"
 )

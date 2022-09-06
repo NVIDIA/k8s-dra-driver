@@ -20,11 +20,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// MigDeviceClaimSpec is the spec for the MigDeviceClaim CRD
-type MigDeviceClaimSpec struct {
-	Profile       string `json:"profile,omitempty"`
-	GpuClaimName  string `json:"gpuClaimName,omitempty"`
-	Uninitialized bool   `json:"uninitialized,omitempty"`
+// MigDeviceClaimParametersSpec is the spec for the MigDeviceClaimParameters CRD
+type MigDeviceClaimParametersSpec struct {
+	Profile                string `json:"profile,omitempty"`
+	GpuClaimParametersName string `json:"gpuClaimName,omitempty"`
+	Uninitialized          bool   `json:"uninitialized,omitempty"`
 }
 
 // +genclient
@@ -32,20 +32,20 @@ type MigDeviceClaimSpec struct {
 // +k8s:openapi-gen=true
 // +kubebuilder:resource:scope=Namespaced
 
-// MigDeviceClaim holds the set of parameters provided when creating a resource claim for a MIG device
-type MigDeviceClaim struct {
+// MigDeviceClaimParameters holds the set of parameters provided when creating a resource claim for a MIG device
+type MigDeviceClaimParameters struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec MigDeviceClaimSpec `json:"spec,omitempty"`
+	Spec MigDeviceClaimParametersSpec `json:"spec,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// MigDeviceClaimList represents the "plural" of a MigDeviceClaim CRD object
-type MigDeviceClaimList struct {
+// MigDeviceClaimParametersList represents the "plural" of a MigDeviceClaimParameters CRD object
+type MigDeviceClaimParametersList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 
-	Items []MigDeviceClaim `json:"items"`
+	Items []MigDeviceClaimParameters `json:"items"`
 }

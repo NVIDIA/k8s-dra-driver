@@ -18,12 +18,12 @@
 
 package v1
 
-type ComputeInstanceClaimExpansion interface{}
+type ComputeInstanceClaimParametersExpansion interface{}
 
-type DeviceClassExpansion interface{}
+type DeviceClassParametersExpansion interface{}
 
-type GpuClaimExpansion interface{}
+type GpuClaimParametersExpansion interface{}
 
-type MigDeviceClaimExpansion interface{}
+type MigDeviceClaimParametersExpansion interface{}
 
 type NodeAllocationStateExpansion interface{}

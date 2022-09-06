@@ -58,44 +58,44 @@ func NewDriver(config *Config) *driver {
 
 func (d driver) GetClassParameters(ctx context.Context, class *corev1.ResourceClass) (interface{}, error) {
 	if class.Parameters == nil {
-		return nvcrd.DefaultDeviceClassSpec(), nil
+		return nvcrd.DefaultDeviceClassParametersSpec(), nil
 	}
 	if class.Parameters.APIVersion != DriverAPIVersion {
 		return nil, fmt.Errorf("incorrect API group and version: %v", class.Parameters.APIVersion)
 	}
-	dc, err := d.clientset.DraV1().DeviceClasses().Get(ctx, class.Parameters.Name, metav1.GetOptions{})
+	dc, err := d.clientset.DraV1().DeviceClassParameters().Get(ctx, class.Parameters.Name, metav1.GetOptions{})
 	if err != nil {
-		return nil, fmt.Errorf("error getting DeviceClass called '%v': %v", class.Parameters.Name, err)
+		return nil, fmt.Errorf("error getting DeviceClassParameters called '%v': %v", class.Parameters.Name, err)
 	}
 	return &dc.Spec, nil
 }
 
 func (d driver) GetClaimParameters(ctx context.Context, claim *corev1.ResourceClaim, class *corev1.ResourceClass, classParameters interface{}) (interface{}, error) {
 	if claim.Spec.Parameters == nil {
-		return nvcrd.DefaultGpuClaimSpec(), nil
+		return nvcrd.DefaultGpuClaimParametersSpec(), nil
 	}
 	if claim.Spec.Parameters.APIVersion != DriverAPIVersion {
 		return nil, fmt.Errorf("incorrect API group and version: %v", claim.Spec.Parameters.APIVersion)
 	}
 	switch claim.Spec.Parameters.Kind {
-	case nvcrd.GpuClaimKind:
-		gc, err := d.clientset.DraV1().GpuClaims(claim.Namespace).Get(ctx, claim.Spec.Parameters.Name, metav1.GetOptions{})
+	case nvcrd.GpuClaimParametersKind:
+		gc, err := d.clientset.DraV1().GpuClaimParameters(claim.Namespace).Get(ctx, claim.Spec.Parameters.Name, metav1.GetOptions{})
 		if err != nil {
-			return nil, fmt.Errorf("error getting GpuClaim called '%v' in namespace '%v': %v", claim.Spec.Parameters.Name, claim.Namespace, err)
+			return nil, fmt.Errorf("error getting GpuClaimParameters called '%v' in namespace '%v': %v", claim.Spec.Parameters.Name, claim.Namespace, err)
 		}
-		err = d.gpu.ValidateClaimSpec(&gc.Spec)
+		err = d.gpu.ValidateClaimParameters(&gc.Spec)
 		if err != nil {
-			return nil, fmt.Errorf("error validating GpuClaim called '%v' in namespace '%v': %v", claim.Spec.Parameters.Name, claim.Namespace, err)
+			return nil, fmt.Errorf("error validating GpuClaimParameters called '%v' in namespace '%v': %v", claim.Spec.Parameters.Name, claim.Namespace, err)
 		}
 		return &gc.Spec, nil
-	case nvcrd.MigDeviceClaimKind:
-		mc, err := d.clientset.DraV1().MigDeviceClaims(claim.Namespace).Get(ctx, claim.Spec.Parameters.Name, metav1.GetOptions{})
+	case nvcrd.MigDeviceClaimParametersKind:
+		mc, err := d.clientset.DraV1().MigDeviceClaimParameters(claim.Namespace).Get(ctx, claim.Spec.Parameters.Name, metav1.GetOptions{})
 		if err != nil {
-			return nil, fmt.Errorf("error getting MigDeviceClaim called '%v' in namespace '%v': %v", claim.Spec.Parameters.Name, claim.Namespace, err)
+			return nil, fmt.Errorf("error getting MigDeviceClaimParameters called '%v' in namespace '%v': %v", claim.Spec.Parameters.Name, claim.Namespace, err)
 		}
-		err = d.mig.ValidateClaimSpec(&mc.Spec)
+		err = d.mig.ValidateClaimParameters(&mc.Spec)
 		if err != nil {
-			return nil, fmt.Errorf("error validating MigDeviceClaim called '%v' in namespace '%v': %v", claim.Spec.Parameters.Name, claim.Namespace, err)
+			return nil, fmt.Errorf("error validating MigDeviceClaimParameters called '%v' in namespace '%v': %v", claim.Spec.Parameters.Name, claim.Namespace, err)
 		}
 		return &mc.Spec, nil
 	}
@@ -134,12 +134,12 @@ func (d driver) Allocate(ctx context.Context, claim *corev1.ResourceClaim, claim
 	}
 
 	var onSuccess OnSuccessCallback
-	classSpec := classParameters.(*nvcrd.DeviceClassSpec)
-	switch claimSpec := claimParameters.(type) {
-	case *nvcrd.GpuClaimSpec:
-		onSuccess, err = d.gpu.Allocate(nascrd, claim, claimSpec, class, classSpec, selectedNode)
-	case *nvcrd.MigDeviceClaimSpec:
-		onSuccess, err = d.mig.Allocate(nascrd, claim, claimSpec, class, classSpec, selectedNode)
+	classParams := classParameters.(*nvcrd.DeviceClassParametersSpec)
+	switch claimParams := claimParameters.(type) {
+	case *nvcrd.GpuClaimParametersSpec:
+		onSuccess, err = d.gpu.Allocate(nascrd, claim, claimParams, class, classParams, selectedNode)
+	case *nvcrd.MigDeviceClaimParametersSpec:
+		onSuccess, err = d.mig.Allocate(nascrd, claim, claimParams, class, classParams, selectedNode)
 	default:
 		err = fmt.Errorf("unknown ResourceClaim.Parameters.Kind: %v", claim.Spec.Parameters.Kind)
 	}
@@ -260,19 +260,19 @@ func (d driver) unsuitableNode(ctx context.Context, pod *corev1.Pod, allcas []*c
 	for _, ca := range allcas {
 		var kind string
 		switch ca.ClaimParameters.(type) {
-		case *nvcrd.GpuClaimSpec:
-			kind = nvcrd.GpuClaimKind
-		case *nvcrd.MigDeviceClaimSpec:
-			kind = nvcrd.MigDeviceClaimKind
+		case *nvcrd.GpuClaimParametersSpec:
+			kind = nvcrd.GpuClaimParametersKind
+		case *nvcrd.MigDeviceClaimParametersSpec:
+			kind = nvcrd.MigDeviceClaimParametersKind
 		}
 		perKindCas[kind] = append(perKindCas[kind], ca)
 	}
-	for _, kind := range []string{nvcrd.GpuClaimKind, nvcrd.MigDeviceClaimKind} {
+	for _, kind := range []string{nvcrd.GpuClaimParametersKind, nvcrd.MigDeviceClaimParametersKind} {
 		var err error
 		switch kind {
-		case nvcrd.GpuClaimKind:
+		case nvcrd.GpuClaimParametersKind:
 			err = d.gpu.UnsuitableNode(nascrd, pod, perKindCas[kind], allcas, potentialNode)
-		case nvcrd.MigDeviceClaimKind:
+		case nvcrd.MigDeviceClaimParametersKind:
 			err = d.mig.UnsuitableNode(nascrd, pod, perKindCas[kind], allcas, potentialNode)
 		}
 		if err != nil {

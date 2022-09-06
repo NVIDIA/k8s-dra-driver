@@ -20,12 +20,12 @@ import (
 	nvcrd "github.com/NVIDIA/k8s-dra-driver/pkg/crd/nvidia/v1"
 )
 
-type GpuClaimSpec = nvcrd.GpuClaimSpec
-type GpuClaim = nvcrd.GpuClaim
-type GpuClaimList = nvcrd.GpuClaimList
+type GpuClaimParametersSpec = nvcrd.GpuClaimParametersSpec
+type GpuClaimParameters = nvcrd.GpuClaimParameters
+type GpuClaimParametersList = nvcrd.GpuClaimParametersList
 
-func DefaultGpuClaimSpec() *GpuClaimSpec {
-	return &GpuClaimSpec{
+func DefaultGpuClaimParametersSpec() *GpuClaimParametersSpec {
+	return &GpuClaimParametersSpec{
 		Count: 1,
 	}
 }

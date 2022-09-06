@@ -5,21 +5,21 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.9.2
   creationTimestamp: null
-  name: gpuclaims.dra.gpu.nvidia.com
+  name: gpuclaimparameters.dra.gpu.nvidia.com
 spec:
   group: dra.gpu.nvidia.com
   names:
-    kind: GpuClaim
-    listKind: GpuClaimList
-    plural: gpuclaims
-    singular: gpuclaim
+    kind: GpuClaimParameters
+    listKind: GpuClaimParametersList
+    plural: gpuclaimparameters
+    singular: gpuclaimparameters
   scope: Namespaced
   versions:
   - name: v1
     schema:
       openAPIV3Schema:
-        description: GpuClaim holds the set of parameters provided when creating a
-          resource claim for a GPU
+        description: GpuClaimParameters holds the set of parameters provided when
+          creating a resource claim for a GPU
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -34,7 +34,8 @@ spec:
           metadata:
             type: object
           spec:
-            description: GpuClaimSpec is the spec for the GpuClaim CRD
+            description: GpuClaimParametersSpec is the spec for the GpuClaimParameters
+              CRD
             properties:
               count:
                 type: integer

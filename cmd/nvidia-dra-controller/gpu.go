@@ -35,14 +35,14 @@ func NewGpuDriver() *gpudriver {
 	}
 }
 
-func (g *gpudriver) ValidateClaimSpec(claimSpec *nvcrd.GpuClaimSpec) error {
-	if claimSpec.Count < 1 {
-		return fmt.Errorf("invalid number of GPUs requested: %v", claimSpec.Count)
+func (g *gpudriver) ValidateClaimParameters(claimParams *nvcrd.GpuClaimParametersSpec) error {
+	if claimParams.Count < 1 {
+		return fmt.Errorf("invalid number of GPUs requested: %v", claimParams.Count)
 	}
 	return nil
 }
 
-func (g *gpudriver) Allocate(crd *nvcrd.NodeAllocationState, claim *corev1.ResourceClaim, claimSpec *nvcrd.GpuClaimSpec, class *corev1.ResourceClass, classSpec *nvcrd.DeviceClassSpec, selectedNode string) (OnSuccessCallback, error) {
+func (g *gpudriver) Allocate(crd *nvcrd.NodeAllocationState, claim *corev1.ResourceClaim, claimParams *nvcrd.GpuClaimParametersSpec, class *corev1.ResourceClass, classParams *nvcrd.DeviceClassParametersSpec, selectedNode string) (OnSuccessCallback, error) {
 	claimUID := string(claim.UID)
 
 	if !g.PendingClaimRequests.Exists(claimUID, selectedNode) {
@@ -74,9 +74,9 @@ func (g *gpudriver) UnsuitableNode(crd *nvcrd.NodeAllocationState, pod *corev1.P
 	allocated := g.allocate(crd, pod, gpucas, allcas, potentialNode)
 	for _, ca := range gpucas {
 		claimUID := string(ca.Claim.UID)
-		claimSpec := ca.ClaimParameters.(*nvcrd.GpuClaimSpec)
+		claimParams := ca.ClaimParameters.(*nvcrd.GpuClaimParametersSpec)
 
-		if claimSpec.Count != len(allocated[claimUID]) {
+		if claimParams.Count != len(allocated[claimUID]) {
 			for _, ca := range allcas {
 				ca.UnsuitableNodes = append(ca.UnsuitableNodes, potentialNode)
 			}
@@ -93,7 +93,7 @@ func (g *gpudriver) UnsuitableNode(crd *nvcrd.NodeAllocationState, pod *corev1.P
 
 		requestedDevices := nvcrd.RequestedDevices{
 			Gpu: &nvcrd.RequestedGpus{
-				Spec:    *claimSpec,
+				Spec:    *claimParams,
 				Devices: devices,
 			},
 		}
@@ -139,11 +139,11 @@ func (g *gpudriver) allocate(crd *nvcrd.NodeAllocationState, pod *corev1.Pod, gp
 			continue
 		}
 
-		claimSpec := ca.ClaimParameters.(*nvcrd.GpuClaimSpec)
+		claimParams := ca.ClaimParameters.(*nvcrd.GpuClaimParametersSpec)
 		var devices []string
-		for i := 0; i < claimSpec.Count; i++ {
+		for i := 0; i < claimParams.Count; i++ {
 			for _, device := range available {
-				if device.MigEnabled == claimSpec.MigEnabled {
+				if device.MigEnabled == claimParams.MigEnabled {
 					devices = append(devices, device.UUID)
 					delete(available, device.UUID)
 					break

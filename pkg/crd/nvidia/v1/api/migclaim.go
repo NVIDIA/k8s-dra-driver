@@ -20,6 +20,6 @@ import (
 	nvcrd "github.com/NVIDIA/k8s-dra-driver/pkg/crd/nvidia/v1"
 )
 
-type MigDeviceClaimSpec = nvcrd.MigDeviceClaimSpec
-type MigDeviceClaim = nvcrd.MigDeviceClaim
-type MigDeviceClaimList = nvcrd.MigDeviceClaimList
+type MigDeviceClaimParametersSpec = nvcrd.MigDeviceClaimParametersSpec
+type MigDeviceClaimParameters = nvcrd.MigDeviceClaimParameters
+type MigDeviceClaimParametersList = nvcrd.MigDeviceClaimParametersList

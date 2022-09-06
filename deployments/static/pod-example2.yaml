@@ -27,12 +27,12 @@ spec:
           resourceClassName: gpu.nvidia.com
           parameters:
             apiVersion: dra.gpu.nvidia.com/v1
-            kind: GpuClaim
+            kind: GpuClaimParameters
             name: gpu-example2-test-parameters
 
 ---
 apiVersion: dra.gpu.nvidia.com/v1
-kind: GpuClaim
+kind: GpuClaimParameters
 metadata:
   name: gpu-example2-test-parameters
 spec:

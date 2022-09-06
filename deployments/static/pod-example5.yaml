@@ -2,7 +2,7 @@
 # Each asking for a different MIG device
 
 apiVersion: dra.gpu.nvidia.com/v1
-kind: MigDeviceClaim
+kind: MigDeviceClaimParameters
 metadata:
   name: mig-1g.5gb
 spec:
@@ -10,7 +10,7 @@ spec:
 
 ---
 apiVersion: dra.gpu.nvidia.com/v1
-kind: MigDeviceClaim
+kind: MigDeviceClaimParameters
 metadata:
   name: mig-2g.10gb
 spec:
@@ -44,7 +44,7 @@ spec:
           resourceClassName: gpu.nvidia.com
           parameters:
             apiVersion: dra.gpu.nvidia.com/v1
-            kind: MigDeviceClaim
+            kind: MigDeviceClaimParameters
             name: mig-1g.5gb
   - name: mig-2g.10gb
     claim:
@@ -53,5 +53,5 @@ spec:
           resourceClassName: gpu.nvidia.com
           parameters:
             apiVersion: dra.gpu.nvidia.com/v1
-            kind: MigDeviceClaim
+            kind: MigDeviceClaimParameters
             name: mig-2g.10gb

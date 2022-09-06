@@ -21,12 +21,12 @@ import (
 )
 
 type DeviceSelector = nvcrd.DeviceSelector
-type DeviceClassSpec = nvcrd.DeviceClassSpec
-type DeviceClass = nvcrd.DeviceClass
-type DeviceClassList = nvcrd.DeviceClassList
+type DeviceClassParametersSpec = nvcrd.DeviceClassParametersSpec
+type DeviceClassParameters = nvcrd.DeviceClassParameters
+type DeviceClassParametersList = nvcrd.DeviceClassParametersList
 
-func DefaultDeviceClassSpec() *DeviceClassSpec {
-	return &DeviceClassSpec{
+func DefaultDeviceClassParametersSpec() *DeviceClassParametersSpec {
+	return &DeviceClassParametersSpec{
 		DeviceSelector: []DeviceSelector{
 			{
 				Type: GpuDeviceType,

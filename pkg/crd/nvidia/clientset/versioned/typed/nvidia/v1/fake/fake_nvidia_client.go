@@ -28,20 +28,20 @@ type FakeDraV1 struct {
 	*testing.Fake
 }
 
-func (c *FakeDraV1) ComputeInstanceClaims(namespace string) v1.ComputeInstanceClaimInterface {
-	return &FakeComputeInstanceClaims{c, namespace}
+func (c *FakeDraV1) ComputeInstanceClaimParameterses(namespace string) v1.ComputeInstanceClaimParametersInterface {
+	return &FakeComputeInstanceClaimParameterses{c, namespace}
 }
 
-func (c *FakeDraV1) DeviceClasses() v1.DeviceClassInterface {
-	return &FakeDeviceClasses{c}
+func (c *FakeDraV1) DeviceClassParameters() v1.DeviceClassParametersInterface {
+	return &FakeDeviceClassParameters{c}
 }
 
-func (c *FakeDraV1) GpuClaims(namespace string) v1.GpuClaimInterface {
-	return &FakeGpuClaims{c, namespace}
+func (c *FakeDraV1) GpuClaimParameters(namespace string) v1.GpuClaimParametersInterface {
+	return &FakeGpuClaimParameters{c, namespace}
 }
 
-func (c *FakeDraV1) MigDeviceClaims(namespace string) v1.MigDeviceClaimInterface {
-	return &FakeMigDeviceClaims{c, namespace}
+func (c *FakeDraV1) MigDeviceClaimParameters(namespace string) v1.MigDeviceClaimParametersInterface {
+	return &FakeMigDeviceClaimParameters{c, namespace}
 }
 
 func (c *FakeDraV1) NodeAllocationStates(namespace string) v1.NodeAllocationStateInterface {

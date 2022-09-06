@@ -165,7 +165,8 @@ spec:
                             type: object
                           type: array
                         spec:
-                          description: GpuClaimSpec is the spec for the GpuClaim CRD
+                          description: GpuClaimParametersSpec is the spec for the
+                            GpuClaimParameters CRD
                           properties:
                             count:
                               type: integer
@@ -208,8 +209,8 @@ spec:
                             type: object
                           type: array
                         spec:
-                          description: MigDeviceClaimSpec is the spec for the MigDeviceClaim
-                            CRD
+                          description: MigDeviceClaimParametersSpec is the spec for
+                            the MigDeviceClaimParameters CRD
                           properties:
                             gpuClaimName:
                               type: string
