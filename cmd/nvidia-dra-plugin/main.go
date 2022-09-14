@@ -20,6 +20,8 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/spf13/cobra"
 
@@ -27,10 +29,10 @@ import (
 	coreclientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	plugin "k8s.io/component-helpers/dra/kubeletplugin"
 
 	nvclientset "github.com/NVIDIA/k8s-dra-driver/pkg/crd/nvidia/clientset/versioned"
 	nvcrd "github.com/NVIDIA/k8s-dra-driver/pkg/crd/nvidia/v1/api"
-	"github.com/NVIDIA/k8s-dra-driver/pkg/plugin"
 )
 
 const (
@@ -38,7 +40,7 @@ const (
 	DriverVersion    = nvcrd.Version
 	DriverAPIVersion = DriverName + "/" + DriverVersion
 
-	PluginRegistrationPath = "/var/lib/kubelet/plugins_registry"
+	PluginRegistrationPath = "/var/lib/kubelet/plugins_registry/" + DriverName + ".sock"
 	DriverPluginPath       = "/var/lib/kubelet/plugins/" + DriverName
 	DriverPluginSocketPath = DriverPluginPath + "/plugin.sock"
 
@@ -157,19 +159,25 @@ func StartPlugin(config *Config) error {
 		return err
 	}
 
-	err = plugin.StartRegistrationServer(DriverName, DriverPluginSocketPath, PluginRegistrationPath)
+	driver, err := NewDriver(config)
 	if err != nil {
 		return err
 	}
 
-	d, err := NewDriver(config)
+	dp, err := plugin.Start(
+		driver,
+		plugin.DriverName(DriverName),
+		plugin.RegistrarSocketPath(PluginRegistrationPath),
+		plugin.PluginSocketPath(DriverPluginSocketPath),
+		plugin.KubeletPluginSocketPath(DriverPluginSocketPath))
 	if err != nil {
 		return err
 	}
 
-	s := plugin.NewNonBlockingGRPCServer()
-	s.Start(DriverPluginSocketPath, d)
-	s.Wait()
+	sigc := make(chan os.Signal, 1)
+	signal.Notify(sigc, os.Interrupt, syscall.SIGTERM)
+	<-sigc
+	dp.Stop()
 
 	return nil
 }
