@@ -20,8 +20,8 @@ import (
 	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/component-helpers/dra/controller"
 
-	"github.com/NVIDIA/k8s-dra-driver/pkg/controller"
 	nvcrd "github.com/NVIDIA/k8s-dra-driver/pkg/crd/nvidia/v1/api"
 )
 

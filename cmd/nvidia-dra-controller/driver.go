@@ -22,8 +22,8 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/component-helpers/dra/controller"
 
-	"github.com/NVIDIA/k8s-dra-driver/pkg/controller"
 	nvclientset "github.com/NVIDIA/k8s-dra-driver/pkg/crd/nvidia/clientset/versioned"
 	nvcrd "github.com/NVIDIA/k8s-dra-driver/pkg/crd/nvidia/v1/api"
 )
@@ -221,10 +221,6 @@ func (d driver) UnsuitableNodes(ctx context.Context, pod *corev1.Pod, cas []*con
 	}
 
 	return nil
-}
-
-func (d driver) StopAllocation(ctx context.Context, claim *corev1.ResourceClaim) error {
-	return d.Deallocate(ctx, claim)
 }
 
 func (d driver) unsuitableNode(ctx context.Context, pod *corev1.Pod, allcas []*controller.ClaimAllocation, potentialNode string) error {

@@ -42,6 +42,7 @@ import (
 	logsapi "k8s.io/component-base/logs/api/v1"
 	"k8s.io/component-base/metrics/legacyregistry"
 	"k8s.io/component-base/term"
+	"k8s.io/component-helpers/dra/controller"
 	"k8s.io/klog/v2"
 
 	_ "k8s.io/component-base/logs/json/register"                         // for JSON log output support
@@ -50,7 +51,6 @@ import (
 	_ "k8s.io/component-base/metrics/prometheus/version"                 // for version metric registration
 	_ "k8s.io/component-base/metrics/prometheus/workqueue"               // register work queues in the default legacy registry
 
-	"github.com/NVIDIA/k8s-dra-driver/pkg/controller"
 	nvclientset "github.com/NVIDIA/k8s-dra-driver/pkg/crd/nvidia/clientset/versioned"
 	"github.com/NVIDIA/k8s-dra-driver/pkg/leaderelection"
 )
