@@ -1,0 +1,57 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.9.2
+  creationTimestamp: null
+  name: deviceclassparameters.dra.gpu.nvidia.com
+spec:
+  group: dra.gpu.nvidia.com
+  names:
+    kind: DeviceClassParameters
+    listKind: DeviceClassParametersList
+    plural: deviceclassparameters
+    singular: deviceclassparameters
+  scope: Cluster
+  versions:
+  - name: v1
+    schema:
+      openAPIV3Schema:
+        description: DeviceClassParameters holds the set of parameters provided when
+          creating a resource class for this driver
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: DeviceClassParametersSpec is the spec for the DeviceClassParametersSpec
+              CRD
+            properties:
+              deviceSelector:
+                items:
+                  description: DeviceSelector allows one to match on a specific type
+                    of Device as part of the class
+                  properties:
+                    name:
+                      type: string
+                    type:
+                      type: string
+                  required:
+                  - name
+                  - type
+                  type: object
+                type: array
+            type: object
+        type: object
+    served: true
+    storage: true

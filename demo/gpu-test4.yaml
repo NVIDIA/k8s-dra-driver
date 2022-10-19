@@ -1,0 +1,147 @@
+# One pod, 4 containers
+# Each asking for a different MIG device on a shared mig-enabled GPU
+# Run as deployment with 4 replicas
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: gpu-test4
+
+---
+apiVersion: dra.gpu.nvidia.com/v1
+kind: GpuClaimParameters
+metadata:
+  namespace: gpu-test4
+  name: mig-enabled-gpu
+spec:
+  count: 1
+  migEnabled: true
+
+---
+apiVersion: dra.gpu.nvidia.com/v1
+kind: MigDeviceClaimParameters
+metadata:
+  namespace: gpu-test4
+  name: mig-1g.5gb
+spec:
+  profile: "1g.5gb"
+  gpuClaimName: "mig-enabled-gpu"
+
+---
+apiVersion: dra.gpu.nvidia.com/v1
+kind: MigDeviceClaimParameters
+metadata:
+  namespace: gpu-test4
+  name: mig-2g.10gb
+spec:
+  profile: "2g.10gb"
+  gpuClaimName: "mig-enabled-gpu"
+
+---
+apiVersion: dra.gpu.nvidia.com/v1
+kind: MigDeviceClaimParameters
+metadata:
+  namespace: gpu-test4
+  name: mig-3g.20gb
+spec:
+  profile: "3g.20gb"
+  gpuClaimName: "mig-enabled-gpu"
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: gpu-test4
+  name: pod
+  labels:
+    app: gpu-test4-pod
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: pod
+  template:
+    metadata:
+      labels:
+        app: pod
+    spec:
+      resourceClaims:
+      - name: mig-enabled-gpu
+        claim:
+          template:
+            spec:
+              resourceClassName: gpu.nvidia.com
+              parameters:
+                apiVersion: dra.gpu.nvidia.com/v1
+                kind: GpuClaimParameters
+                name: mig-enabled-gpu
+      - name: mig-1g.5gb-0
+        claim:
+          template:
+            spec:
+              resourceClassName: gpu.nvidia.com
+              parameters:
+                apiVersion: dra.gpu.nvidia.com/v1
+                kind: MigDeviceClaimParameters
+                name: mig-1g.5gb
+      - name: mig-1g.5gb-1
+        claim:
+          template:
+            spec:
+              resourceClassName: gpu.nvidia.com
+              parameters:
+                apiVersion: dra.gpu.nvidia.com/v1
+                kind: MigDeviceClaimParameters
+                name: mig-1g.5gb
+      - name: mig-2g.10gb
+        claim:
+          template:
+            spec:
+              resourceClassName: gpu.nvidia.com
+              parameters:
+                apiVersion: dra.gpu.nvidia.com/v1
+                kind: MigDeviceClaimParameters
+                name: mig-2g.10gb
+      - name: mig-3g.20gb
+        claim:
+          template:
+            spec:
+              resourceClassName: gpu.nvidia.com
+              parameters:
+                apiVersion: dra.gpu.nvidia.com/v1
+                kind: MigDeviceClaimParameters
+                name: mig-3g.20gb
+      containers:
+      - name: ctr0
+        image: ubuntu:22.04
+        command: ["bash", "-c"]
+        args: ["nvidia-smi -L; sleep 9999"]
+        resources:
+          claims:
+          - mig-enabled-gpu
+          - mig-3g.20gb
+      - name: ctr1
+        image: ubuntu:22.04
+        command: ["bash", "-c"]
+        args: ["nvidia-smi -L; sleep 9999"]
+        resources:
+          claims:
+          - mig-enabled-gpu
+          - mig-2g.10gb
+      - name: ctr2
+        image: ubuntu:22.04
+        command: ["bash", "-c"]
+        args: ["nvidia-smi -L; sleep 9999"]
+        resources:
+          claims:
+          - mig-enabled-gpu
+          - mig-1g.5gb-0
+      - name: ctr3
+        image: ubuntu:22.04
+        command: ["bash", "-c"]
+        args: ["nvidia-smi -L; sleep 9999"]
+        resources:
+          claims:
+          - mig-enabled-gpu
+          - mig-1g.5gb-1

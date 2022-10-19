@@ -1,0 +1,37 @@
+# One pod, two containers
+# Each asking for shared access to a single GPU
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: gpu-test2
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  namespace: gpu-test2
+  name: pod
+spec:
+  containers:
+  - name: ctr0
+    image: ubuntu:22.04
+    command: ["bash", "-c"]
+    args: ["nvidia-smi -L; sleep 9999"]
+    resources:
+      claims:
+      - shared-gpu
+  - name: ctr1
+    image: ubuntu:22.04
+    command: ["bash", "-c"]
+    args: ["nvidia-smi -L; sleep 9999"]
+    resources:
+      claims:
+      - shared-gpu
+  resourceClaims:
+  - name: shared-gpu
+    claim:
+      template:
+        spec:
+          resourceClassName: gpu.nvidia.com

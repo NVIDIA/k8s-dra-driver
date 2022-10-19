@@ -1,0 +1,93 @@
+# One pod, 2 containers
+# Each asking for a compute slice of a shared MIG device
+# Run as deployment with 6 replicas
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: gpu-test5
+
+---
+apiVersion: dra.gpu.nvidia.com/v1
+kind: MigDeviceClaimParameters
+metadata:
+  namespace: gpu-test5
+  name: shared-2g.10gb
+spec:
+  profile: "2g.10gb"
+  uninitialized: true
+
+---
+apiVersion: dra.gpu.nvidia.com/v1
+kind: ComputeInstanceClaimParameters
+metadata:
+  namespace: gpu-test5
+  name: 1c
+spec:
+  profile: "1c.2g.10gb"
+  migDeviceClaimName: "shared-2g.10gb"
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: gpu-test5
+  name: pod
+  labels:
+    app: gpu-test5-pod
+spec:
+  replicas: 6
+  selector:
+    matchLabels:
+      app: pod
+  template:
+    metadata:
+      labels:
+        app: pod
+    spec:
+      containers:
+      - name: ctr0
+        image: ubuntu:22.04
+        command: ["bash", "-c"]
+        args: ["nvidia-smi -L; sleep 9999"]
+        resources:
+          claims:
+          - shared-2g.10gb
+          - 1c.2g.10gb-0
+      - name: ctr1
+        image: ubuntu:22.04
+        command: ["bash", "-c"]
+        args: ["nvidia-smi -L; sleep 9999"]
+        resources:
+          claims:
+          - shared-2g.10gb
+          - 1c.2g.10gb-1
+      resourceClaims:
+      - name: shared-2g.10gb
+        claim:
+          template:
+            spec:
+              resourceClassName: gpu.nvidia.com
+              parameters:
+                apiVersion: dra.gpu.nvidia.com/v1
+                kind: MigDeviceClaimParameters
+                name: 2g.10gb
+      - name: 1c.2g.10gb-0
+        claim:
+          template:
+            spec:
+              resourceClassName: gpu.nvidia.com
+              parameters:
+                apiVersion: dra.gpu.nvidia.com/v1
+                kind: ComputeInstanceClaimParameters
+                name: 1c
+      - name: 1c.2g.10gb-1
+        claim:
+          template:
+            spec:
+              resourceClassName: gpu.nvidia.com
+              parameters:
+                apiVersion: dra.gpu.nvidia.com/v1
+                kind: ComputeInstanceClaimParameters
+                name: 1c

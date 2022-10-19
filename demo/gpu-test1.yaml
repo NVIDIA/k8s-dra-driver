@@ -1,0 +1,56 @@
+# Two pods, one container each
+# Each container asking for 1 distinct GPU
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: gpu-test1
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  namespace: gpu-test1
+  name: pod1
+  labels:
+    app: pod
+spec:
+  containers:
+  - name: ctr
+    image: ubuntu:22.04
+    command: ["bash", "-c"]
+    args: ["nvidia-smi -L; sleep 9999"]
+    resources:
+      claims:
+      - gpu
+  resourceClaims:
+  - name: gpu
+    claim:
+      template:
+        spec:
+          resourceClassName: gpu.nvidia.com
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  namespace: gpu-test1
+  name: pod2
+  labels:
+    app: pod
+spec:
+  containers:
+  - name: ctr
+    image: ubuntu:22.04
+    command: ["bash", "-c"]
+    args: ["nvidia-smi -L; sleep 9999"]
+    resources:
+      claims:
+      - gpu
+  resourceClaims:
+  - name: gpu
+    claim:
+      template:
+        spec:
+          resourceClassName: gpu.nvidia.com

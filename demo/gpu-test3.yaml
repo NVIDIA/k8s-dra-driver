@@ -1,0 +1,61 @@
+# One shared, global claim providing access to a GPU
+# Two pods, each asking for access to the shared GPU
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: gpu-test3
+
+---
+apiVersion: v1
+kind: ResourceClaim
+metadata:
+  namespace: gpu-test3
+  name: shared-gpu
+spec:
+  resourceClassName: gpu.nvidia.com
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  namespace: gpu-test3
+  name: pod1
+  labels:
+    app: pod
+spec:
+  containers:
+  - name: ctr
+    image: ubuntu:22.04
+    command: ["bash", "-c"]
+    args: ["nvidia-smi -L; sleep 9999"]
+    resources:
+      claims:
+      - shared-gpu
+  resourceClaims:
+  - name: shared-gpu
+    claim:
+      resourceClaimName: shared-gpu
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  namespace: gpu-test3
+  name: pod2
+  labels:
+    app: pod
+spec:
+  containers:
+  - name: ctr
+    image: ubuntu:22.04
+    command: ["bash", "-c"]
+    args: ["nvidia-smi -L; sleep 9999"]
+    resources:
+      claims:
+      - shared-gpu
+  resourceClaims:
+  - name: shared-gpu
+    claim:
+      resourceClaimName: shared-gpu

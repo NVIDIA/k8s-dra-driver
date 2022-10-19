@@ -1,0 +1,233 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.9.2
+  creationTimestamp: null
+  name: nodeallocationstates.dra.gpu.nvidia.com
+spec:
+  group: dra.gpu.nvidia.com
+  names:
+    kind: NodeAllocationState
+    listKind: NodeAllocationStateList
+    plural: nodeallocationstates
+    singular: nas
+  scope: Namespaced
+  versions:
+  - name: v1
+    schema:
+      openAPIV3Schema:
+        description: NodeAllocationState holds the state required for allocation on
+          a node
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: NodeAllocationStateSpec is the spec for the NodeAllocationState
+              CRD
+            properties:
+              allocatableDevices:
+                items:
+                  description: AllocatableDevices represents a set of allocatable
+                    devices on a node
+                  properties:
+                    gpu:
+                      description: AllocatableGpu represents an allocatable GPU on
+                        a node
+                      properties:
+                        migEnabled:
+                          type: boolean
+                        model:
+                          type: string
+                        uuid:
+                          type: string
+                      required:
+                      - migEnabled
+                      - model
+                      - uuid
+                      type: object
+                    mig:
+                      description: AllocatableMigDevices represents a set of allocatable
+                        MIG devices on a given type of GPU
+                      properties:
+                        parentModel:
+                          type: string
+                        placements:
+                          items:
+                            description: MigDevicePlacement represents the placement
+                              of a MIG device within a GPU
+                            properties:
+                              size:
+                                type: integer
+                              start:
+                                type: integer
+                            required:
+                            - size
+                            - start
+                            type: object
+                          type: array
+                        profile:
+                          type: string
+                      required:
+                      - parentModel
+                      - placements
+                      - profile
+                      type: object
+                  type: object
+                type: array
+              claimAllocations:
+                additionalProperties:
+                  description: AllocatedDevices represents a list of allocated devices
+                    on a node
+                  items:
+                    description: AllocatedDevice represents an allocated device on
+                      a node
+                    properties:
+                      gpu:
+                        description: AllocatedGpu represents an allocated GPU on a
+                          node
+                        properties:
+                          cdiDevice:
+                            type: string
+                          model:
+                            type: string
+                          uuid:
+                            type: string
+                        required:
+                        - cdiDevice
+                        - model
+                        - uuid
+                        type: object
+                      mig:
+                        description: AllocatedMigDevice represents an allocated MIG
+                          device on a node
+                        properties:
+                          cdiDevice:
+                            type: string
+                          parentModel:
+                            type: string
+                          parentUUID:
+                            type: string
+                          placement:
+                            description: MigDevicePlacement represents the placement
+                              of a MIG device within a GPU
+                            properties:
+                              size:
+                                type: integer
+                              start:
+                                type: integer
+                            required:
+                            - size
+                            - start
+                            type: object
+                          profile:
+                            type: string
+                          uuid:
+                            type: string
+                        required:
+                        - cdiDevice
+                        - parentModel
+                        - parentUUID
+                        - placement
+                        - profile
+                        - uuid
+                        type: object
+                    type: object
+                  type: array
+                type: object
+              claimRequests:
+                additionalProperties:
+                  description: RequestedDevices represents a list of requests for
+                    devices to be allocated
+                  properties:
+                    gpu:
+                      description: RequestedGpus represents a set of GPUs being requested
+                        for allocation
+                      properties:
+                        devices:
+                          items:
+                            description: RequestedGpu represents a GPU being requested
+                              for allocation
+                            properties:
+                              uuid:
+                                type: string
+                            type: object
+                          type: array
+                        spec:
+                          description: GpuClaimParametersSpec is the spec for the
+                            GpuClaimParameters CRD
+                          properties:
+                            count:
+                              type: integer
+                            migEnabled:
+                              type: boolean
+                          type: object
+                      required:
+                      - devices
+                      - spec
+                      type: object
+                    mig:
+                      description: RequestedMigDevices represents a set of MIG device
+                        being requested for allocation
+                      properties:
+                        devices:
+                          items:
+                            description: RequestedMigDevice represents a MIG device
+                              being requested for allocation
+                            properties:
+                              parentUUID:
+                                type: string
+                              placement:
+                                description: MigDevicePlacement represents the placement
+                                  of a MIG device within a GPU
+                                properties:
+                                  size:
+                                    type: integer
+                                  start:
+                                    type: integer
+                                required:
+                                - size
+                                - start
+                                type: object
+                              profile:
+                                type: string
+                            required:
+                            - parentUUID
+                            - placement
+                            - profile
+                            type: object
+                          type: array
+                        spec:
+                          description: MigDeviceClaimParametersSpec is the spec for
+                            the MigDeviceClaimParameters CRD
+                          properties:
+                            gpuClaimName:
+                              type: string
+                            profile:
+                              type: string
+                            uninitialized:
+                              type: boolean
+                          type: object
+                      required:
+                      - devices
+                      - spec
+                      type: object
+                  type: object
+                type: object
+            type: object
+          status:
+            type: string
+        type: object
+    served: true
+    storage: true
