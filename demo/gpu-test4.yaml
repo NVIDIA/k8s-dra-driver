@@ -72,8 +72,8 @@ spec:
           template:
             spec:
               resourceClassName: gpu.nvidia.com
-              parameters:
-                apiVersion: dra.gpu.nvidia.com/v1
+              parametersRef:
+                apiGroup: dra.gpu.nvidia.com
                 kind: GpuClaimParameters
                 name: mig-enabled-gpu
       - name: mig-1g.5gb-0
@@ -81,8 +81,8 @@ spec:
           template:
             spec:
               resourceClassName: gpu.nvidia.com
-              parameters:
-                apiVersion: dra.gpu.nvidia.com/v1
+              parametersRef:
+                apiGroup: dra.gpu.nvidia.com
                 kind: MigDeviceClaimParameters
                 name: mig-1g.5gb
       - name: mig-1g.5gb-1
@@ -90,8 +90,8 @@ spec:
           template:
             spec:
               resourceClassName: gpu.nvidia.com
-              parameters:
-                apiVersion: dra.gpu.nvidia.com/v1
+              parametersRef:
+                apiGroup: dra.gpu.nvidia.com
                 kind: MigDeviceClaimParameters
                 name: mig-1g.5gb
       - name: mig-2g.10gb
@@ -99,8 +99,8 @@ spec:
           template:
             spec:
               resourceClassName: gpu.nvidia.com
-              parameters:
-                apiVersion: dra.gpu.nvidia.com/v1
+              parametersRef:
+                apiGroup: dra.gpu.nvidia.com
                 kind: MigDeviceClaimParameters
                 name: mig-2g.10gb
       - name: mig-3g.20gb
@@ -108,8 +108,8 @@ spec:
           template:
             spec:
               resourceClassName: gpu.nvidia.com
-              parameters:
-                apiVersion: dra.gpu.nvidia.com/v1
+              parametersRef:
+                apiGroup: dra.gpu.nvidia.com
                 kind: MigDeviceClaimParameters
                 name: mig-3g.20gb
       containers:

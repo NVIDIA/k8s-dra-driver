@@ -42,7 +42,7 @@ import (
 	logsapi "k8s.io/component-base/logs/api/v1"
 	"k8s.io/component-base/metrics/legacyregistry"
 	"k8s.io/component-base/term"
-	"k8s.io/component-helpers/dra/controller"
+	"k8s.io/dynamic-resource-allocation/controller"
 	"k8s.io/klog/v2"
 
 	_ "k8s.io/component-base/logs/json/register"                         // for JSON log output support
@@ -329,7 +329,7 @@ func StartControllerWithLeader(config *Config) error {
 func StartController(config *Config) error {
 	driver := NewDriver(config)
 	informerFactory := informers.NewSharedInformerFactory(config.clientset.core, 0 /* resync period */)
-	ctrl := controller.New(config.ctx, DriverName, driver, config.clientset.core, informerFactory)
+	ctrl := controller.New(config.ctx, DriverAPIGroup, driver, config.clientset.core, informerFactory)
 	informerFactory.Start(config.ctx.Done())
 	ctrl.Run(*config.flags.workers)
 	return nil

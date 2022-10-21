@@ -29,16 +29,15 @@ import (
 	coreclientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	plugin "k8s.io/component-helpers/dra/kubeletplugin"
+	plugin "k8s.io/dynamic-resource-allocation/kubeletplugin"
 
 	nvclientset "github.com/NVIDIA/k8s-dra-driver/pkg/crd/nvidia/clientset/versioned"
 	nvcrd "github.com/NVIDIA/k8s-dra-driver/pkg/crd/nvidia/v1/api"
 )
 
 const (
-	DriverName       = nvcrd.GroupName
-	DriverVersion    = nvcrd.Version
-	DriverAPIVersion = DriverName + "/" + DriverVersion
+	DriverName     = nvcrd.GroupName
+	DriverAPIGroup = nvcrd.GroupName
 
 	PluginRegistrationPath = "/var/lib/kubelet/plugins_registry/" + DriverName + ".sock"
 	DriverPluginPath       = "/var/lib/kubelet/plugins/" + DriverName
