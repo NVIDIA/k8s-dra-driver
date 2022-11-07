@@ -8,6 +8,16 @@ metadata:
   name: gpu-test2
 
 ---
+apiVersion: resource.k8s.io/v1alpha1
+kind: ResourceClaimTemplate
+metadata:
+  namespace: gpu-test2
+  name: gpu.nvidia.com
+spec:
+  spec:
+    resourceClassName: gpu.nvidia.com
+
+---
 apiVersion: v1
 kind: Pod
 metadata:
@@ -21,17 +31,15 @@ spec:
     args: ["nvidia-smi -L; sleep 9999"]
     resources:
       claims:
-      - shared-gpu
+      - name: shared-gpu
   - name: ctr1
     image: ubuntu:22.04
     command: ["bash", "-c"]
     args: ["nvidia-smi -L; sleep 9999"]
     resources:
       claims:
-      - shared-gpu
+      - name: shared-gpu
   resourceClaims:
   - name: shared-gpu
-    claim:
-      template:
-        spec:
-          resourceClassName: gpu.nvidia.com
+    source:
+      resourceClaimTemplateName: gpu.nvidia.com

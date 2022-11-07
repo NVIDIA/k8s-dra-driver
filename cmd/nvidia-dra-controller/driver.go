@@ -21,6 +21,7 @@ import (
 	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
+	resourcev1alpha1 "k8s.io/api/resource/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/dynamic-resource-allocation/controller"
 
@@ -55,7 +56,7 @@ func NewDriver(config *Config) *driver {
 	}
 }
 
-func (d driver) GetClassParameters(ctx context.Context, class *corev1.ResourceClass) (interface{}, error) {
+func (d driver) GetClassParameters(ctx context.Context, class *resourcev1alpha1.ResourceClass) (interface{}, error) {
 	if class.ParametersRef == nil {
 		return nvcrd.DefaultDeviceClassParametersSpec(), nil
 	}
@@ -69,7 +70,7 @@ func (d driver) GetClassParameters(ctx context.Context, class *corev1.ResourceCl
 	return &dc.Spec, nil
 }
 
-func (d driver) GetClaimParameters(ctx context.Context, claim *corev1.ResourceClaim, class *corev1.ResourceClass, classParameters interface{}) (interface{}, error) {
+func (d driver) GetClaimParameters(ctx context.Context, claim *resourcev1alpha1.ResourceClaim, class *resourcev1alpha1.ResourceClass, classParameters interface{}) (interface{}, error) {
 	if claim.Spec.ParametersRef == nil {
 		return nvcrd.DefaultGpuClaimParametersSpec(), nil
 	}
@@ -101,7 +102,7 @@ func (d driver) GetClaimParameters(ctx context.Context, claim *corev1.ResourceCl
 	return nil, fmt.Errorf("unknown ResourceClaim.ParametersRef.Kind: %v", claim.Spec.ParametersRef.Kind)
 }
 
-func (d driver) Allocate(ctx context.Context, claim *corev1.ResourceClaim, claimParameters interface{}, class *corev1.ResourceClass, classParameters interface{}, selectedNode string) (*corev1.AllocationResult, error) {
+func (d driver) Allocate(ctx context.Context, claim *resourcev1alpha1.ResourceClaim, claimParameters interface{}, class *resourcev1alpha1.ResourceClass, classParameters interface{}, selectedNode string) (*resourcev1alpha1.AllocationResult, error) {
 	if selectedNode == "" {
 		return nil, fmt.Errorf("TODO: immediate allocations not yet supported")
 	}
@@ -156,7 +157,7 @@ func (d driver) Allocate(ctx context.Context, claim *corev1.ResourceClaim, claim
 	return buildAllocationResult(selectedNode, true), nil
 }
 
-func (d driver) Deallocate(ctx context.Context, claim *corev1.ResourceClaim) error {
+func (d driver) Deallocate(ctx context.Context, claim *resourcev1alpha1.ResourceClaim) error {
 	selectedNode := getSelectedNode(claim)
 	if selectedNode == "" {
 		return nil
@@ -278,7 +279,7 @@ func (d driver) unsuitableNode(ctx context.Context, pod *corev1.Pod, allcas []*c
 	return nil
 }
 
-func buildAllocationResult(selectedNode string, shared bool) *corev1.AllocationResult {
+func buildAllocationResult(selectedNode string, shareable bool) *resourcev1alpha1.AllocationResult {
 	nodeSelector := &corev1.NodeSelector{
 		NodeSelectorTerms: []corev1.NodeSelectorTerm{
 			{
@@ -292,14 +293,14 @@ func buildAllocationResult(selectedNode string, shared bool) *corev1.AllocationR
 			},
 		},
 	}
-	allocation := &corev1.AllocationResult{
-		AvailableOnNodes: nodeSelector,
-		SharedResource:   shared,
+	allocation := &resourcev1alpha1.AllocationResult{
+		AvailableOnNodes:  nodeSelector,
+		ShareableResource: shareable,
 	}
 	return allocation
 }
 
-func getSelectedNode(claim *corev1.ResourceClaim) string {
+func getSelectedNode(claim *resourcev1alpha1.ResourceClaim) string {
 	if claim.Status.Allocation == nil {
 		return ""
 	}

@@ -20,6 +20,7 @@ import (
 	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
+	resourcev1alpha1 "k8s.io/api/resource/v1alpha1"
 	"k8s.io/dynamic-resource-allocation/controller"
 
 	nvcrd "github.com/NVIDIA/k8s-dra-driver/pkg/crd/nvidia/v1/api"
@@ -51,7 +52,7 @@ func (m migdriver) ValidateClaimParameters(claimParams *nvcrd.MigDeviceClaimPara
 	return nil
 }
 
-func (m *migdriver) Allocate(crd *nvcrd.NodeAllocationState, claim *corev1.ResourceClaim, claimParams *nvcrd.MigDeviceClaimParametersSpec, class *corev1.ResourceClass, classParams *nvcrd.DeviceClassParametersSpec, selectedNode string) (OnSuccessCallback, error) {
+func (m *migdriver) Allocate(crd *nvcrd.NodeAllocationState, claim *resourcev1alpha1.ResourceClaim, claimParams *nvcrd.MigDeviceClaimParametersSpec, class *resourcev1alpha1.ResourceClass, classParams *nvcrd.DeviceClassParametersSpec, selectedNode string) (OnSuccessCallback, error) {
 	claimUID := string(claim.UID)
 
 	if !m.PendingClaimRequests.Exists(claimUID, selectedNode) {
@@ -75,7 +76,7 @@ func (m *migdriver) Allocate(crd *nvcrd.NodeAllocationState, claim *corev1.Resou
 	return onSuccess, nil
 }
 
-func (m *migdriver) Deallocate(crd *nvcrd.NodeAllocationState, claim *corev1.ResourceClaim) error {
+func (m *migdriver) Deallocate(crd *nvcrd.NodeAllocationState, claim *resourcev1alpha1.ResourceClaim) error {
 	m.PendingClaimRequests.Remove(string(claim.UID))
 	return nil
 }

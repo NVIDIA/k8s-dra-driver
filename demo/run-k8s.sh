@@ -4,6 +4,7 @@ cd ../../kubernetes
 sudo rm -rf /tmp/kube*
 sudo rm -rf /var/run/kubernetes
 
+export RUNTIME_CONFIG="resource.k8s.io/v1alpha1"
 export FEATURE_GATES=DynamicResourceAllocation=true 
 export KUBELET_RESOLV_CONF="/etc/resolv-9999.conf"
 export DNS_ADDON="coredns"

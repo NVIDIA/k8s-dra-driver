@@ -86,7 +86,7 @@ func (d *driver) NodePrepareResource(ctx context.Context, req *drapbv1.NodePrepa
 	}
 
 	klog.Infof("Allocated devices for claim '%v': %s", req.ClaimUid, allocated)
-	return &drapbv1.NodePrepareResourceResponse{CdiDevice: allocated}, nil
+	return &drapbv1.NodePrepareResourceResponse{CdiDevices: allocated}, nil
 }
 
 func (d *driver) NodeUnprepareResource(ctx context.Context, req *drapbv1.NodeUnprepareResourceRequest) (*drapbv1.NodeUnprepareResourceResponse, error) {
