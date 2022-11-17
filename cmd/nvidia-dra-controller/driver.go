@@ -294,8 +294,8 @@ func buildAllocationResult(selectedNode string, shareable bool) *resourcev1alpha
 		},
 	}
 	allocation := &resourcev1alpha1.AllocationResult{
-		AvailableOnNodes:  nodeSelector,
-		ShareableResource: shareable,
+		AvailableOnNodes: nodeSelector,
+		Shareable:        shareable,
 	}
 	return allocation
 }

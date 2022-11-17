@@ -37,7 +37,7 @@ apiVersion: dra.gpu.nvidia.com/v1
 kind: ComputeInstanceClaimParameters
 metadata:
   namespace: gpu-test5
-  name: 1c
+  name: 1c.2g.10gb
 spec:
   profile: "1c.2g.10gb"
   migDeviceClaimName: "shared-2g.10gb"
@@ -47,14 +47,14 @@ apiVersion: resource.k8s.io/v1alpha1
 kind: ResourceClaimTemplate
 metadata:
   namespace: gpu-test5
-  name: 1c
+  name: 1c.2g.10gb
 spec:
   spec:
     resourceClassName: gpu.nvidia.com
     parametersRef:
       apiGroup: dra.gpu.nvidia.com
       kind: ComputeInstanceClaimParameters
-      name: 1c
+      name: 1c.2g.10gb
 
 ---
 apiVersion: apps/v1
@@ -81,23 +81,23 @@ spec:
         args: ["nvidia-smi -L; sleep 9999"]
         resources:
           claims:
-          - name: shared-2g.10gb
-          - name: 1c.2g.10gb-0
+          - name: shared-2g
+          - name: 1c-0
       - name: ctr1
         image: ubuntu:22.04
         command: ["bash", "-c"]
         args: ["nvidia-smi -L; sleep 9999"]
         resources:
           claims:
-          - name: shared-2g.10gb
-          - name: 1c.2g.10gb-1
+          - name: shared-2g
+          - name: 1c-1
       resourceClaims:
-      - name: shared-2g.10gb
+      - name: shared-2g
         source:
           resourceClaimTemplateName: shared-2g.10gb
-      - name: 1c.2g.10gb-0
+      - name: 1c-0
         source:
-          resourceClaimTemplateName: 1c
-      - name: 1c.2g.10gb-1
+          resourceClaimTemplateName: 1c.2g.10gb
+      - name: 1c-1
         source:
-          resourceClaimTemplateName: 1c
+          resourceClaimTemplateName: 1c.2g.10gb

@@ -126,16 +126,16 @@ spec:
       - name: mig-enabled-gpu
         source:
           resourceClaimTemplateName: mig-enabled-gpu
-      - name: mig-1g.5gb-0
+      - name: mig-1g-0
         source:
           resourceClaimTemplateName: mig-1g.5gb
-      - name: mig-1g.5gb-1
+      - name: mig-1g-1
         source:
           resourceClaimTemplateName: mig-1g.5gb
-      - name: mig-2g.10gb
+      - name: mig-2g
         source:
           resourceClaimTemplateName: mig-2g.10gb
-      - name: mig-3g.20gb
+      - name: mig-3g
         source:
           resourceClaimTemplateName: mig-3g.20gb
       containers:
@@ -146,7 +146,7 @@ spec:
         resources:
           claims:
           - name: mig-enabled-gpu
-          - name: mig-3g.20gb
+          - name: mig-3g
       - name: ctr1
         image: ubuntu:22.04
         command: ["bash", "-c"]
@@ -154,7 +154,7 @@ spec:
         resources:
           claims:
           - name: mig-enabled-gpu
-          - name: mig-2g.10gb
+          - name: mig-2g
       - name: ctr2
         image: ubuntu:22.04
         command: ["bash", "-c"]
@@ -162,7 +162,7 @@ spec:
         resources:
           claims:
           - name: mig-enabled-gpu
-          - name: mig-1g.5gb-0
+          - name: mig-1g-0
       - name: ctr3
         image: ubuntu:22.04
         command: ["bash", "-c"]
@@ -170,4 +170,4 @@ spec:
         resources:
           claims:
           - name: mig-enabled-gpu
-          - name: mig-1g.5gb-1
+          - name: mig-1g-1

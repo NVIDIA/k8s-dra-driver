@@ -6,5 +6,5 @@ run-one-until-success kubectl get node 127.0.0.1
 kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.24.0/manifests/calico.yaml
 kubectl label node 127.0.0.1 --overwrite nvidia.com/dra.plugin=true
 kubectl label node 127.0.0.1 --overwrite nvidia.com/dra.controller=true
-kubectl apply -f crds; kubectl apply -f driver.yaml
+kubectl apply -f crds/; kubectl apply -f driver.yaml
 cat /dev/fd/3
