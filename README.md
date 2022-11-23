@@ -33,12 +33,13 @@ kubectl label node <node-name> --overwrite nvidia.com/dra.controller=true
 sudo ./build-devel.sh
 ```
 
-### Deploy the driver components
+### Deploy the driver components from the demo folder
 ```
-kubectl apply -f deployments/static/crds; kubectl apply -f deployments/static/driver.yaml
+kubectl apply -f demo/crds/; kubectl apply -f demo/driver.yaml
 ```
 
-### Run the examples
+### Run the examples by following the steps in the demo script
 ```
-kubectl apply -f deployments/static/<example>.yaml
+cat demo/DEMO.sh
+...
 ```
