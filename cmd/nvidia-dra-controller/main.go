@@ -51,8 +51,8 @@ import (
 	_ "k8s.io/component-base/metrics/prometheus/version"                 // for version metric registration
 	_ "k8s.io/component-base/metrics/prometheus/workqueue"               // register work queues in the default legacy registry
 
-	nvclientset "github.com/NVIDIA/k8s-dra-driver/pkg/crd/nvidia/clientset/versioned"
 	"github.com/NVIDIA/k8s-dra-driver/pkg/leaderelection"
+	nvclientset "github.com/NVIDIA/k8s-dra-driver/pkg/nvidia.com/api/resource/gpu/clientset/versioned"
 )
 
 type Flags struct {

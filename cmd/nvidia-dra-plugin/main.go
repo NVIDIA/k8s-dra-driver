@@ -31,8 +31,8 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	plugin "k8s.io/dynamic-resource-allocation/kubeletplugin"
 
-	nvclientset "github.com/NVIDIA/k8s-dra-driver/pkg/crd/nvidia/clientset/versioned"
-	nvcrd "github.com/NVIDIA/k8s-dra-driver/pkg/crd/nvidia/v1/api"
+	nvclientset "github.com/NVIDIA/k8s-dra-driver/pkg/nvidia.com/api/resource/gpu/clientset/versioned"
+	nvcrd "github.com/NVIDIA/k8s-dra-driver/pkg/nvidia.com/api/resource/gpu/v1alpha1/api"
 )
 
 const (

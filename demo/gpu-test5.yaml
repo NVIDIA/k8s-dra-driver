@@ -9,7 +9,7 @@ metadata:
   name: gpu-test5
 
 ---
-apiVersion: dra.gpu.nvidia.com/v1
+apiVersion: gpu.resource.nvidia.com/v1alpha1
 kind: MigDeviceClaimParameters
 metadata:
   namespace: gpu-test5
@@ -28,12 +28,12 @@ spec:
   spec:
     resourceClassName: gpu.nvidia.com
     parametersRef:
-      apiGroup: dra.gpu.nvidia.com
+      apiGroup: gpu.resource.nvidia.com
       kind: MigDeviceClaimParameters
       name: shared-2g.10gb
 
 ---
-apiVersion: dra.gpu.nvidia.com/v1
+apiVersion: gpu.resource.nvidia.com/v1alpha1
 kind: ComputeInstanceClaimParameters
 metadata:
   namespace: gpu-test5
@@ -52,7 +52,7 @@ spec:
   spec:
     resourceClassName: gpu.nvidia.com
     parametersRef:
-      apiGroup: dra.gpu.nvidia.com
+      apiGroup: gpu.resource.nvidia.com
       kind: ComputeInstanceClaimParameters
       name: 1c.2g.10gb
 

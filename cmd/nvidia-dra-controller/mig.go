@@ -23,7 +23,7 @@ import (
 	resourcev1alpha1 "k8s.io/api/resource/v1alpha1"
 	"k8s.io/dynamic-resource-allocation/controller"
 
-	nvcrd "github.com/NVIDIA/k8s-dra-driver/pkg/crd/nvidia/v1/api"
+	nvcrd "github.com/NVIDIA/k8s-dra-driver/pkg/nvidia.com/api/resource/gpu/v1alpha1/api"
 )
 
 type migdriver struct {
