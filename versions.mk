@@ -13,6 +13,10 @@
 # limitations under the License.
 
 MODULE := github.com/NVIDIA/k8s-dra-driver
+VENDOR := nvidia.com
+CRDAPI := api/resource/gpu/v1alpha1
+APIPKG := $(VENDOR)/$(CRDAPI)
+UNVERSIONED_APIPKG := $(shell dirname $(APIPKG))
 
 VERSION  ?= v0.1.0
 
