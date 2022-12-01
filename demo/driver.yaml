@@ -63,6 +63,8 @@ spec:
         command:
         - nvidia-dra-plugin
         env:
+        - name: CDI_ROOT
+          value: /var/run/cdi
         - name: NVIDIA_MIG_CONFIG_DEVICES
           value: all
         - name: NODE_NAME
@@ -81,7 +83,7 @@ spec:
         - name: plugins
           mountPath: /var/lib/kubelet/plugins
         - name: cdi
-          mountPath: /etc/cdi
+          mountPath: /var/run/cdi
         lifecycle:
           preStop:
             exec: 
@@ -106,7 +108,7 @@ spec:
           path: /var/lib/kubelet/plugins
       - name: cdi
         hostPath:
-          path: /etc/cdi
+          path: /var/run/cdi
 
 ---
 apiVersion: apps/v1
