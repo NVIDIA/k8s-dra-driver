@@ -24,11 +24,14 @@ import (
 	"net/http/pprof"
 	"os"
 	"path"
+	"strings"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
+	"github.com/spf13/viper"
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/informers"
@@ -106,11 +109,23 @@ func NewCommand() *cobra.Command {
 	flags := AddFlags(cmd, logsconfig, featureGate)
 
 	cmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
+		// Bind an environment variable to each input flag
+		v := viper.New()
+		v.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
+		v.AutomaticEnv()
+		cmd.Flags().VisitAll(func(f *pflag.Flag) {
+			if !f.Changed && v.IsSet(f.Name) {
+				val := v.Get(f.Name)
+				cmd.Flags().Set(f.Name, fmt.Sprintf("%v", val))
+			}
+		})
+
 		// Activate logging as soon as possible, after that
 		// show flags with the final logging configuration.
 		if err := logsapi.ValidateAndApply(logsconfig, featureGate); err != nil {
 			return err
 		}
+
 		return nil
 	}
 

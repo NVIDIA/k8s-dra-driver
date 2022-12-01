@@ -21,9 +21,12 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
+	"github.com/spf13/viper"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	coreclientset "k8s.io/client-go/kubernetes"
@@ -86,6 +89,20 @@ func NewCommand() *cobra.Command {
 	}
 
 	flags := AddFlags(cmd)
+
+	cmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
+		// Bind an environment variable to each input flag
+		v := viper.New()
+		v.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
+		v.AutomaticEnv()
+		cmd.Flags().VisitAll(func(f *pflag.Flag) {
+			if !f.Changed && v.IsSet(f.Name) {
+				val := v.Get(f.Name)
+				cmd.Flags().Set(f.Name, fmt.Sprintf("%v", val))
+			}
+		})
+		return nil
+	}
 
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		csconfig, err := GetClientsetConfig(flags)
