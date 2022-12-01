@@ -106,7 +106,7 @@ func NewDeviceState(config *Config, nascrd *nvcrd.NodeAllocationState) (*DeviceS
 	}
 
 	cdi := cdiapi.GetRegistry(
-		cdiapi.WithSpecDirs(cdiRoot),
+		cdiapi.WithSpecDirs(*config.flags.cdiRoot),
 	)
 
 	err = cdi.Refresh()

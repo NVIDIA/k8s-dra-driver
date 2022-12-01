@@ -29,7 +29,10 @@ import (
 	coreclientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	cliflag "k8s.io/component-base/cli/flag"
+	"k8s.io/component-base/term"
 	plugin "k8s.io/dynamic-resource-allocation/kubeletplugin"
+	"k8s.io/klog/v2"
 
 	nvclientset "github.com/NVIDIA/k8s-dra-driver/pkg/nvidia.com/api/resource/gpu/clientset/versioned"
 	nvcrd "github.com/NVIDIA/k8s-dra-driver/pkg/nvidia.com/api/resource/gpu/v1alpha1/api"
@@ -44,13 +47,17 @@ const (
 	DriverPluginSocketPath = DriverPluginPath + "/plugin.sock"
 
 	cdiVersion = "0.4.0"
-	cdiRoot    = "/etc/cdi"
 	cdiVendor  = "nvidia.com"
 	cdiKind    = cdiVendor + "/gpu"
-
-	KubeApiQps   = 5
-	KubeApiBurst = 10
 )
+
+type Flags struct {
+	kubeconfig   *string
+	kubeAPIQPS   *float32
+	kubeAPIBurst *int
+
+	cdiRoot *string
+}
 
 type Clientset struct {
 	core   coreclientset.Interface
@@ -58,6 +65,7 @@ type Clientset struct {
 }
 
 type Config struct {
+	flags     *Flags
 	crdconfig *nvcrd.NodeAllocationStateConfig
 	clientset *Clientset
 }
@@ -77,8 +85,10 @@ func NewCommand() *cobra.Command {
 		Long: "nvidia-dra-plugin implements a DRA driver plugin.",
 	}
 
+	flags := AddFlags(cmd)
+
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
-		csconfig, err := GetClientsetConfig()
+		csconfig, err := GetClientsetConfig(flags)
 		if err != nil {
 			return fmt.Errorf("create client configuration: %v", err)
 		}
@@ -102,6 +112,7 @@ func NewCommand() *cobra.Command {
 		}
 
 		config := &Config{
+			flags: flags,
 			crdconfig: &nvcrd.NodeAllocationStateConfig{
 				Name:      nodeName,
 				Namespace: podNamespace,
@@ -124,25 +135,53 @@ func NewCommand() *cobra.Command {
 	return cmd
 }
 
-func GetClientsetConfig() (*rest.Config, error) {
+func AddFlags(cmd *cobra.Command) *Flags {
+	flags := &Flags{}
+	sharedFlagSets := cliflag.NamedFlagSets{}
+
+	fs := sharedFlagSets.FlagSet("Kubernetes client")
+	flags.kubeconfig = fs.String("kubeconfig", "", "Absolute path to the kube.config file. Either this or KUBECONFIG need to be set if the driver is being run out of cluster.")
+	flags.kubeAPIQPS = fs.Float32("kube-api-qps", 5, "QPS to use while communicating with the kubernetes apiserver.")
+	flags.kubeAPIBurst = fs.Int("kube-api-burst", 10, "Burst to use while communicating with the kubernetes apiserver.")
+
+	fs = sharedFlagSets.FlagSet("CDI")
+	flags.cdiRoot = fs.String("cdi-root", "/etc/cdi", "Absolute path to the directory where CDI files will be generated.")
+
+	fs = cmd.PersistentFlags()
+	for _, f := range sharedFlagSets.FlagSets {
+		fs.AddFlagSet(f)
+	}
+
+	cols, _, _ := term.TerminalSize(cmd.OutOrStdout())
+	cliflag.SetUsageAndHelpFunc(cmd, sharedFlagSets, cols)
+
+	return flags
+}
+
+func GetClientsetConfig(f *Flags) (*rest.Config, error) {
 	var csconfig *rest.Config
-	kubeconfig := os.Getenv("KUBECONFIG")
+
+	kubeconfigEnv := os.Getenv("KUBECONFIG")
+	if kubeconfigEnv != "" {
+		klog.Infof("Found KUBECONFIG environment variable set, using that..")
+		*f.kubeconfig = kubeconfigEnv
+	}
 
 	var err error
-	if kubeconfig == "" {
+	if *f.kubeconfig == "" {
 		csconfig, err = rest.InClusterConfig()
 		if err != nil {
 			return nil, fmt.Errorf("create in-cluster client configuration: %v", err)
 		}
 	} else {
-		csconfig, err = clientcmd.BuildConfigFromFlags("", kubeconfig)
+		csconfig, err = clientcmd.BuildConfigFromFlags("", *f.kubeconfig)
 		if err != nil {
 			return nil, fmt.Errorf("create out-of-cluster client configuration: %v", err)
 		}
 	}
 
-	csconfig.QPS = KubeApiQps
-	csconfig.Burst = KubeApiBurst
+	csconfig.QPS = *f.kubeAPIQPS
+	csconfig.Burst = *f.kubeAPIBurst
 
 	return csconfig, nil
 }
@@ -153,9 +192,16 @@ func StartPlugin(config *Config) error {
 		return err
 	}
 
-	err = os.MkdirAll(cdiRoot, 0750)
-	if err != nil {
+	info, err := os.Stat(*config.flags.cdiRoot)
+	if err != nil && os.IsNotExist(err) {
+		err := os.MkdirAll(*config.flags.cdiRoot, 0750)
+		if err != nil {
+			return err
+		}
+	} else if err != nil {
 		return err
+	} else if !info.IsDir() {
+		return fmt.Errorf("path for cdi file generation is not a directory: '%v'")
 	}
 
 	driver, err := NewDriver(config)
