@@ -22,7 +22,6 @@ import (
 
 	"github.com/NVIDIA/go-nvml/pkg/nvml"
 	nvcrd "github.com/NVIDIA/k8s-dra-driver/pkg/nvidia.com/api/resource/gpu/v1alpha1/api"
-	cdiapi "github.com/container-orchestrated-devices/container-device-interface/pkg/cdi"
 )
 
 type AllocatableDevices map[string]*AllocatableDeviceInfo
@@ -94,7 +93,7 @@ type AllocatableDeviceInfo struct {
 
 type DeviceState struct {
 	sync.Mutex
-	cdi         cdiapi.Registry
+	cdi         *CDIHandler
 	allocatable AllocatableDevices
 	allocated   ClaimAllocations
 }
@@ -105,13 +104,9 @@ func NewDeviceState(config *Config, nascrd *nvcrd.NodeAllocationState) (*DeviceS
 		return nil, fmt.Errorf("error enumerating all possible devices: %v", err)
 	}
 
-	cdi := cdiapi.GetRegistry(
-		cdiapi.WithSpecDirs(*config.flags.cdiRoot),
-	)
-
-	err = cdi.Refresh()
+	cdi, err := NewCDIHandler(config)
 	if err != nil {
-		return nil, fmt.Errorf("unable to refresh the CDI registry: %v", err)
+		return nil, fmt.Errorf("unable to create CDI handler: %v", err)
 	}
 
 	state := &DeviceState{
@@ -190,7 +185,7 @@ func (s *DeviceState) GetUpdatedSpec(inspec *nvcrd.NodeAllocationStateSpec) *nvc
 func (s *DeviceState) getAllocatedAsCDIDevices(claimUid string) []string {
 	var devs []string
 	for _, device := range s.allocated[claimUid] {
-		devs = append(devs, s.cdi.DeviceDB().GetDevice(device.CDIDevice()).GetQualifiedName())
+		devs = append(devs, s.cdi.GetDevice(device.CDIDevice()).GetQualifiedName())
 	}
 	return devs
 }

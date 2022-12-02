@@ -48,10 +48,6 @@ const (
 	PluginRegistrationPath = "/var/lib/kubelet/plugins_registry/" + DriverName + ".sock"
 	DriverPluginPath       = "/var/lib/kubelet/plugins/" + DriverName
 	DriverPluginSocketPath = DriverPluginPath + "/plugin.sock"
-
-	cdiVersion = "0.4.0"
-	cdiVendor  = "nvidia.com"
-	cdiKind    = cdiVendor + "/gpu"
 )
 
 type Flags struct {
