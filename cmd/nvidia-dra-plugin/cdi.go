@@ -24,7 +24,7 @@ import (
 
 const (
 	cdiVersion = "0.4.0"
-	cdiVendor  = "nvidia.com"
+	cdiVendor  = "k8s.resource.nvidia.com"
 	cdiKind    = cdiVendor + "/gpu"
 )
 
