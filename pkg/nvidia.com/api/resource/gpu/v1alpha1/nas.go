@@ -66,9 +66,8 @@ func (d AllocatableDevices) Type() string {
 
 // AllocatedGpu represents an allocated GPU on a node
 type AllocatedGpu struct {
-	Model     string `json:"model"`
-	UUID      string `json:"uuid"`
-	CDIDevice string `json:"cdiDevice"`
+	Model string `json:"model"`
+	UUID  string `json:"uuid"`
 }
 
 // AllocatedMigDevice represents an allocated MIG device on a node
@@ -77,7 +76,6 @@ type AllocatedMigDevice struct {
 	Profile     string             `json:"profile"`
 	ParentUUID  string             `json:"parentUUID"`
 	ParentModel string             `json:"parentModel"`
-	CDIDevice   string             `json:"cdiDevice"`
 	Placement   MigDevicePlacement `json:"placement"`
 }
 

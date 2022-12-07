@@ -35,20 +35,12 @@ type GpuInfo struct {
 	migEnabled bool
 }
 
-func (g GpuInfo) CDIDevice() string {
-	return fmt.Sprintf("%s=gpu%d", cdiKind, g.minor)
-}
-
 type MigDeviceInfo struct {
 	uuid    string
 	parent  *GpuInfo
 	profile *MigProfile
 	giInfo  *nvml.GpuInstanceInfo
 	ciInfo  *nvml.ComputeInstanceInfo
-}
-
-func (m MigDeviceInfo) CDIDevice() string {
-	return fmt.Sprintf("%s=mig-gpu%d-gi%d-ci%d", cdiKind, m.parent.minor, m.giInfo.Id, m.ciInfo.Id)
 }
 
 type AllocatedDeviceInfo struct {
@@ -64,16 +56,6 @@ func (i AllocatedDeviceInfo) Type() string {
 		return nvcrd.MigDeviceType
 	}
 	return nvcrd.UnknownDeviceType
-}
-
-func (i AllocatedDeviceInfo) CDIDevice() string {
-	switch i.Type() {
-	case nvcrd.GpuDeviceType:
-		return i.gpu.CDIDevice()
-	case nvcrd.MigDeviceType:
-		return i.mig.CDIDevice()
-	}
-	return ""
 }
 
 type MigProfileInfo struct {
@@ -109,6 +91,11 @@ func NewDeviceState(config *Config, nascrd *nvcrd.NodeAllocationState) (*DeviceS
 		return nil, fmt.Errorf("unable to create CDI handler: %v", err)
 	}
 
+	err = cdi.CreateCommonSpecFile()
+	if err != nil {
+		return nil, fmt.Errorf("unable to create CDI spec file for common edits: %v", err)
+	}
+
 	state := &DeviceState{
 		cdi:         cdi,
 		allocatable: allocatable,
@@ -128,7 +115,7 @@ func (s *DeviceState) Allocate(claimUid string, request nvcrd.RequestedDevices) 
 	defer s.Unlock()
 
 	if len(s.allocated[claimUid]) != 0 {
-		return s.getAllocatedAsCDIDevices(claimUid), nil
+		return s.cdi.GetClaimDevices(claimUid), nil
 	}
 
 	s.allocated[claimUid] = make(AllocatedDevices)
@@ -144,7 +131,12 @@ func (s *DeviceState) Allocate(claimUid string, request nvcrd.RequestedDevices) 
 		return nil, fmt.Errorf("allocation failed: %v", err)
 	}
 
-	return s.getAllocatedAsCDIDevices(claimUid), nil
+	err = s.cdi.CreateClaimSpecFile(claimUid, s.allocated[claimUid])
+	if err != nil {
+		return nil, fmt.Errorf("unable to create CDI spec file for claim: %v", err)
+	}
+
+	return s.cdi.GetClaimDevices(claimUid), nil
 }
 
 func (s *DeviceState) Free(claimUid string) error {
@@ -169,6 +161,12 @@ func (s *DeviceState) Free(claimUid string) error {
 	}
 
 	delete(s.allocated, claimUid)
+
+	err := s.cdi.DeleteClaimSpecFile(claimUid)
+	if err != nil {
+		return fmt.Errorf("unable to delete CDI spec file for claim: %v", err)
+	}
+
 	return nil
 }
 
@@ -180,14 +178,6 @@ func (s *DeviceState) GetUpdatedSpec(inspec *nvcrd.NodeAllocationStateSpec) *nvc
 	s.syncAllocatableDevicesToCRDSpec(outspec)
 	s.syncAllocatedDevicesToCRDSpec(outspec)
 	return outspec
-}
-
-func (s *DeviceState) getAllocatedAsCDIDevices(claimUid string) []string {
-	var devs []string
-	for _, device := range s.allocated[claimUid] {
-		devs = append(devs, s.cdi.GetDevice(device.CDIDevice()).GetQualifiedName())
-	}
-	return devs
 }
 
 func (s *DeviceState) allocateGpus(claimUid string, devices []nvcrd.RequestedGpu) error {
@@ -381,9 +371,8 @@ func (s *DeviceState) syncAllocatedDevicesToCRDSpec(spec *nvcrd.NodeAllocationSt
 			switch device.Type() {
 			case nvcrd.GpuDeviceType:
 				outdevice.Gpu = &nvcrd.AllocatedGpu{
-					UUID:      uuid,
-					Model:     device.gpu.model,
-					CDIDevice: device.gpu.CDIDevice(),
+					UUID:  uuid,
+					Model: device.gpu.model,
 				}
 			case nvcrd.MigDeviceType:
 				placement := nvcrd.MigDevicePlacement{
@@ -395,7 +384,6 @@ func (s *DeviceState) syncAllocatedDevicesToCRDSpec(spec *nvcrd.NodeAllocationSt
 					Profile:     device.mig.profile.String(),
 					ParentUUID:  device.mig.parent.uuid,
 					ParentModel: device.mig.parent.model,
-					CDIDevice:   device.mig.CDIDevice(),
 					Placement:   placement,
 				}
 			}
