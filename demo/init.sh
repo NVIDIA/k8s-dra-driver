@@ -1,10 +1,11 @@
-# Reset environment
+# Reset logs and k8s state
+sudo rm -rf /tmp/kube*
+sudo rm -rf /var/run/kubernetes
+
+# Start all scripts asynchronously and then wait for each of them to complete
 exec 3< <(sudo ./run-k8s.sh 2>&1)
-sudo -E nvidia-mig-parted apply -f mig-parted-config.yaml -c half-half
+./configure-mig.sh
 run-one-until-success cp /var/run/kubernetes/admin.kubeconfig ~/.kube/config
 run-one-until-success kubectl get node 127.0.0.1
-kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.24.0/manifests/calico.yaml
-kubectl label node 127.0.0.1 --overwrite nvidia.com/dra.plugin=true
-kubectl label node 127.0.0.1 --overwrite nvidia.com/dra.controller=true
-kubectl apply -f crds/; kubectl apply -f driver.yaml
+./install-dra-driver.sh
 cat /dev/fd/3
