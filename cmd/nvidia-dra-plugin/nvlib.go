@@ -21,48 +21,42 @@ import (
 
 	"k8s.io/klog/v2"
 
-	"github.com/NVIDIA/go-nvml/pkg/nvml"
+	"gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvml"
+	nvdev "gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvlib/device"
 )
 
-func tryNvmlShutdown() {
-	ret := nvml.Shutdown()
+func tryNvmlShutdown(nvmllib nvml.Interface) {
+	ret := nvmllib.Shutdown()
 	if ret != nvml.SUCCESS {
-		klog.Warningf("error shutting down NVML: %v", nvml.ErrorString(ret))
+		klog.Warningf("error shutting down NVML: %v", ret)
 	}
 }
 
 func enumerateAllPossibleDevices() (AllocatableDevices, error) {
-	ret := nvml.Init()
-	if ret != nvml.SUCCESS {
-		return nil, fmt.Errorf("error initializing NVML: %v", nvml.ErrorString(ret))
-	}
-	defer tryNvmlShutdown()
+	nvmllib := nvml.New()
+	nvdevlib := nvdev.New(nvdev.WithNvml(nvmllib))
 
-	count, ret := nvml.DeviceGetCount()
+	ret := nvmllib.Init()
 	if ret != nvml.SUCCESS {
-		return nil, fmt.Errorf("error getting device count: %v", nvml.ErrorString(ret))
+		return nil, fmt.Errorf("error initializing NVML: %v", ret)
 	}
+	defer tryNvmlShutdown(nvmllib)
 
 	alldevices := make(AllocatableDevices)
-	for i := 0; i < count; i++ {
-		device, ret := nvml.DeviceGetHandleByIndex(i)
+	err := nvdevlib.VisitDevices(func(i int, d nvdev.Device) error {
+		uuid, ret := d.GetUUID()
 		if ret != nvml.SUCCESS {
-			return nil, fmt.Errorf("error getting handle for device %d: %v", i, nvml.ErrorString(ret))
-		}
-
-		uuid, ret := device.GetUUID()
-		if ret != nvml.SUCCESS {
-			return nil, fmt.Errorf("error getting UUID for device %d: %v", i, nvml.ErrorString(ret))
+			return fmt.Errorf("error getting UUID for device %d: %v", i, ret)
 		}
 
 		gpuInfo, err := getGpuInfo(uuid)
-		if ret != nvml.SUCCESS {
-			return nil, fmt.Errorf("error getting info for GPU %d: %v", uuid, err)
+		if err != nil {
+			return fmt.Errorf("error getting info for GPU %d: %v", uuid, err)
 		}
 
 		migProfileInfos, err := getMigProfileInfos(gpuInfo)
 		if ret != nvml.SUCCESS {
-			return nil, fmt.Errorf("error getting MIG profile info for GPU %v: %v", uuid, err)
+			return fmt.Errorf("error getting MIG profile info for GPU %v: %v", uuid, err)
 		}
 
 		deviceInfo := &AllocatableDeviceInfo{
@@ -71,40 +65,48 @@ func enumerateAllPossibleDevices() (AllocatableDevices, error) {
 		}
 
 		alldevices[uuid] = deviceInfo
+
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("error visiting devices: %v", err)
 	}
 
 	return alldevices, nil
 }
 
 func getGpuInfo(uuid string) (*GpuInfo, error) {
-	ret := nvml.Init()
-	if ret != nvml.SUCCESS {
-		return nil, fmt.Errorf("error initializing NVML: %v", nvml.ErrorString(ret))
-	}
-	defer tryNvmlShutdown()
+	nvmllib := nvml.New()
+	nvdevlib := nvdev.New(nvdev.WithNvml(nvmllib))
 
-	device, ret := nvml.DeviceGetHandleByUUID(uuid + string(rune(0)))
+	ret := nvmllib.Init()
 	if ret != nvml.SUCCESS {
-		return nil, fmt.Errorf("error getting handle for device %d: %v", uuid, nvml.ErrorString(ret))
+		return nil, fmt.Errorf("error initializing NVML: %v", ret)
+	}
+	defer tryNvmlShutdown(nvmllib)
+
+	device, err:= nvdevlib.NewDeviceByUUID(uuid + string(rune(0)))
+	if err != nil {
+		return nil, fmt.Errorf("error getting handle for device %d: %v", uuid, err)
 	}
 	minor, ret := device.GetMinorNumber()
 	if ret != nvml.SUCCESS {
-		return nil, fmt.Errorf("error getting minor number for device %d: %v", uuid, nvml.ErrorString(ret))
+		return nil, fmt.Errorf("error getting minor number for device %d: %v", uuid, ret)
 	}
 	name, ret := device.GetName()
 	if ret != nvml.SUCCESS {
-		return nil, fmt.Errorf("error getting name for device %d: %v", uuid, nvml.ErrorString(ret))
+		return nil, fmt.Errorf("error getting name for device %d: %v", uuid, ret)
 	}
-	migMode, _, ret := device.GetMigMode()
-	if ret != nvml.SUCCESS {
-		return nil, fmt.Errorf("error getting MIG mode for device %d: %v", uuid, nvml.ErrorString(ret))
+	migEnabled, err := device.IsMigEnabled()
+	if err != nil {
+		return nil, fmt.Errorf("error checking if MIG mode enabled for device %d: %v", uuid, err)
 	}
 
 	gpuInfo := &GpuInfo{
 		uuid:       uuid,
 		minor:      minor,
 		model:      name,
-		migEnabled: migMode == nvml.DEVICE_MIG_ENABLE,
+		migEnabled: migEnabled,
 	}
 
 	return gpuInfo, nil
@@ -115,20 +117,22 @@ func getMigProfileInfos(gpuInfo *GpuInfo) (map[string]*MigProfileInfo, error) {
 		return nil, nil
 	}
 
-	ret := nvml.Init()
-	if ret != nvml.SUCCESS {
-		return nil, fmt.Errorf("error initializing NVML: %v", nvml.ErrorString(ret))
-	}
-	defer tryNvmlShutdown()
+	nvmllib := nvml.New()
 
-	device, ret := nvml.DeviceGetHandleByUUID(gpuInfo.uuid + string(rune(0)))
+	ret := nvmllib.Init()
 	if ret != nvml.SUCCESS {
-		return nil, fmt.Errorf("error getting handle for device %d: %v", gpuInfo.uuid, nvml.ErrorString(ret))
+		return nil, fmt.Errorf("error initializing NVML: %v", ret)
+	}
+	defer tryNvmlShutdown(nvmllib)
+
+	device, ret := nvmllib.DeviceGetHandleByUUID(gpuInfo.uuid + string(rune(0)))
+	if ret != nvml.SUCCESS {
+		return nil, fmt.Errorf("error getting handle for device %d: %v", gpuInfo.uuid, ret)
 	}
 
 	memory, ret := device.GetMemoryInfo()
 	if ret != nvml.SUCCESS {
-		return nil, fmt.Errorf("error getting memory info for device %d: %v", gpuInfo.uuid, nvml.ErrorString(ret))
+		return nil, fmt.Errorf("error getting memory info for device %d: %v", gpuInfo.uuid, ret)
 	}
 
 	migProfiles := make(map[string]*MigProfileInfo)
@@ -172,20 +176,22 @@ func getMigProfileInfos(gpuInfo *GpuInfo) (map[string]*MigProfileInfo, error) {
 }
 
 func getMigProfiles(gpuInfo *GpuInfo) (map[int]*MigProfile, error) {
-	ret := nvml.Init()
-	if ret != nvml.SUCCESS {
-		return nil, fmt.Errorf("error initializing NVML: %v", nvml.ErrorString(ret))
-	}
-	defer tryNvmlShutdown()
+	nvmllib := nvml.New()
 
-	device, ret := nvml.DeviceGetHandleByUUID(gpuInfo.uuid + string(rune(0)))
+	ret := nvmllib.Init()
 	if ret != nvml.SUCCESS {
-		return nil, fmt.Errorf("error getting GPU device handle: %v", nvml.ErrorString(ret))
+		return nil, fmt.Errorf("error initializing NVML: %v", ret)
+	}
+	defer tryNvmlShutdown(nvmllib)
+
+	device, ret := nvmllib.DeviceGetHandleByUUID(gpuInfo.uuid + string(rune(0)))
+	if ret != nvml.SUCCESS {
+		return nil, fmt.Errorf("error getting GPU device handle: %v", ret)
 	}
 
 	memory, ret := device.GetMemoryInfo()
 	if ret != nvml.SUCCESS {
-		return nil, fmt.Errorf("error getting memory info for device %d: %v", gpuInfo.uuid, nvml.ErrorString(ret))
+		return nil, fmt.Errorf("error getting memory info for device %d: %v", gpuInfo.uuid, ret)
 	}
 
 	migProfiles := make(map[int]*MigProfile)
@@ -211,15 +217,17 @@ func getMigDevices(gpuInfo *GpuInfo) (map[string]*MigDeviceInfo, error) {
 		return nil, nil
 	}
 
-	ret := nvml.Init()
-	if ret != nvml.SUCCESS {
-		return nil, fmt.Errorf("error initializing NVML: %v", nvml.ErrorString(ret))
-	}
-	defer tryNvmlShutdown()
+	nvmllib := nvml.New()
 
-	device, ret := nvml.DeviceGetHandleByUUID(gpuInfo.uuid + string(rune(0)))
+	ret := nvmllib.Init()
 	if ret != nvml.SUCCESS {
-		return nil, fmt.Errorf("error getting GPU device handle: %v", nvml.ErrorString(ret))
+		return nil, fmt.Errorf("error initializing NVML: %v", ret)
+	}
+	defer tryNvmlShutdown(nvmllib)
+
+	device, ret := nvmllib.DeviceGetHandleByUUID(gpuInfo.uuid + string(rune(0)))
+	if ret != nvml.SUCCESS {
+		return nil, fmt.Errorf("error getting GPU device handle: %v", ret)
 	}
 
 	migProfiles, err := getMigProfiles(gpuInfo)
@@ -231,31 +239,31 @@ func getMigDevices(gpuInfo *GpuInfo) (map[string]*MigDeviceInfo, error) {
 	err = walkMigDevices(device, func(i int, migDevice nvml.Device) error {
 		giID, ret := migDevice.GetGpuInstanceId()
 		if ret != nvml.SUCCESS {
-			return fmt.Errorf("error getting GPU instance ID for MIG device: %v", nvml.ErrorString(ret))
+			return fmt.Errorf("error getting GPU instance ID for MIG device: %v", ret)
 		}
 		gi, ret := device.GetGpuInstanceById(giID)
 		if ret != nvml.SUCCESS {
-			return fmt.Errorf("error getting GPU instance for '%v': %v", giID, nvml.ErrorString(ret))
+			return fmt.Errorf("error getting GPU instance for '%v': %v", giID, ret)
 		}
 		giInfo, ret := gi.GetInfo()
 		if ret != nvml.SUCCESS {
-			return fmt.Errorf("error getting GPU instance info for '%v': %v", giID, nvml.ErrorString(ret))
+			return fmt.Errorf("error getting GPU instance info for '%v': %v", giID, ret)
 		}
 		ciID, ret := migDevice.GetComputeInstanceId()
 		if ret != nvml.SUCCESS {
-			return fmt.Errorf("error getting Compute instance ID for MIG device: %v", nvml.ErrorString(ret))
+			return fmt.Errorf("error getting Compute instance ID for MIG device: %v", ret)
 		}
 		ci, ret := gi.GetComputeInstanceById(ciID)
 		if ret != nvml.SUCCESS {
-			return fmt.Errorf("error getting Compute instance for '%v': %v", ciID, nvml.ErrorString(ret))
+			return fmt.Errorf("error getting Compute instance for '%v': %v", ciID, ret)
 		}
 		ciInfo, ret := ci.GetInfo()
 		if ret != nvml.SUCCESS {
-			return fmt.Errorf("error getting Compute instance info for '%v': %v", ciID, nvml.ErrorString(ret))
+			return fmt.Errorf("error getting Compute instance info for '%v': %v", ciID, ret)
 		}
 		uuid, ret := migDevice.GetUUID()
 		if ret != nvml.SUCCESS {
-			return fmt.Errorf("error getting UUID for MIG device: %v", nvml.ErrorString(ret))
+			return fmt.Errorf("error getting UUID for MIG device: %v", ret)
 		}
 		migInfos[uuid] = &MigDeviceInfo{
 			uuid:    uuid,
@@ -278,68 +286,70 @@ func getMigDevices(gpuInfo *GpuInfo) (map[string]*MigDeviceInfo, error) {
 }
 
 func createMigDevice(gpu *GpuInfo, profile *MigProfile, placement *nvml.GpuInstancePlacement) (*MigDeviceInfo, error) {
-	ret := nvml.Init()
-	if ret != nvml.SUCCESS {
-		return nil, fmt.Errorf("error initializing NVML: %v", nvml.ErrorString(ret))
-	}
-	defer tryNvmlShutdown()
+	nvmllib := nvml.New()
 
-	device, ret := nvml.DeviceGetHandleByUUID(gpu.uuid + string(rune(0)))
+	ret := nvmllib.Init()
 	if ret != nvml.SUCCESS {
-		return nil, fmt.Errorf("error getting GPU device handle: %v", nvml.ErrorString(ret))
+		return nil, fmt.Errorf("error initializing NVML: %v", ret)
+	}
+	defer tryNvmlShutdown(nvmllib)
+
+	device, ret := nvmllib.DeviceGetHandleByUUID(gpu.uuid + string(rune(0)))
+	if ret != nvml.SUCCESS {
+		return nil, fmt.Errorf("error getting GPU device handle: %v", ret)
 	}
 
 	giProfileInfo, ret := device.GetGpuInstanceProfileInfo(profile.GIProfileID)
 	if ret != nvml.SUCCESS {
-		return nil, fmt.Errorf("error getting GPU instance profile info for '%v': %v", profile, nvml.ErrorString(ret))
+		return nil, fmt.Errorf("error getting GPU instance profile info for '%v': %v", profile, ret)
 	}
 
 	gi, ret := device.CreateGpuInstanceWithPlacement(&giProfileInfo, placement)
 	if ret != nvml.SUCCESS {
-		return nil, fmt.Errorf("error creating GPU instance for '%v': %v", profile, nvml.ErrorString(ret))
+		return nil, fmt.Errorf("error creating GPU instance for '%v': %v", profile, ret)
 	}
 
 	giInfo, ret := gi.GetInfo()
 	if ret != nvml.SUCCESS {
-		return nil, fmt.Errorf("error getting GPU instance info for '%v': %v", profile, nvml.ErrorString(ret))
+		return nil, fmt.Errorf("error getting GPU instance info for '%v': %v", profile, ret)
 	}
 
 	ciProfileInfo, ret := gi.GetComputeInstanceProfileInfo(profile.CIProfileID, profile.CIEngProfileID)
 	if ret != nvml.SUCCESS {
-		return nil, fmt.Errorf("error getting Compute instance profile info for '%v': %v", profile, nvml.ErrorString(ret))
+		return nil, fmt.Errorf("error getting Compute instance profile info for '%v': %v", profile, ret)
 	}
 
 	ci, ret := gi.CreateComputeInstance(&ciProfileInfo)
 	if ret != nvml.SUCCESS {
-		return nil, fmt.Errorf("error creating Compute instance for '%v': %v, %+v", profile, nvml.ErrorString(ret), ciProfileInfo)
+		return nil, fmt.Errorf("error creating Compute instance for '%v': %v", profile, ret)
 	}
 
 	ciInfo, ret := ci.GetInfo()
 	if ret != nvml.SUCCESS {
-		return nil, fmt.Errorf("error getting GPU instance info for '%v': %v", profile, nvml.ErrorString(ret))
+		return nil, fmt.Errorf("error getting GPU instance info for '%v': %v", profile, ret)
 	}
 
 	uuid := ""
 	err := walkMigDevices(device, func(i int, migDevice nvml.Device) error {
 		giID, ret := migDevice.GetGpuInstanceId()
 		if ret != nvml.SUCCESS {
-			return fmt.Errorf("error getting GPU instance ID for MIG device: %v", nvml.ErrorString(ret))
+			return fmt.Errorf("error getting GPU instance ID for MIG device: %v", ret)
 		}
 		ciID, ret := migDevice.GetComputeInstanceId()
 		if ret != nvml.SUCCESS {
-			return fmt.Errorf("error getting Compute instance ID for MIG device: %v", nvml.ErrorString(ret))
+			return fmt.Errorf("error getting Compute instance ID for MIG device: %v", ret)
 		}
 		if giID != int(giInfo.Id) || ciID != int(ciInfo.Id) {
 			return nil
 		}
 		uuid, ret = migDevice.GetUUID()
 		if ret != nvml.SUCCESS {
-			return fmt.Errorf("error getting UUID for MIG device: %v", nvml.ErrorString(ret))
+			return fmt.Errorf("error getting UUID for MIG device: %v", ret)
 		}
 		return nil
 	})
 	if err != nil {
-		return nil, fmt.Errorf("error processing MIG device for GI and CI just created: %v", nvml.ErrorString(ret))
+		return nil, fmt.Errorf("error processing MIG device for GI and CI just created: %v", err)
 	}
 	if uuid == "" {
 		return nil, fmt.Errorf("unable to find MIG device for GI and CI just created")
@@ -357,31 +367,33 @@ func createMigDevice(gpu *GpuInfo, profile *MigProfile, placement *nvml.GpuInsta
 }
 
 func deleteMigDevice(mig *MigDeviceInfo) error {
-	ret := nvml.Init()
-	if ret != nvml.SUCCESS {
-		return fmt.Errorf("error initializing NVML: %v", nvml.ErrorString(ret))
-	}
-	defer tryNvmlShutdown()
+	nvmllib := nvml.New()
 
-	parent, ret := nvml.DeviceGetHandleByUUID(mig.parent.uuid + string(rune(0)))
+	ret := nvmllib.Init()
 	if ret != nvml.SUCCESS {
-		return fmt.Errorf("error getting device from UUID '%v': %v", mig.parent.uuid, nvml.ErrorString(ret))
+		return fmt.Errorf("error initializing NVML: %v", ret)
+	}
+	defer tryNvmlShutdown(nvmllib)
+
+	parent, ret := nvmllib.DeviceGetHandleByUUID(mig.parent.uuid + string(rune(0)))
+	if ret != nvml.SUCCESS {
+		return fmt.Errorf("error getting device from UUID '%v': %v", mig.parent.uuid, ret)
 	}
 	gi, ret := parent.GetGpuInstanceById(int(mig.giInfo.Id))
 	if ret != nvml.SUCCESS {
-		return fmt.Errorf("error getting GPU instance ID for MIG device: %v", nvml.ErrorString(ret))
+		return fmt.Errorf("error getting GPU instance ID for MIG device: %v", ret)
 	}
 	ci, ret := gi.GetComputeInstanceById(int(mig.ciInfo.Id))
 	if ret != nvml.SUCCESS {
-		return fmt.Errorf("error getting Compute instance ID for MIG device: %v", nvml.ErrorString(ret))
+		return fmt.Errorf("error getting Compute instance ID for MIG device: %v", ret)
 	}
 	ret = ci.Destroy()
 	if ret != nvml.SUCCESS {
-		return fmt.Errorf("error destroying Compute Instance: %v", nvml.ErrorString(ret))
+		return fmt.Errorf("error destroying Compute Instance: %v", ret)
 	}
 	ret = gi.Destroy()
 	if ret != nvml.SUCCESS {
-		return fmt.Errorf("error destroying GPU Instance: %v", nvml.ErrorString(ret))
+		return fmt.Errorf("error destroying GPU Instance: %v", ret)
 	}
 	return nil
 }
@@ -389,7 +401,7 @@ func deleteMigDevice(mig *MigDeviceInfo) error {
 func walkMigDevices(d nvml.Device, f func(i int, d nvml.Device) error) error {
 	count, ret := nvml.Device(d).GetMaxMigDeviceCount()
 	if ret != nvml.SUCCESS {
-		return fmt.Errorf("error getting max MIG device count: %v", nvml.ErrorString(ret))
+		return fmt.Errorf("error getting max MIG device count: %v", ret)
 	}
 
 	for i := 0; i < count; i++ {
@@ -401,7 +413,7 @@ func walkMigDevices(d nvml.Device, f func(i int, d nvml.Device) error) error {
 			continue
 		}
 		if ret != nvml.SUCCESS {
-			return fmt.Errorf("error getting MIG device handle at index '%v': %v", i, nvml.ErrorString(ret))
+			return fmt.Errorf("error getting MIG device handle at index '%v': %v", i, ret)
 		}
 		err := f(i, device)
 		if err != nil {
