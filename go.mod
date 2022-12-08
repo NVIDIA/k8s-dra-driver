@@ -3,8 +3,9 @@ module github.com/NVIDIA/k8s-dra-driver
 go 1.19
 
 replace (
-	// github.com/NVIDIA/nvidia-container-toolkit => gitlab.com/nvidia/container-toolkit/container-toolkit v1.12.0-rc.2.0.20221202150932-098392ba1c23
-	github.com/NVIDIA/nvidia-container-toolkit => ../nvidia-container-toolkit
+	// github.com/NVIDIA/nvidia-container-toolkit => ../nvidia-container-toolkit
+	github.com/NVIDIA/nvidia-container-toolkit => gitlab.com/nvidia/container-toolkit/container-toolkit v1.12.0-rc.2.0.20221205163925-c170c4af4307
+	gitlab.com/nvidia/cloud-native/go-nvlib => ../go-nvlib
 	k8s.io/api => k8s.io/api v0.0.0-20221112014728-9e1815a99d4f
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.0.0-20221111220531-88105d73321f
 	k8s.io/apimachinery => k8s.io/apimachinery v0.27.0-alpha.0

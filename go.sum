@@ -382,8 +382,8 @@ github.com/yuin/goldmark v1.1.27/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9de
 github.com/yuin/goldmark v1.1.32/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.2.1/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.3.5/go.mod h1:mwnBkeHKe2W/ZEtQ+71ViKU8L12m81fl3OWwC1Zlc8k=
-gitlab.com/nvidia/cloud-native/go-nvlib v0.0.0-20220922133427-1049a7fa76a9 h1:3C1cK0/n1HGfH0MPCCPRntK8xPNlrVq9OWR4RA72jW0=
-gitlab.com/nvidia/cloud-native/go-nvlib v0.0.0-20220922133427-1049a7fa76a9/go.mod h1:GStidGxhaqJhYFW1YpOnLvYCbL2EsM0od7IW4u7+JgU=
+gitlab.com/nvidia/container-toolkit/container-toolkit v1.12.0-rc.2.0.20221205163925-c170c4af4307 h1:R7APtNZ3wgmf47cPL2kdad1SlIWCO4JfNKhn/V0pUpc=
+gitlab.com/nvidia/container-toolkit/container-toolkit v1.12.0-rc.2.0.20221205163925-c170c4af4307/go.mod h1:HP9KRf107ROyPWLi+980kcRtvNcZJnsYIsQWM4BgTWA=
 go.opencensus.io v0.21.0/go.mod h1:mSImk1erAIZhrmZN+AvHh14ztQfjbGwt4TtuofqLduU=
 go.opencensus.io v0.22.0/go.mod h1:+kGneAE2xo2IficOXnaByMWTGM9T73dGwxeWcUqIpI8=
 go.opencensus.io v0.22.2/go.mod h1:yxeiOL68Rb0Xd1ddK5vPZ/oVn4vY4Ynel7k9FzqtOIw=
