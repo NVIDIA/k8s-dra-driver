@@ -106,10 +106,10 @@ generate:
 		object:headerFile=$(CURDIR)/hack/boilerplate.go.txt,year=$(shell date +"%Y") \
 		paths=$(CURDIR)/pkg/$(APIPKG)/ \
 		output:object:dir=$(CURDIR)/pkg/$(APIPKG)/
-	rm -rf $(CURDIR)/deployments/static/crds
+	rm -rf $(CURDIR)/deployments/helm/k8s-dra-driver/crds
 	controller-gen crd:crdVersions=v1 \
 		paths=$(CURDIR)/pkg/$(APIPKG)/ \
-		output:crd:dir=$(CURDIR)/deployments/static/crds
+		output:crd:dir=$(CURDIR)/deployments/helm/k8s-dra-driver/crds
 	rm -rf $(CURDIR)/pkg/$(UNVERSIONED_APIPKG)/clientset
 	client-gen \
 		--go-header-file=$(CURDIR)/hack/boilerplate.go.txt \
