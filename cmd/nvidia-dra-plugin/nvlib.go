@@ -21,8 +21,8 @@ import (
 
 	"k8s.io/klog/v2"
 
-	"gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvml"
 	nvdev "gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvlib/device"
+	"gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvml"
 )
 
 func tryNvmlShutdown(nvmllib nvml.Interface) {
@@ -85,7 +85,7 @@ func getGpuInfo(uuid string) (*GpuInfo, error) {
 	}
 	defer tryNvmlShutdown(nvmllib)
 
-	device, err:= nvdevlib.NewDeviceByUUID(uuid + string(rune(0)))
+	device, err := nvdevlib.NewDeviceByUUID(uuid + string(rune(0)))
 	if err != nil {
 		return nil, fmt.Errorf("error getting handle for device %d: %v", uuid, err)
 	}

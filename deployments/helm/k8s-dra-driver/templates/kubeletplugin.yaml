@@ -1,41 +1,44 @@
 ---
-apiVersion: resource.k8s.io/v1alpha1
-kind: ResourceClass
-metadata:
-  name: gpu.nvidia.com
-driverName: gpu.resource.nvidia.com
-
----
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: nvidia-dra-driver
-
----
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
-  name: nvidia-dra-plugin
-  namespace: nvidia-dra-driver
+  name: {{ include "k8s-dra-driver.fullname" . }}-kubelet-plugin
+  namespace: {{ include "k8s-dra-driver.namespace" . }}
   labels:
-    app: nvidia-dra-plugin
+    {{- include "k8s-dra-driver.labels" . | nindent 4 }}
 spec:
   selector:
     matchLabels:
-      app: nvidia-dra-plugin
+      {{- include "k8s-dra-driver.selectorLabels" . | nindent 6 }}
+  {{- with .Values.kubeletPlugin.updateStrategy }}
+  updateStrategy:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
   template:
     metadata:
+      {{- with .Values.kubeletPlugin.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       labels:
-        app: nvidia-dra-plugin
+        {{- include "k8s-dra-driver.templateLabels" . | nindent 8 }}
     spec:
-      serviceAccount: nvidia-dra-driver-service-account
-      serviceAccountName: nvidia-dra-driver-service-account
-      nodeSelector:
-        nvidia.com/dra.plugin: "true"
+      {{- if .Values.kubeletPlugin.priorityClassName }}
+      priorityClassName: {{ .Values.kubeletPlugin.priorityClassName }}
+      {{- end }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "k8s-dra-driver.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.kubeletPlugin.podSecurityContext | nindent 8 }}
       initContainers:
-      - name: nvidia-dra-plugin-init
-        image: nvcr.io/nvidia/cloud-native/k8s-dra-driver:v0.1.0
-        imagePullPolicy: IfNotPresent
+      - name: init
+        securityContext:
+          {{- toYaml .Values.kubeletPlugin.containers.init.securityContext | nindent 10 }}
+        image: {{ include "k8s-dra-driver.fullimage" . }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
         command: ["bash", "-c"]
         args:
         - >-
@@ -47,6 +50,8 @@ spec:
           fi;
           kubectl get --ignore-not-found=true -n ${POD_NAMESPACE} nas ${NODE_NAME};
           exit "${?}";
+        resources:
+          {{- toYaml .Values.kubeletPlugin.containers.init.resources | nindent 10 }}
         env:
         - name: NODE_NAME
           valueFrom:
@@ -57,11 +62,15 @@ spec:
             fieldRef:
               fieldPath: metadata.namespace
       containers:
-      - name: nvidia-dra-plugin
-        image: nvcr.io/nvidia/cloud-native/k8s-dra-driver:v0.1.0
-        imagePullPolicy: IfNotPresent
+      - name: plugin
+        securityContext:
+          {{- toYaml .Values.kubeletPlugin.containers.plugin.securityContext | nindent 10 }}
+        image: {{ include "k8s-dra-driver.fullimage" . }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
         command:
         - nvidia-dra-plugin
+        resources:
+          {{- toYaml .Values.kubeletPlugin.containers.plugin.resources | nindent 10 }}
         env:
         - name: NVIDIA_VISIBLE_DEVICES
           value: void
@@ -79,8 +88,6 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.namespace
-        securityContext:
-          privileged: true
         volumeMounts:
         - name: plugins-registry
           mountPath: /var/lib/kubelet/plugins_registry
@@ -119,76 +126,15 @@ spec:
       - name: driver-root
         hostPath:
           path: /run/nvidia/driver
-
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: nvidia-dra-controller
-  namespace: nvidia-dra-driver
-  labels:
-    app: nvidia-dra-controller
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: nvidia-dra-controller
-  template:
-    metadata:
-      labels:
-        app: nvidia-dra-controller
-    spec:
-      serviceAccount: nvidia-dra-driver-service-account
-      serviceAccountName: nvidia-dra-driver-service-account
+      {{- with .Values.kubeletPlugin.nodeSelector }}
       nodeSelector:
-        nvidia.com/dra.controller: "true"
-      containers:
-      - name: nvidia-dra-controller
-        image: nvcr.io/nvidia/cloud-native/k8s-dra-driver:v0.1.0
-        imagePullPolicy: IfNotPresent
-        command: ["nvidia-dra-controller", "-v", "6"]
-        env:
-        - name: POD_NAMESPACE
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.namespace
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.kubeletPlugin.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.kubeletPlugin.tolerations }}
       tolerations:
-      - key: node-role.kubernetes.io/master
-        operator: Exists
-        effect: NoSchedule
-      - key: node-role.kubernetes.io/control-plane
-        operator: Exists
-        effect: NoSchedule
-
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: nvidia-dra-driver-service-account
-  namespace: nvidia-dra-driver
-
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: nvidia-dra-driver-role
-  namespace: nvidia-dra-driver
-rules:
-- apiGroups: ["", "resource.k8s.io", "gpu.resource.nvidia.com"]
-  resources: ["*"]
-  verbs: ["*"]
-
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: nvidia-dra-driver-role-binding
-  namespace: nvidia-dra-driver
-subjects:
-- kind: ServiceAccount
-  name: nvidia-dra-driver-service-account
-  namespace: nvidia-dra-driver
-roleRef:
-  kind: ClusterRole
-  name: nvidia-dra-driver-role
-  apiGroup: rbac.authorization.k8s.io
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

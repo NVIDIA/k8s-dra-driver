@@ -20,8 +20,8 @@ import (
 	"fmt"
 	"sync"
 
-	"gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvml"
 	nvcrd "github.com/NVIDIA/k8s-dra-driver/pkg/nvidia.com/api/resource/gpu/v1alpha1/api"
+	"gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvml"
 )
 
 type AllocatableDevices map[string]*AllocatableDeviceInfo
