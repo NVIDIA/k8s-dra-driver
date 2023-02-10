@@ -47,7 +47,7 @@ Common labels
 */}}
 {{- define "k8s-dra-driver.labels" -}}
 helm.sh/chart: {{ include "k8s-dra-driver.chart" . }}
-{{ include "k8s-dra-driver.selectorLabels" . }}
+{{ include "k8s-dra-driver.templateLabels" . }}
 {{- if .Chart.AppVersion }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
@@ -55,11 +55,25 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end }}
 
 {{/*
+Template labels
+*/}}
+{{- define "k8s-dra-driver.templateLabels" -}}
+app.kubernetes.io/name: {{ include "k8s-dra-driver.name" . }}
+app.kubernetes.io/instance: {{ .Release.Name }}
+{{- if .Values.selectorLabelsOverride }}
+{{ toYaml .Values.selectorLabelsOverride }}
+{{- end }}
+{{- end }}
+
+{{/*
 Selector labels
 */}}
 {{- define "k8s-dra-driver.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "k8s-dra-driver.name" . }}
-app.kubernetes.io/instance: {{ .Release.Name }}
+{{- if .Values.selectorLabelsOverride -}}
+{{ toYaml .Values.selectorLabelsOverride }}
+{{- else -}}
+{{ include "k8s-dra-driver.templateLabels" . }}
+{{- end }}
 {{- end }}
 
 {{/*

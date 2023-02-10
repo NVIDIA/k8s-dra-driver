@@ -5,15 +5,15 @@ metadata:
   name: {{ include "k8s-dra-driver.fullname" . }}-kubelet-plugin
   namespace: {{ include "k8s-dra-driver.namespace" . }}
   labels:
-    app: {{ include "k8s-dra-driver.fullname" . }}-kubelet-plugin
+    {{- include "k8s-dra-driver.labels" . | nindent 4 }}
 spec:
   selector:
     matchLabels:
-      app: {{ include "k8s-dra-driver.fullname" . }}-kubelet-plugin
+      {{- include "k8s-dra-driver.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       labels:
-        app: {{ include "k8s-dra-driver.fullname" . }}-kubelet-plugin
+        {{- include "k8s-dra-driver.templateLabels" . | nindent 8 }}
     spec:
       serviceAccount: {{ include "k8s-dra-driver.fullname" . }}-service-account
       serviceAccountName: {{ include "k8s-dra-driver.fullname" . }}-service-account
