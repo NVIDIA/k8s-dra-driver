@@ -88,8 +88,9 @@ Full image name with tag
 Create the name of the service account to use
 */}}
 {{- define "k8s-dra-driver.serviceAccountName" -}}
+{{- $name := printf "%s-service-account" (include "k8s-dra-driver.fullname" .) }}
 {{- if .Values.serviceAccount.create }}
-{{- default (include "k8s-dra-driver.fullname" .) .Values.serviceAccount.name }}
+{{- default $name .Values.serviceAccount.name }}
 {{- else }}
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}

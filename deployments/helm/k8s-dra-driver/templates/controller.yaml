@@ -16,8 +16,7 @@ spec:
       labels:
         {{- include "k8s-dra-driver.templateLabels" . | nindent 8 }}
     spec:
-      serviceAccount: {{ include "k8s-dra-driver.fullname" . }}-service-account
-      serviceAccountName: {{ include "k8s-dra-driver.fullname" . }}-service-account
+      serviceAccountName: {{ include "k8s-dra-driver.serviceAccountName" . }}
       nodeSelector:
         nvidia.com/dra.controller: "true"
       containers:

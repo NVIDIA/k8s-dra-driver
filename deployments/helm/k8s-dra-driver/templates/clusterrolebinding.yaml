@@ -6,7 +6,7 @@ metadata:
   namespace: {{ include "k8s-dra-driver.namespace" . }}
 subjects:
 - kind: ServiceAccount
-  name: {{ include "k8s-dra-driver.fullname" . }}-service-account
+  name: {{ include "k8s-dra-driver.serviceAccountName" . }}
   namespace: {{ include "k8s-dra-driver.namespace" . }}
 roleRef:
   kind: ClusterRole
