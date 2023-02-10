@@ -2,25 +2,25 @@
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
-  name: nvidia-dra-plugin
+  name: {{ include "k8s-dra-driver.fullname" . }}-kubelet-plugin
   namespace: {{ include "k8s-dra-driver.namespace" . }}
   labels:
-    app: nvidia-dra-plugin
+    app: {{ include "k8s-dra-driver.fullname" . }}-kubelet-plugin
 spec:
   selector:
     matchLabels:
-      app: nvidia-dra-plugin
+      app: {{ include "k8s-dra-driver.fullname" . }}-kubelet-plugin
   template:
     metadata:
       labels:
-        app: nvidia-dra-plugin
+        app: {{ include "k8s-dra-driver.fullname" . }}-kubelet-plugin
     spec:
-      serviceAccount: nvidia-dra-driver-service-account
-      serviceAccountName: nvidia-dra-driver-service-account
+      serviceAccount: {{ include "k8s-dra-driver.fullname" . }}-service-account
+      serviceAccountName: {{ include "k8s-dra-driver.fullname" . }}-service-account
       nodeSelector:
         nvidia.com/dra.plugin: "true"
       initContainers:
-      - name: nvidia-dra-plugin-init
+      - name: kubelet-plugin-init
         image: nvcr.io/nvidia/cloud-native/k8s-dra-driver:v0.1.0
         imagePullPolicy: IfNotPresent
         command: ["bash", "-c"]
@@ -44,7 +44,7 @@ spec:
             fieldRef:
               fieldPath: metadata.namespace
       containers:
-      - name: nvidia-dra-plugin
+      - name: kubelet-plugin
         image: nvcr.io/nvidia/cloud-native/k8s-dra-driver:v0.1.0
         imagePullPolicy: IfNotPresent
         command:

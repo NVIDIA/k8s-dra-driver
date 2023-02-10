@@ -2,26 +2,26 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: nvidia-dra-controller
+  name: {{ include "k8s-dra-driver.fullname" . }}-controller
   namespace: {{ include "k8s-dra-driver.namespace" . }}
   labels:
-    app: nvidia-dra-controller
+    app: {{ include "k8s-dra-driver.fullname" . }}-controller
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: nvidia-dra-controller
+      app: {{ include "k8s-dra-driver.fullname" . }}-controller
   template:
     metadata:
       labels:
-        app: nvidia-dra-controller
+        app: {{ include "k8s-dra-driver.fullname" . }}-controller
     spec:
-      serviceAccount: nvidia-dra-driver-service-account
-      serviceAccountName: nvidia-dra-driver-service-account
+      serviceAccount: {{ include "k8s-dra-driver.fullname" . }}-service-account
+      serviceAccountName: {{ include "k8s-dra-driver.fullname" . }}-service-account
       nodeSelector:
         nvidia.com/dra.controller: "true"
       containers:
-      - name: nvidia-dra-controller
+      - name: controller
         image: nvcr.io/nvidia/cloud-native/k8s-dra-driver:v0.1.0
         imagePullPolicy: IfNotPresent
         command: ["nvidia-dra-controller", "-v", "6"]
