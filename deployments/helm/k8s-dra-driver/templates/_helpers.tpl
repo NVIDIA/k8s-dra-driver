@@ -77,6 +77,14 @@ Selector labels
 {{- end }}
 
 {{/*
+Full image name with tag
+*/}}
+{{- define "k8s-dra-driver.fullimage" -}}
+{{- $tag := printf "v%s" .Chart.AppVersion }}
+{{- .Values.image.repository -}}:{{- .Values.image.tag | default $tag -}}
+{{- end }}
+
+{{/*
 Create the name of the service account to use
 */}}
 {{- define "k8s-dra-driver.serviceAccountName" -}}

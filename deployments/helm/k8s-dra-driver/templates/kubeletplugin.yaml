@@ -21,8 +21,8 @@ spec:
         nvidia.com/dra.plugin: "true"
       initContainers:
       - name: kubelet-plugin-init
-        image: nvcr.io/nvidia/cloud-native/k8s-dra-driver:v0.1.0
-        imagePullPolicy: IfNotPresent
+        image: {{ include "k8s-dra-driver.fullimage" . }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
         command: ["bash", "-c"]
         args:
         - >-
@@ -45,8 +45,8 @@ spec:
               fieldPath: metadata.namespace
       containers:
       - name: kubelet-plugin
-        image: nvcr.io/nvidia/cloud-native/k8s-dra-driver:v0.1.0
-        imagePullPolicy: IfNotPresent
+        image: {{ include "k8s-dra-driver.fullimage" . }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
         command:
         - nvidia-dra-plugin
         env:

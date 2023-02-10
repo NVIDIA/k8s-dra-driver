@@ -22,8 +22,8 @@ spec:
         nvidia.com/dra.controller: "true"
       containers:
       - name: controller
-        image: nvcr.io/nvidia/cloud-native/k8s-dra-driver:v0.1.0
-        imagePullPolicy: IfNotPresent
+        image: {{ include "k8s-dra-driver.fullimage" . }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
         command: ["nvidia-dra-controller", "-v", "6"]
         env:
         - name: POD_NAMESPACE
