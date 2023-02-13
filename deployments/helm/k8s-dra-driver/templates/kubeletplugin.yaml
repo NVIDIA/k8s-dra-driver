@@ -39,17 +39,7 @@ spec:
           {{- toYaml .Values.kubeletPlugin.containers.init.securityContext | nindent 10 }}
         image: {{ include "k8s-dra-driver.fullimage" . }}
         imagePullPolicy: {{ .Values.image.pullPolicy }}
-        command: ["bash", "-c"]
-        args:
-        - >-
-          set -x;
-          kubectl get -n ${POD_NAMESPACE} nas ${NODE_NAME};
-          if [ "${?}" = "0" ]; then
-            kubectl patch -n ${POD_NAMESPACE} nas ${NODE_NAME} --type merge -p '{"status": "NotReady"}';
-            exit "${?}";
-          fi;
-          kubectl get --ignore-not-found=true -n ${POD_NAMESPACE} nas ${NODE_NAME};
-          exit "${?}";
+        command: ["set-nas-status", "--status", "NotReady"]
         resources:
           {{- toYaml .Values.kubeletPlugin.containers.init.resources | nindent 10 }}
         env:
@@ -101,18 +91,7 @@ spec:
         lifecycle:
           preStop:
             exec: 
-              command:
-              - bash
-              - -c
-              - >-
-                set -x;
-                kubectl get -n ${POD_NAMESPACE} nas ${NODE_NAME};
-                if [ "${?}" = "0" ]; then
-                  kubectl patch -n ${POD_NAMESPACE} nas ${NODE_NAME} --type merge -p '{"status": "NotReady"}';
-                  exit "${?}";
-                fi;
-                kubectl get --ignore-not-found=true -n ${POD_NAMESPACE} nas ${NODE_NAME};
-                exit "${?}";
+              command: ["set-nas-status", "--status", "NotReady"]
       volumes:
       - name: plugins-registry
         hostPath:

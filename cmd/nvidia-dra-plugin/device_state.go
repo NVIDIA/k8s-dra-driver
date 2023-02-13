@@ -80,7 +80,7 @@ type DeviceState struct {
 	allocated   ClaimAllocations
 }
 
-func NewDeviceState(config *Config, nascrd *nvcrd.NodeAllocationState) (*DeviceState, error) {
+func NewDeviceState(config *Config) (*DeviceState, error) {
 	allocatable, err := enumerateAllPossibleDevices()
 	if err != nil {
 		return nil, fmt.Errorf("error enumerating all possible devices: %v", err)
@@ -102,7 +102,7 @@ func NewDeviceState(config *Config, nascrd *nvcrd.NodeAllocationState) (*DeviceS
 		allocated:   make(ClaimAllocations),
 	}
 
-	err = state.syncAllocatedDevicesFromCRDSpec(&nascrd.Spec)
+	err = state.syncAllocatedDevicesFromCRDSpec(&config.nascrd.Spec)
 	if err != nil {
 		return nil, fmt.Errorf("unable to sync allocated devices from CRD: %v", err)
 	}
