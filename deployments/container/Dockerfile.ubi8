@@ -25,11 +25,6 @@ RUN mkdir /artifacts
 ARG VERSION="N/A"
 RUN make PREFIX=/artifacts cmds
 
-ARG TARGETARCH
-RUN curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/${TARGETARCH}/kubectl"
-RUN chmod a+x kubectl
-RUN mv kubectl /artifacts/kubectl
-
 FROM nvidia/${CUDA_IMAGE}:${CUDA_VERSION}-base-${BASE_DIST}
 
 ENV NVIDIA_DISABLE_REQUIRE="true"
@@ -49,7 +44,7 @@ RUN mkdir /licenses && mv /NGC-DL-CONTAINER-LICENSE /licenses/NGC-DL-CONTAINER-L
 
 COPY --from=build /artifacts/nvidia-dra-controller /usr/bin/nvidia-dra-controller
 COPY --from=build /artifacts/nvidia-dra-plugin     /usr/bin/nvidia-dra-plugin
-COPY --from=build /artifacts/kubectl               /usr/bin/kubectl
+COPY --from=build /artifacts/set-nas-status        /usr/bin/set-nas-status
 
 # Install / upgrade packages here that are required to resolve CVEs
 ARG CVE_UPDATES

@@ -33,29 +33,30 @@ type driver struct {
 }
 
 func NewDriver(config *Config) (*driver, error) {
-	nascrd := nvcrd.NewNodeAllocationState(config.crdconfig, config.clientset.nvidia)
-	err := nascrd.GetOrCreate()
+	err := config.nascrd.Get()
 	if err != nil {
 		return nil, err
 	}
 
-	state, err := NewDeviceState(config, nascrd)
+	state, err := NewDeviceState(config)
 	if err != nil {
 		return nil, err
 	}
 
-	err = nascrd.Update(state.GetUpdatedSpec(&nascrd.Spec))
+	err = config.nascrd.Update(state.GetUpdatedSpec(&config.nascrd.Spec))
 	if err != nil {
 		return nil, err
 	}
 
-	err = nascrd.UpdateStatus(nvcrd.NodeAllocationStateStatusReady)
+	err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		return config.nascrd.UpdateStatus(nvcrd.NodeAllocationStateStatusReady)
+	})
 	if err != nil {
 		return nil, err
 	}
 
 	d := &driver{
-		crd:   nascrd,
+		crd:   config.nascrd,
 		state: state,
 	}
 
