@@ -63,6 +63,16 @@ func NewDriver(config *Config) (*driver, error) {
 	return d, nil
 }
 
+func (d *driver) Shutdown() {
+	retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		err := d.crd.Get()
+		if err != nil {
+			return err
+		}
+		return d.crd.UpdateStatus(nvcrd.NodeAllocationStateStatusNotReady)
+	})
+}
+
 func (d *driver) NodePrepareResource(ctx context.Context, req *drapbv1.NodePrepareResourceRequest) (*drapbv1.NodePrepareResourceResponse, error) {
 	klog.Infof("NodePrepareResource is called: request: %+v", req)
 

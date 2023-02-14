@@ -210,6 +210,7 @@ func StartPlugin(config *Config) error {
 	signal.Notify(sigc, os.Interrupt, syscall.SIGTERM)
 	<-sigc
 	dp.Stop()
+	driver.Shutdown()
 
 	return nil
 }
