@@ -17,6 +17,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/signal"
@@ -27,6 +28,8 @@ import (
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	coreclientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	cliflag "k8s.io/component-base/cli/flag"
@@ -98,14 +101,33 @@ func NewCommand() *cobra.Command {
 			return fmt.Errorf("create client configuration: %v", err)
 		}
 
+		coreclient, err := coreclientset.NewForConfig(csconfig)
+		if err != nil {
+			return fmt.Errorf("create core client: %v", err)
+		}
+
 		nvclient, err := nvclientset.NewForConfig(csconfig)
 		if err != nil {
 			return fmt.Errorf("create nvidia client: %v", err)
 		}
 
+		nodeName := os.Getenv("NODE_NAME")
+		podNamespace := os.Getenv("POD_NAMESPACE")
+
+		node, err := coreclient.CoreV1().Nodes().Get(context.TODO(), nodeName, metav1.GetOptions{})
+		if err != nil {
+			return fmt.Errorf("get node object: %v", err)
+		}
+
 		crdconfig := &nvcrd.NodeAllocationStateConfig{
-			Name:      os.Getenv("NODE_NAME"),
-			Namespace: os.Getenv("POD_NAMESPACE"),
+			Name:      nodeName,
+			Namespace: podNamespace,
+			Owner: &metav1.OwnerReference{
+				APIVersion: "v1",
+				Kind:       "Node",
+				Name:       nodeName,
+				UID:        node.UID,
+			},
 		}
 
 		nascrd := nvcrd.NewNodeAllocationState(crdconfig, nvclient)
@@ -207,8 +229,9 @@ func StartPlugin(config *Config) error {
 	}
 
 	sigc := make(chan os.Signal, 1)
-	signal.Notify(sigc, os.Interrupt, syscall.SIGTERM)
+	signal.Notify(sigc, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	<-sigc
+
 	dp.Stop()
 	driver.Shutdown()
 

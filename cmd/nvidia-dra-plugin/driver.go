@@ -33,38 +33,49 @@ type driver struct {
 }
 
 func NewDriver(config *Config) (*driver, error) {
-	err := config.nascrd.Get()
-	if err != nil {
-		return nil, err
-	}
+	var d *driver
+	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		err := config.nascrd.GetOrCreate()
+		if err != nil {
+			return err
+		}
 
-	state, err := NewDeviceState(config)
-	if err != nil {
-		return nil, err
-	}
+		err = config.nascrd.UpdateStatus(nvcrd.NodeAllocationStateStatusNotReady)
+		if err != nil {
+			return err
+		}
 
-	err = config.nascrd.Update(state.GetUpdatedSpec(&config.nascrd.Spec))
-	if err != nil {
-		return nil, err
-	}
+		state, err := NewDeviceState(config)
+		if err != nil {
+			return err
+		}
 
-	err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		return config.nascrd.UpdateStatus(nvcrd.NodeAllocationStateStatusReady)
+		err = config.nascrd.Update(state.GetUpdatedSpec(&config.nascrd.Spec))
+		if err != nil {
+			return err
+		}
+
+		err = config.nascrd.UpdateStatus(nvcrd.NodeAllocationStateStatusReady)
+		if err != nil {
+			return err
+		}
+
+		d = &driver{
+			crd:   config.nascrd,
+			state: state,
+		}
+
+		return nil
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	d := &driver{
-		crd:   config.nascrd,
-		state: state,
-	}
-
 	return d, nil
 }
 
-func (d *driver) Shutdown() {
-	retry.RetryOnConflict(retry.DefaultRetry, func() error {
+func (d *driver) Shutdown() error {
+	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		err := d.crd.Get()
 		if err != nil {
 			return err
