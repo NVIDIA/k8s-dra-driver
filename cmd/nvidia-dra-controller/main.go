@@ -25,7 +25,6 @@ import (
 	"os"
 	"path"
 	"strings"
-	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -48,13 +47,11 @@ import (
 	"k8s.io/dynamic-resource-allocation/controller"
 	"k8s.io/klog/v2"
 
-	_ "k8s.io/component-base/logs/json/register"                         // for JSON log output support
-	_ "k8s.io/component-base/metrics/prometheus/clientgo/leaderelection" // register leader election in the default legacy registry
-	_ "k8s.io/component-base/metrics/prometheus/restclient"              // for client metric registration
-	_ "k8s.io/component-base/metrics/prometheus/version"                 // for version metric registration
-	_ "k8s.io/component-base/metrics/prometheus/workqueue"               // register work queues in the default legacy registry
+	_ "k8s.io/component-base/logs/json/register"            // for JSON log output support
+	_ "k8s.io/component-base/metrics/prometheus/restclient" // for client metric registration
+	_ "k8s.io/component-base/metrics/prometheus/version"    // for version metric registration
+	_ "k8s.io/component-base/metrics/prometheus/workqueue"  // register work queues in the default legacy registry
 
-	"github.com/NVIDIA/k8s-dra-driver/pkg/leaderelection"
 	nvclientset "github.com/NVIDIA/k8s-dra-driver/pkg/nvidia.com/api/resource/gpu/clientset/versioned"
 )
 
@@ -67,12 +64,6 @@ type Flags struct {
 	httpEndpoint *string
 	metricsPath  *string
 	profilePath  *string
-
-	enableLeaderElection        *bool
-	leaderElectionNamespace     *string
-	leaderElectionLeaseDuration *time.Duration
-	leaderElectionRenewDeadline *time.Duration
-	leaderElectionRetryPeriod   *time.Duration
 }
 
 type Clientset struct {
@@ -167,16 +158,9 @@ func NewCommand() *cobra.Command {
 			}
 		}
 
-		if *flags.enableLeaderElection {
-			err = StartControllerWithLeader(config)
-			if err != nil {
-				return fmt.Errorf("start controller with leader: %v", err)
-			}
-		} else {
-			err = StartController(config)
-			if err != nil {
-				return fmt.Errorf("start controller: %v", err)
-			}
+		err = StartController(config)
+		if err != nil {
+			return fmt.Errorf("start controller: %v", err)
 		}
 
 		return nil
@@ -201,21 +185,9 @@ func AddFlags(cmd *cobra.Command, logsconfig *logsapi.LoggingConfiguration, feat
 
 	fs = sharedFlagSets.FlagSet("http server")
 	flags.httpEndpoint = fs.String("http-endpoint", "",
-		"The TCP network address where the HTTP server for diagnostics, including pprof, metrics and (if applicable) leader election health check, will listen (example: `:8080`). The default is the empty string, which means the server is disabled.")
+		"The TCP network address where the HTTP server for diagnostics, including pprof and metrics will listen (example: `:8080`). The default is the empty string, which means the server is disabled.")
 	flags.metricsPath = fs.String("metrics-path", "/metrics", "The HTTP path where Prometheus metrics will be exposed, disabled if empty.")
 	flags.profilePath = fs.String("pprof-path", "", "The HTTP path where pprof profiling will be available, disabled if empty.")
-
-	fs = sharedFlagSets.FlagSet("leader election")
-	flags.enableLeaderElection = fs.Bool("leader-election", false,
-		"Enables leader election. If leader election is enabled, additional RBAC rules are required.")
-	flags.leaderElectionNamespace = fs.String("leader-election-namespace", "",
-		"Namespace where the leader election resource lives. Defaults to the pod namespace if not set.")
-	flags.leaderElectionLeaseDuration = fs.Duration("leader-election-lease-duration", 15*time.Second,
-		"Duration, in seconds, that non-leader candidates will wait to force acquire leadership.")
-	flags.leaderElectionRenewDeadline = fs.Duration("leader-election-renew-deadline", 10*time.Second,
-		"Duration, in seconds, that the acting leader will retry refreshing leadership before giving up.")
-	flags.leaderElectionRetryPeriod = fs.Duration("leader-election-retry-period", 5*time.Second,
-		"Duration, in seconds, the LeaderElector clients should wait between tries of actions.")
 
 	fs = sharedFlagSets.FlagSet("other")
 	featureGate.AddFlag(fs)
@@ -304,39 +276,6 @@ func SetupHTTPEndpoint(config *Config) error {
 			klog.FlushAndExit(klog.ExitFlushTimeout, 1)
 		}
 	}()
-
-	return nil
-}
-
-func StartControllerWithLeader(config *Config) error {
-	// This must not change between releases.
-	lockName := DriverName
-
-	// Create a new clientset for leader election
-	// to avoid starving it when the normal traffic
-	// exceeds the QPS+burst limits.
-	clientset, err := coreclientset.NewForConfig(config.csconfig)
-	if err != nil {
-		return fmt.Errorf("Failed to create leaderelection client: %v", err)
-	}
-
-	le := leaderelection.New(clientset, lockName,
-		func(ctx context.Context) {
-			StartController(config)
-		},
-		leaderelection.LeaseDuration(*config.flags.leaderElectionLeaseDuration),
-		leaderelection.RenewDeadline(*config.flags.leaderElectionRenewDeadline),
-		leaderelection.RetryPeriod(*config.flags.leaderElectionRetryPeriod),
-		leaderelection.Namespace(*config.flags.leaderElectionNamespace),
-	)
-
-	if *config.flags.httpEndpoint != "" {
-		le.PrepareHealthCheck(config.mux)
-	}
-
-	if err := le.Run(); err != nil {
-		return fmt.Errorf("leader election failed: %v", err)
-	}
 
 	return nil
 }
