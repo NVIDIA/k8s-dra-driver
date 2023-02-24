@@ -32,7 +32,7 @@ replace (
 )
 
 require (
-	github.com/NVIDIA/go-nvml v0.11.6-0.0.20220823120812-7e2082095e82
+	github.com/NVIDIA/go-nvml v0.12.0-1
 	github.com/NVIDIA/nvidia-container-toolkit v0.0.0-00010101000000-000000000000
 	github.com/container-orchestrated-devices/container-device-interface v0.5.4
 	github.com/prometheus/client_golang v1.14.0
