@@ -31,10 +31,9 @@ import (
 )
 
 const (
-	cdiVersion = "0.4.0"
-	cdiVendor  = "k8s." + DriverName
-	cdiClass   = "claim"
-	cdiKind    = cdiVendor + "/" + cdiClass
+	cdiVendor = "k8s." + DriverName
+	cdiClass  = "claim"
+	cdiKind   = cdiVendor + "/" + cdiClass
 
 	cdiCommonDeviceName = "common"
 )
@@ -90,8 +89,7 @@ func (cdi *CDIHandler) CreateCommonSpecFile() error {
 	}
 
 	spec := &cdispec.Spec{
-		Version: cdiVersion,
-		Kind:    cdiKind,
+		Kind: cdiKind,
 		Devices: []cdispec.Device{
 			{
 				Name:           cdiCommonDeviceName,
@@ -99,6 +97,12 @@ func (cdi *CDIHandler) CreateCommonSpecFile() error {
 			},
 		},
 	}
+
+	minVersion, err := cdiapi.MinimumRequiredVersion(spec)
+	if err != nil {
+		return fmt.Errorf("failed to get minimum required CDI spec version: %v", err)
+	}
+	spec.Version = minVersion
 
 	specName, err := cdiapi.GenerateNameForTransientSpec(spec, cdiCommonDeviceName)
 	if err != nil {
@@ -169,8 +173,7 @@ func (cdi *CDIHandler) CreateClaimSpecFile(claimUid string, devices AllocatedDev
 	}
 
 	spec := &cdispec.Spec{
-		Version: cdiVersion,
-		Kind:    cdiKind,
+		Kind: cdiKind,
 		Devices: []cdispec.Device{
 			{
 				Name:           claimUid,
@@ -178,6 +181,12 @@ func (cdi *CDIHandler) CreateClaimSpecFile(claimUid string, devices AllocatedDev
 			},
 		},
 	}
+
+	minVersion, err := cdiapi.MinimumRequiredVersion(spec)
+	if err != nil {
+		return fmt.Errorf("failed to get minimum required CDI spec version: %v", err)
+	}
+	spec.Version = minVersion
 
 	specName, err := cdiapi.GenerateNameForTransientSpec(spec, claimUid)
 	if err != nil {
@@ -189,8 +198,7 @@ func (cdi *CDIHandler) CreateClaimSpecFile(claimUid string, devices AllocatedDev
 
 func (cdi *CDIHandler) DeleteClaimSpecFile(claimUid string) error {
 	spec := &cdispec.Spec{
-		Version: cdiVersion,
-		Kind:    cdiKind,
+		Kind: cdiKind,
 	}
 
 	specName, err := cdiapi.GenerateNameForTransientSpec(spec, claimUid)
