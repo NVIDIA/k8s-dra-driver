@@ -35,8 +35,8 @@ import (
 	"k8s.io/component-base/term"
 	"k8s.io/klog/v2"
 
-	nvclientset "github.com/NVIDIA/k8s-dra-driver/pkg/nvidia.com/api/resource/gpu/clientset/versioned"
-	nvcrd "github.com/NVIDIA/k8s-dra-driver/pkg/nvidia.com/api/resource/gpu/v1alpha1/api"
+	nvclientset "github.com/NVIDIA/k8s-dra-driver/pkg/nvidia.com/resource/clientset/versioned"
+	nascrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1/api"
 )
 
 type Flags struct {
@@ -46,7 +46,7 @@ type Flags struct {
 
 type Config struct {
 	flags    *Flags
-	nascrd   *nvcrd.NodeAllocationState
+	nascrd   *nascrd.NodeAllocationState
 	nvclient nvclientset.Interface
 }
 
@@ -110,7 +110,7 @@ func NewCommand() *cobra.Command {
 			return fmt.Errorf("get node object: %v", err)
 		}
 
-		crdconfig := &nvcrd.NodeAllocationStateConfig{
+		crdconfig := &nascrd.NodeAllocationStateConfig{
 			Name:      nodeName,
 			Namespace: podNamespace,
 			Owner: &metav1.OwnerReference{
@@ -121,7 +121,7 @@ func NewCommand() *cobra.Command {
 			},
 		}
 
-		nascrd := nvcrd.NewNodeAllocationState(crdconfig, nvclient)
+		nascrd := nascrd.NewNodeAllocationState(crdconfig, nvclient)
 
 		config := &Config{
 			flags:    flags,
@@ -156,10 +156,10 @@ func AddFlags(cmd *cobra.Command) *Flags {
 
 func ValidateFlags(f *Flags) error {
 	switch strings.ToLower(*f.status) {
-	case strings.ToLower(nvcrd.NodeAllocationStateStatusReady):
-		*f.status = nvcrd.NodeAllocationStateStatusReady
-	case strings.ToLower(nvcrd.NodeAllocationStateStatusNotReady):
-		*f.status = nvcrd.NodeAllocationStateStatusNotReady
+	case strings.ToLower(nascrd.NodeAllocationStateStatusReady):
+		*f.status = nascrd.NodeAllocationStateStatusReady
+	case strings.ToLower(nascrd.NodeAllocationStateStatusNotReady):
+		*f.status = nascrd.NodeAllocationStateStatusNotReady
 	default:
 		return fmt.Errorf("unknown status: %v", *f.status)
 	}

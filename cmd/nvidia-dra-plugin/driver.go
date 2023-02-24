@@ -24,11 +24,11 @@ import (
 	"k8s.io/klog/v2"
 	drapbv1 "k8s.io/kubelet/pkg/apis/dra/v1alpha1"
 
-	nvcrd "github.com/NVIDIA/k8s-dra-driver/pkg/nvidia.com/api/resource/gpu/v1alpha1/api"
+	nascrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1/api"
 )
 
 type driver struct {
-	crd   *nvcrd.NodeAllocationState
+	crd   *nascrd.NodeAllocationState
 	state *DeviceState
 }
 
@@ -40,7 +40,7 @@ func NewDriver(config *Config) (*driver, error) {
 			return err
 		}
 
-		err = config.nascrd.UpdateStatus(nvcrd.NodeAllocationStateStatusNotReady)
+		err = config.nascrd.UpdateStatus(nascrd.NodeAllocationStateStatusNotReady)
 		if err != nil {
 			return err
 		}
@@ -55,7 +55,7 @@ func NewDriver(config *Config) (*driver, error) {
 			return err
 		}
 
-		err = config.nascrd.UpdateStatus(nvcrd.NodeAllocationStateStatusReady)
+		err = config.nascrd.UpdateStatus(nascrd.NodeAllocationStateStatusReady)
 		if err != nil {
 			return err
 		}
@@ -80,7 +80,7 @@ func (d *driver) Shutdown() error {
 		if err != nil {
 			return err
 		}
-		return d.crd.UpdateStatus(nvcrd.NodeAllocationStateStatusNotReady)
+		return d.crd.UpdateStatus(nascrd.NodeAllocationStateStatusNotReady)
 	})
 }
 

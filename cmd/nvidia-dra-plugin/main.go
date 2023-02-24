@@ -37,13 +37,14 @@ import (
 	plugin "k8s.io/dynamic-resource-allocation/kubeletplugin"
 	"k8s.io/klog/v2"
 
-	nvclientset "github.com/NVIDIA/k8s-dra-driver/pkg/nvidia.com/api/resource/gpu/clientset/versioned"
-	nvcrd "github.com/NVIDIA/k8s-dra-driver/pkg/nvidia.com/api/resource/gpu/v1alpha1/api"
+	nvclientset "github.com/NVIDIA/k8s-dra-driver/pkg/nvidia.com/resource/clientset/versioned"
+	nascrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1/api"
+	gpucrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/v1alpha1/api"
 )
 
 const (
-	DriverName     = nvcrd.GroupName
-	DriverAPIGroup = nvcrd.GroupName
+	DriverName     = gpucrd.GroupName
+	DriverAPIGroup = gpucrd.GroupName
 
 	PluginRegistrationPath = "/var/lib/kubelet/plugins_registry/" + DriverName + ".sock"
 	DriverPluginPath       = "/var/lib/kubelet/plugins/" + DriverName
@@ -60,7 +61,7 @@ type Flags struct {
 
 type Config struct {
 	flags    *Flags
-	nascrd   *nvcrd.NodeAllocationState
+	nascrd   *nascrd.NodeAllocationState
 	nvclient nvclientset.Interface
 }
 
@@ -119,7 +120,7 @@ func NewCommand() *cobra.Command {
 			return fmt.Errorf("get node object: %v", err)
 		}
 
-		crdconfig := &nvcrd.NodeAllocationStateConfig{
+		crdconfig := &nascrd.NodeAllocationStateConfig{
 			Name:      nodeName,
 			Namespace: podNamespace,
 			Owner: &metav1.OwnerReference{
@@ -130,7 +131,7 @@ func NewCommand() *cobra.Command {
 			},
 		}
 
-		nascrd := nvcrd.NewNodeAllocationState(crdconfig, nvclient)
+		nascrd := nascrd.NewNodeAllocationState(crdconfig, nvclient)
 
 		config := &Config{
 			flags:    flags,

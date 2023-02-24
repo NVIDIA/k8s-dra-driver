@@ -17,18 +17,19 @@
 package main
 
 import (
-	nvcrd "github.com/NVIDIA/k8s-dra-driver/pkg/nvidia.com/api/resource/gpu/v1alpha1/api"
 	"sync"
+
+	nascrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1/api"
 )
 
 type PerNodeClaimRequests struct {
 	sync.RWMutex
-	requests map[string]map[string]nvcrd.RequestedDevices
+	requests map[string]map[string]nascrd.RequestedDevices
 }
 
 func NewPerNodeClaimRequests() *PerNodeClaimRequests {
 	return &PerNodeClaimRequests{
-		requests: make(map[string]map[string]nvcrd.RequestedDevices),
+		requests: make(map[string]map[string]nascrd.RequestedDevices),
 	}
 }
 
@@ -49,17 +50,17 @@ func (p *PerNodeClaimRequests) Exists(claimUID, node string) bool {
 	return true
 }
 
-func (p *PerNodeClaimRequests) Get(claimUID, node string) nvcrd.RequestedDevices {
+func (p *PerNodeClaimRequests) Get(claimUID, node string) nascrd.RequestedDevices {
 	p.RLock()
 	defer p.RUnlock()
 
 	if !p.Exists(claimUID, node) {
-		return nvcrd.RequestedDevices{}
+		return nascrd.RequestedDevices{}
 	}
 	return p.requests[claimUID][node]
 }
 
-func (p *PerNodeClaimRequests) VisitNode(node string, visitor func(claimUID string, request nvcrd.RequestedDevices)) {
+func (p *PerNodeClaimRequests) VisitNode(node string, visitor func(claimUID string, request nascrd.RequestedDevices)) {
 	p.RLock()
 	for claimUID := range p.requests {
 		if request, exists := p.requests[claimUID][node]; exists {
@@ -71,7 +72,7 @@ func (p *PerNodeClaimRequests) VisitNode(node string, visitor func(claimUID stri
 	p.RUnlock()
 }
 
-func (p *PerNodeClaimRequests) Visit(visitor func(claimUID, node string, request nvcrd.RequestedDevices)) {
+func (p *PerNodeClaimRequests) Visit(visitor func(claimUID, node string, request nascrd.RequestedDevices)) {
 	p.RLock()
 	for claimUID := range p.requests {
 		for node, request := range p.requests[claimUID] {
@@ -83,13 +84,13 @@ func (p *PerNodeClaimRequests) Visit(visitor func(claimUID, node string, request
 	p.RUnlock()
 }
 
-func (p *PerNodeClaimRequests) Set(claimUID, node string, devices nvcrd.RequestedDevices) {
+func (p *PerNodeClaimRequests) Set(claimUID, node string, devices nascrd.RequestedDevices) {
 	p.Lock()
 	defer p.Unlock()
 
 	_, exists := p.requests[claimUID]
 	if !exists {
-		p.requests[claimUID] = make(map[string]nvcrd.RequestedDevices)
+		p.requests[claimUID] = make(map[string]nascrd.RequestedDevices)
 	}
 
 	p.requests[claimUID][node] = devices

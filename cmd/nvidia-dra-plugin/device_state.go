@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"sync"
 
-	nvcrd "github.com/NVIDIA/k8s-dra-driver/pkg/nvidia.com/api/resource/gpu/v1alpha1/api"
+	nascrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1/api"
 	"gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvml"
 )
 
@@ -50,12 +50,12 @@ type AllocatedDeviceInfo struct {
 
 func (i AllocatedDeviceInfo) Type() string {
 	if i.gpu != nil {
-		return nvcrd.GpuDeviceType
+		return nascrd.GpuDeviceType
 	}
 	if i.mig != nil {
-		return nvcrd.MigDeviceType
+		return nascrd.MigDeviceType
 	}
-	return nvcrd.UnknownDeviceType
+	return nascrd.UnknownDeviceType
 }
 
 type MigProfileInfo struct {
@@ -110,7 +110,7 @@ func NewDeviceState(config *Config) (*DeviceState, error) {
 	return state, nil
 }
 
-func (s *DeviceState) Allocate(claimUid string, request nvcrd.RequestedDevices) ([]string, error) {
+func (s *DeviceState) Allocate(claimUid string, request nascrd.RequestedDevices) ([]string, error) {
 	s.Lock()
 	defer s.Unlock()
 
@@ -122,9 +122,9 @@ func (s *DeviceState) Allocate(claimUid string, request nvcrd.RequestedDevices) 
 
 	var err error
 	switch request.Type() {
-	case nvcrd.GpuDeviceType:
+	case nascrd.GpuDeviceType:
 		err = s.allocateGpus(claimUid, request.Gpu.Devices)
-	case nvcrd.MigDeviceType:
+	case nascrd.MigDeviceType:
 		err = s.allocateMigDevices(claimUid, request.Mig.Devices)
 	}
 	if err != nil {
@@ -150,9 +150,9 @@ func (s *DeviceState) Free(claimUid string) error {
 	for _, device := range s.allocated[claimUid] {
 		var err error
 		switch device.Type() {
-		case nvcrd.GpuDeviceType:
+		case nascrd.GpuDeviceType:
 			err = s.freeGpu(device.gpu)
-		case nvcrd.MigDeviceType:
+		case nascrd.MigDeviceType:
 			err = s.freeMigDevice(device.mig)
 		}
 		if err != nil {
@@ -170,7 +170,7 @@ func (s *DeviceState) Free(claimUid string) error {
 	return nil
 }
 
-func (s *DeviceState) GetUpdatedSpec(inspec *nvcrd.NodeAllocationStateSpec) *nvcrd.NodeAllocationStateSpec {
+func (s *DeviceState) GetUpdatedSpec(inspec *nascrd.NodeAllocationStateSpec) *nascrd.NodeAllocationStateSpec {
 	s.Lock()
 	defer s.Unlock()
 
@@ -180,7 +180,7 @@ func (s *DeviceState) GetUpdatedSpec(inspec *nvcrd.NodeAllocationStateSpec) *nvc
 	return outspec
 }
 
-func (s *DeviceState) allocateGpus(claimUid string, devices []nvcrd.RequestedGpu) error {
+func (s *DeviceState) allocateGpus(claimUid string, devices []nascrd.RequestedGpu) error {
 	for _, device := range devices {
 		if _, exists := s.allocatable[device.UUID]; !exists {
 			return fmt.Errorf("requested GPU does not exist: %v", device.UUID)
@@ -198,7 +198,7 @@ func (s *DeviceState) allocateGpus(claimUid string, devices []nvcrd.RequestedGpu
 	return nil
 }
 
-func (s *DeviceState) allocateMigDevices(claimUid string, devices []nvcrd.RequestedMigDevice) error {
+func (s *DeviceState) allocateMigDevices(claimUid string, devices []nascrd.RequestedMigDevice) error {
 	for _, device := range devices {
 		if _, exists := s.allocatable[device.ParentUUID]; !exists {
 			return fmt.Errorf("requested GPU does not exist: %v", device.ParentUUID)
@@ -244,12 +244,12 @@ func (s *DeviceState) freeMigDevice(mig *MigDeviceInfo) error {
 	return deleteMigDevice(mig)
 }
 
-func (s *DeviceState) syncAllocatableDevicesToCRDSpec(spec *nvcrd.NodeAllocationStateSpec) {
-	gpus := make(map[string]nvcrd.AllocatableDevices)
-	migs := make(map[string]map[string]nvcrd.AllocatableDevices)
+func (s *DeviceState) syncAllocatableDevicesToCRDSpec(spec *nascrd.NodeAllocationStateSpec) {
+	gpus := make(map[string]nascrd.AllocatableDevices)
+	migs := make(map[string]map[string]nascrd.AllocatableDevices)
 	for _, device := range s.allocatable {
-		gpus[device.uuid] = nvcrd.AllocatableDevices{
-			Gpu: &nvcrd.AllocatableGpu{
+		gpus[device.uuid] = nascrd.AllocatableDevices{
+			Gpu: &nascrd.AllocatableGpu{
 				Model:      device.model,
 				UUID:       device.uuid,
 				MigEnabled: device.migEnabled,
@@ -262,24 +262,24 @@ func (s *DeviceState) syncAllocatableDevicesToCRDSpec(spec *nvcrd.NodeAllocation
 
 		for _, mig := range device.migProfiles {
 			if _, exists := migs[device.model]; !exists {
-				migs[device.model] = make(map[string]nvcrd.AllocatableDevices)
+				migs[device.model] = make(map[string]nascrd.AllocatableDevices)
 			}
 
 			if _, exists := migs[device.model][mig.profile.String()]; exists {
 				continue
 			}
 
-			var placements []nvcrd.MigDevicePlacement
+			var placements []nascrd.MigDevicePlacement
 			for _, placement := range mig.placements {
-				p := nvcrd.MigDevicePlacement{
+				p := nascrd.MigDevicePlacement{
 					Start: int(placement.Start),
 					Size:  int(placement.Size),
 				}
 				placements = append(placements, p)
 			}
 
-			ad := nvcrd.AllocatableDevices{
-				Mig: &nvcrd.AllocatableMigDevices{
+			ad := nascrd.AllocatableDevices{
+				Mig: &nascrd.AllocatableMigDevices{
 					Profile:     mig.profile.String(),
 					ParentModel: device.model,
 					Placements:  placements,
@@ -290,7 +290,7 @@ func (s *DeviceState) syncAllocatableDevicesToCRDSpec(spec *nvcrd.NodeAllocation
 		}
 	}
 
-	var allocatable []nvcrd.AllocatableDevices
+	var allocatable []nascrd.AllocatableDevices
 	for _, device := range gpus {
 		allocatable = append(allocatable, device)
 	}
@@ -303,7 +303,7 @@ func (s *DeviceState) syncAllocatableDevicesToCRDSpec(spec *nvcrd.NodeAllocation
 	spec.AllocatableDevices = allocatable
 }
 
-func (s *DeviceState) syncAllocatedDevicesFromCRDSpec(spec *nvcrd.NodeAllocationStateSpec) error {
+func (s *DeviceState) syncAllocatedDevicesFromCRDSpec(spec *nascrd.NodeAllocationStateSpec) error {
 	gpus := s.allocatable
 	migs := make(map[string]map[string]*MigDeviceInfo)
 
@@ -322,11 +322,11 @@ func (s *DeviceState) syncAllocatedDevicesFromCRDSpec(spec *nvcrd.NodeAllocation
 		allocated[claim] = make(AllocatedDevices)
 		for _, d := range devices {
 			switch d.Type() {
-			case nvcrd.GpuDeviceType:
+			case nascrd.GpuDeviceType:
 				allocated[claim][d.Gpu.UUID] = AllocatedDeviceInfo{
 					gpu: gpus[d.Gpu.UUID].GpuInfo,
 				}
-			case nvcrd.MigDeviceType:
+			case nascrd.MigDeviceType:
 				migInfo := migs[d.Mig.ParentUUID][d.Mig.UUID]
 				if migInfo == nil {
 					profile, err := ParseMigProfile(d.Mig.Profile)
@@ -362,24 +362,24 @@ func (s *DeviceState) syncAllocatedDevicesFromCRDSpec(spec *nvcrd.NodeAllocation
 	return nil
 }
 
-func (s *DeviceState) syncAllocatedDevicesToCRDSpec(spec *nvcrd.NodeAllocationStateSpec) {
-	outcas := make(map[string]nvcrd.AllocatedDevices)
+func (s *DeviceState) syncAllocatedDevicesToCRDSpec(spec *nascrd.NodeAllocationStateSpec) {
+	outcas := make(map[string]nascrd.AllocatedDevices)
 	for claim, devices := range s.allocated {
-		var allocated []nvcrd.AllocatedDevice
+		var allocated []nascrd.AllocatedDevice
 		for uuid, device := range devices {
-			outdevice := nvcrd.AllocatedDevice{}
+			outdevice := nascrd.AllocatedDevice{}
 			switch device.Type() {
-			case nvcrd.GpuDeviceType:
-				outdevice.Gpu = &nvcrd.AllocatedGpu{
+			case nascrd.GpuDeviceType:
+				outdevice.Gpu = &nascrd.AllocatedGpu{
 					UUID:  uuid,
 					Model: device.gpu.model,
 				}
-			case nvcrd.MigDeviceType:
-				placement := nvcrd.MigDevicePlacement{
+			case nascrd.MigDeviceType:
+				placement := nascrd.MigDevicePlacement{
 					Start: int(device.mig.giInfo.Placement.Start),
 					Size:  int(device.mig.giInfo.Placement.Size),
 				}
-				outdevice.Mig = &nvcrd.AllocatedMigDevice{
+				outdevice.Mig = &nascrd.AllocatedMigDevice{
 					UUID:        uuid,
 					Profile:     device.mig.profile.String(),
 					ParentUUID:  device.mig.parent.uuid,

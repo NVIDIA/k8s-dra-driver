@@ -22,7 +22,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	nvcrd "github.com/NVIDIA/k8s-dra-driver/pkg/nvidia.com/api/resource/gpu/v1alpha1/api"
+	nascrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1/api"
 	nvcdi "github.com/NVIDIA/nvidia-container-toolkit/cmd/nvidia-ctk/cdi/generate"
 	cdiapi "github.com/container-orchestrated-devices/container-device-interface/pkg/cdi"
 	cdispec "github.com/container-orchestrated-devices/container-device-interface/specs-go"
@@ -123,7 +123,7 @@ func (cdi *CDIHandler) CreateClaimSpecFile(claimUid string, devices AllocatedDev
 
 	for _, device := range devices {
 		switch device.Type() {
-		case nvcrd.GpuDeviceType:
+		case nascrd.GpuDeviceType:
 			nvmlDevice, ret := cdi.nvml.DeviceGetHandleByUUID(device.gpu.uuid)
 			if ret != nvml.SUCCESS {
 				return fmt.Errorf("unable to get nvml GPU device for UUID '%v': %v", device.gpu.uuid, ret)
@@ -137,7 +137,7 @@ func (cdi *CDIHandler) CreateClaimSpecFile(claimUid string, devices AllocatedDev
 				return fmt.Errorf("unable to get CDI spec edits for GPU: %v", device.gpu)
 			}
 			claimEdits.Append(gpuEdits)
-		case nvcrd.MigDeviceType:
+		case nascrd.MigDeviceType:
 			nvmlParentDevice, ret := cdi.nvml.DeviceGetHandleByUUID(device.mig.parent.uuid)
 			if ret != nvml.SUCCESS {
 				return fmt.Errorf("unable to get nvml GPU parent device for MIG UUID '%v': %v", device.mig.uuid, ret)

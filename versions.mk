@@ -12,11 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-MODULE := github.com/NVIDIA/k8s-dra-driver
+DRIVER_NAME := k8s-dra-driver
+MODULE := github.com/NVIDIA/$(DRIVER_NAME)
+
 VENDOR := nvidia.com
-CRDAPI := api/resource/gpu/v1alpha1
-APIPKG := $(VENDOR)/$(CRDAPI)
-UNVERSIONED_APIPKG := $(shell dirname $(APIPKG))
+APIS := gpu/nas/v1alpha1 gpu/v1alpha1
+
+PLURAL_EXCEPTIONS  = DeviceClassParameters:DeviceClassParameters
+PLURAL_EXCEPTIONS += GpuClaimParameters:GpuClaimParameters
+PLURAL_EXCEPTIONS += MigDeviceClaimParameters:MigDeviceClaimParameters
+PLURAL_EXCEPTIONS += ComputeInstanceParameters:ComputeInstanceParameters
 
 VERSION  ?= v0.1.0
 
