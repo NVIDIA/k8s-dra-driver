@@ -60,15 +60,6 @@ func (m *migdriver) Allocate(crd *nascrd.NodeAllocationState, claim *resourcev1a
 		return nil, fmt.Errorf("no allocation requests generated for claim '%v' on node '%v' yet", claim.UID, selectedNode)
 	}
 
-	//request := m.PendingClaimRequests.Get(claimUID, selectedNode).Mig
-	//if request.Spec.GpuClaimParametersName != "" {
-	//	for _, device := range request.Devices {
-	//		if !m.gpuIsAllocated(crd, device.ParentUUID) {
-	//			return nil, fmt.Errorf("dependent claim for parent GPU not yet allocated: %v", device.ParentUUID)
-	//		}
-	//	}
-	//}
-
 	crd.Spec.ClaimRequests[claimUID] = m.PendingClaimRequests.Get(claimUID, selectedNode)
 	onSuccess := func() {
 		m.PendingClaimRequests.Remove(claimUID)
@@ -113,7 +104,6 @@ func (m *migdriver) UnsuitableNode(crd *nascrd.NodeAllocationState, pod *corev1.
 
 		requestedDevices := nascrd.RequestedDevices{
 			Mig: &nascrd.RequestedMigDevices{
-				//Spec:    *claimParams,
 				Devices: devices,
 			},
 		}

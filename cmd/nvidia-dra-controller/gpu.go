@@ -95,7 +95,6 @@ func (g *gpudriver) UnsuitableNode(crd *nascrd.NodeAllocationState, pod *corev1.
 
 		requestedDevices := nascrd.RequestedDevices{
 			Gpu: &nascrd.RequestedGpus{
-				//Spec:    *claimParams,
 				Devices: devices,
 			},
 		}
