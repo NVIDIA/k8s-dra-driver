@@ -14,15 +14,34 @@
  * limitations under the License.
  */
 
-package api
+package v1alpha1
 
 import (
-	gpucrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/v1alpha1"
+	nascrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1"
 )
 
-type GpuClaimParametersSpec = gpucrd.GpuClaimParametersSpec
-type GpuClaimParameters = gpucrd.GpuClaimParameters
-type GpuClaimParametersList = gpucrd.GpuClaimParametersList
+const (
+	GroupName = "gpu.resource.nvidia.com"
+	Version   = "v1alpha1"
+
+	GpuClaimParametersKind       = "GpuClaimParameters"
+	MigDeviceClaimParametersKind = "MigDeviceClaimParameters"
+)
+
+func DefaultDeviceClassParametersSpec() *DeviceClassParametersSpec {
+	return &DeviceClassParametersSpec{
+		DeviceSelector: []DeviceSelector{
+			{
+				Type: nascrd.GpuDeviceType,
+				Name: "*",
+			},
+			{
+				Type: nascrd.MigDeviceType,
+				Name: "*",
+			},
+		},
+	}
+}
 
 func DefaultGpuClaimParametersSpec() *GpuClaimParametersSpec {
 	return &GpuClaimParametersSpec{

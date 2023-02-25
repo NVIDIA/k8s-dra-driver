@@ -150,7 +150,6 @@ spec:
                         for allocation
                       properties:
                         devices:
-                          description: Spec    GpuClaimParametersSpec `json:"spec"`
                           items:
                             description: RequestedGpu represents a GPU being requested
                               for allocation
@@ -167,7 +166,6 @@ spec:
                         being requested for allocation
                       properties:
                         devices:
-                          description: Spec    MigDeviceClaimParametersSpec `json:"spec"`
                           items:
                             description: RequestedMigDevice represents a MIG device
                               being requested for allocation
