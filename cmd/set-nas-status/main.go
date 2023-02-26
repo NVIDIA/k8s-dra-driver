@@ -35,8 +35,9 @@ import (
 	"k8s.io/component-base/term"
 	"k8s.io/klog/v2"
 
+	nascrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1"
+	nasclient "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1/client"
 	nvclientset "github.com/NVIDIA/k8s-dra-driver/pkg/nvidia.com/resource/clientset/versioned"
-	nascrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1/api"
 )
 
 type Flags struct {
@@ -120,8 +121,7 @@ func NewCommand() *cobra.Command {
 				UID:        node.UID,
 			},
 		}
-
-		nascrd := nascrd.NewNodeAllocationState(crdconfig, nvclient)
+		nascrd := nascrd.NewNodeAllocationState(crdconfig)
 
 		config := &Config{
 			flags:    flags,
@@ -192,13 +192,15 @@ func GetClientsetConfig(f *Flags) (*rest.Config, error) {
 }
 
 func SetStatus(config *Config) error {
-	err := config.nascrd.GetOrCreate()
-	if err != nil {
-		return err
-	}
+	client := nasclient.New(config.nascrd, config.nvclient.NasV1alpha1())
 
-	err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		return config.nascrd.UpdateStatus(*config.flags.status)
+	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		err := client.GetOrCreate()
+		if err != nil {
+			return err
+		}
+
+		return client.UpdateStatus(*config.flags.status)
 	})
 	if err != nil {
 		return err

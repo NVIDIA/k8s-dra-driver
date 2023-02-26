@@ -20,13 +20,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// Types of Devices that can be allocated
-const (
-	GpuDeviceType     = "gpu"
-	MigDeviceType     = "mig"
-	UnknownDeviceType = "unknown"
-)
-
 // MigDevicePlacement represents the placement of a MIG device within a GPU
 type MigDevicePlacement struct {
 	Start int `json:"start"`

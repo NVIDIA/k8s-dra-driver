@@ -22,7 +22,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	nascrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1/api"
+	nascrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1"
 	nvcdi "github.com/NVIDIA/nvidia-container-toolkit/cmd/nvidia-ctk/cdi/generate"
 	cdiapi "github.com/container-orchestrated-devices/container-device-interface/pkg/cdi"
 	cdispec "github.com/container-orchestrated-devices/container-device-interface/specs-go"

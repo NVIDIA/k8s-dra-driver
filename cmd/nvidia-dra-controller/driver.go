@@ -25,9 +25,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/dynamic-resource-allocation/controller"
 
-	nvclientset "github.com/NVIDIA/k8s-dra-driver/pkg/nvidia.com/resource/clientset/versioned"
+	nascrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1"
+	nasclient "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1/client"
 	gpucrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/v1alpha1"
-	nascrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1/api"
+	nvclientset "github.com/NVIDIA/k8s-dra-driver/pkg/nvidia.com/resource/clientset/versioned"
 )
 
 const (
@@ -115,9 +116,10 @@ func (d driver) Allocate(ctx context.Context, claim *resourcev1alpha1.ResourceCl
 		Name:      selectedNode,
 		Namespace: d.namespace,
 	}
+	crd := nascrd.NewNodeAllocationState(crdconfig)
 
-	crd := nascrd.NewNodeAllocationState(crdconfig, d.clientset)
-	err := crd.Get()
+	client := nasclient.New(crd, d.clientset.NasV1alpha1())
+	err := client.Get()
 	if err != nil {
 		return nil, fmt.Errorf("error retrieving node specific Gpu CRD: %v", err)
 	}
@@ -148,7 +150,7 @@ func (d driver) Allocate(ctx context.Context, claim *resourcev1alpha1.ResourceCl
 		return nil, fmt.Errorf("unable to allocate devices on node '%v': %v", selectedNode, err)
 	}
 
-	err = crd.Update(&crd.Spec)
+	err = client.Update(&crd.Spec)
 	if err != nil {
 		return nil, fmt.Errorf("error updating NodeAllocationState CRD: %v", err)
 	}
@@ -171,9 +173,10 @@ func (d driver) Deallocate(ctx context.Context, claim *resourcev1alpha1.Resource
 		Name:      selectedNode,
 		Namespace: d.namespace,
 	}
+	crd := nascrd.NewNodeAllocationState(crdconfig)
 
-	crd := nascrd.NewNodeAllocationState(crdconfig, d.clientset)
-	err := crd.Get()
+	client := nasclient.New(crd, d.clientset.NasV1alpha1())
+	err := client.Get()
 	if err != nil {
 		return fmt.Errorf("error retrieving node specific Gpu CRD: %v", err)
 	}
@@ -201,7 +204,7 @@ func (d driver) Deallocate(ctx context.Context, claim *resourcev1alpha1.Resource
 
 	delete(crd.Spec.ClaimRequests, string(claim.UID))
 
-	err = crd.Update(&crd.Spec)
+	err = client.Update(&crd.Spec)
 	if err != nil {
 		return fmt.Errorf("error updating NodeAllocationState CRD: %v", err)
 	}
@@ -232,9 +235,10 @@ func (d driver) unsuitableNode(ctx context.Context, pod *corev1.Pod, allcas []*c
 		Name:      potentialNode,
 		Namespace: d.namespace,
 	}
+	crd := nascrd.NewNodeAllocationState(crdconfig)
 
-	crd := nascrd.NewNodeAllocationState(crdconfig, d.clientset)
-	err := crd.Get()
+	client := nasclient.New(crd, d.clientset.NasV1alpha1())
+	err := client.Get()
 	if err != nil {
 		for _, ca := range allcas {
 			ca.UnsuitableNodes = append(ca.UnsuitableNodes, potentialNode)

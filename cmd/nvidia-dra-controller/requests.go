@@ -19,7 +19,7 @@ package main
 import (
 	"sync"
 
-	nascrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1/api"
+	nascrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1"
 )
 
 type PerNodeClaimRequests struct {

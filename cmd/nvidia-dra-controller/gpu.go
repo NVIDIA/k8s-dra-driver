@@ -23,8 +23,8 @@ import (
 	resourcev1alpha1 "k8s.io/api/resource/v1alpha1"
 	"k8s.io/dynamic-resource-allocation/controller"
 
+	nascrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1"
 	gpucrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/v1alpha1"
-	nascrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1/api"
 )
 
 type gpudriver struct {

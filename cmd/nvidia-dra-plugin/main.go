@@ -37,9 +37,9 @@ import (
 	plugin "k8s.io/dynamic-resource-allocation/kubeletplugin"
 	"k8s.io/klog/v2"
 
-	nvclientset "github.com/NVIDIA/k8s-dra-driver/pkg/nvidia.com/resource/clientset/versioned"
-	nascrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1/api"
+	nascrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1"
 	gpucrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/v1alpha1"
+	nvclientset "github.com/NVIDIA/k8s-dra-driver/pkg/nvidia.com/resource/clientset/versioned"
 )
 
 const (
@@ -130,8 +130,7 @@ func NewCommand() *cobra.Command {
 				UID:        node.UID,
 			},
 		}
-
-		nascrd := nascrd.NewNodeAllocationState(crdconfig, nvclient)
+		nascrd := nascrd.NewNodeAllocationState(crdconfig)
 
 		config := &Config{
 			flags:    flags,

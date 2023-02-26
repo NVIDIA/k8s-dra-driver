@@ -22,11 +22,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
-const (
-	GroupName string = "nas.gpu.resource.nvidia.com"
-	Version   string = "v1alpha1"
-)
-
 var (
 	// SchemeBuilder initializes a scheme builder
 	SchemeBuilder = runtime.NewSchemeBuilder(addKnownTypes)

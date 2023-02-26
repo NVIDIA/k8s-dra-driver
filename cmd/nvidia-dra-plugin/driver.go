@@ -24,23 +24,26 @@ import (
 	"k8s.io/klog/v2"
 	drapbv1 "k8s.io/kubelet/pkg/apis/dra/v1alpha1"
 
-	nascrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1/api"
+	nascrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1"
+	nasclient "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1/client"
 )
 
 type driver struct {
-	crd   *nascrd.NodeAllocationState
-	state *DeviceState
+	nascrd    *nascrd.NodeAllocationState
+	nasclient *nasclient.Client
+	state     *DeviceState
 }
 
 func NewDriver(config *Config) (*driver, error) {
 	var d *driver
+	client := nasclient.New(config.nascrd, config.nvclient.NasV1alpha1())
 	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		err := config.nascrd.GetOrCreate()
+		err := client.GetOrCreate()
 		if err != nil {
 			return err
 		}
 
-		err = config.nascrd.UpdateStatus(nascrd.NodeAllocationStateStatusNotReady)
+		err = client.UpdateStatus(nascrd.NodeAllocationStateStatusNotReady)
 		if err != nil {
 			return err
 		}
@@ -50,19 +53,20 @@ func NewDriver(config *Config) (*driver, error) {
 			return err
 		}
 
-		err = config.nascrd.Update(state.GetUpdatedSpec(&config.nascrd.Spec))
+		err = client.Update(state.GetUpdatedSpec(&config.nascrd.Spec))
 		if err != nil {
 			return err
 		}
 
-		err = config.nascrd.UpdateStatus(nascrd.NodeAllocationStateStatusReady)
+		err = client.UpdateStatus(nascrd.NodeAllocationStateStatusReady)
 		if err != nil {
 			return err
 		}
 
 		d = &driver{
-			crd:   config.nascrd,
-			state: state,
+			nascrd:    config.nascrd,
+			nasclient: client,
+			state:     state,
 		}
 
 		return nil
@@ -76,11 +80,11 @@ func NewDriver(config *Config) (*driver, error) {
 
 func (d *driver) Shutdown() error {
 	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		err := d.crd.Get()
+		err := d.nasclient.Get()
 		if err != nil {
 			return err
 		}
-		return d.crd.UpdateStatus(nascrd.NodeAllocationStateStatusNotReady)
+		return d.nasclient.UpdateStatus(nascrd.NodeAllocationStateStatusNotReady)
 	})
 }
 
@@ -95,7 +99,7 @@ func (d *driver) NodePrepareResource(ctx context.Context, req *drapbv1.NodePrepa
 			return fmt.Errorf("error allocating devices for claim '%v': %v", req.ClaimUid, err)
 		}
 
-		err = d.crd.Update(d.state.GetUpdatedSpec(&d.crd.Spec))
+		err = d.nasclient.Update(d.state.GetUpdatedSpec(&d.nascrd.Spec))
 		if err != nil {
 			d.state.Free(req.ClaimUid)
 			return err
@@ -120,7 +124,7 @@ func (d *driver) NodeUnprepareResource(ctx context.Context, req *drapbv1.NodeUnp
 			return fmt.Errorf("error freeing devices for claim '%v': %v", req.ClaimUid, err)
 		}
 
-		err = d.crd.Update(d.state.GetUpdatedSpec(&d.crd.Spec))
+		err = d.nasclient.Update(d.state.GetUpdatedSpec(&d.nascrd.Spec))
 		if err != nil {
 			return err
 		}
@@ -136,11 +140,11 @@ func (d *driver) NodeUnprepareResource(ctx context.Context, req *drapbv1.NodeUnp
 }
 
 func (d *driver) Allocate(claimUid string) ([]string, error) {
-	err := d.crd.Get()
+	err := d.nasclient.Get()
 	if err != nil {
 		return nil, err
 	}
-	allocated, err := d.state.Allocate(claimUid, d.crd.Spec.ClaimRequests[claimUid])
+	allocated, err := d.state.Allocate(claimUid, d.nascrd.Spec.ClaimRequests[claimUid])
 	if err != nil {
 		return nil, err
 	}
@@ -148,7 +152,7 @@ func (d *driver) Allocate(claimUid string) ([]string, error) {
 }
 
 func (d *driver) Free(claimUid string) error {
-	err := d.crd.Get()
+	err := d.nasclient.Get()
 	if err != nil {
 		return err
 	}
