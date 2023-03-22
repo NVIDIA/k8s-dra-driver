@@ -23,7 +23,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	nascrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1"
-	nvcdi "github.com/NVIDIA/nvidia-container-toolkit/cmd/nvidia-ctk/cdi/generate"
+	"github.com/NVIDIA/nvidia-container-toolkit/pkg/nvcdi"
 	cdiapi "github.com/container-orchestrated-devices/container-device-interface/pkg/cdi"
 	cdispec "github.com/container-orchestrated-devices/container-device-interface/specs-go"
 	nvdevice "gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvlib/device"
@@ -42,6 +42,7 @@ type CDIHandler struct {
 	logger   *logrus.Logger
 	nvml     nvml.Interface
 	nvdevice nvdevice.Interface
+	nvcdi    nvcdi.Interface
 	registry cdiapi.Registry
 }
 
@@ -60,12 +61,22 @@ func NewCDIHandler(config *Config) (*CDIHandler, error) {
 	logger.Level = logrus.DebugLevel
 
 	nvmllib := nvml.New()
-	nvdevicelib := nvdevice.New(nvdevice.WithNvml(nvmllib))
+	nvdevicelib := nvdevice.New(
+		nvdevice.WithNvml(nvmllib),
+	)
+	nvcdilib := nvcdi.New(
+		nvcdi.WithDeviceLib(nvdevicelib),
+		nvcdi.WithDriverRoot("/run/nvidia/driver"),
+		nvcdi.WithLogger(logger),
+		nvcdi.WithNvmlLib(nvmllib),
+		nvcdi.WithMode("nvml"),
+	)
 
 	handler := &CDIHandler{
 		logger:   logger,
 		nvml:     nvmllib,
 		nvdevice: nvdevicelib,
+		nvcdi:    nvcdilib,
 		registry: registry,
 	}
 
@@ -83,7 +94,7 @@ func (cdi *CDIHandler) CreateCommonSpecFile() error {
 	}
 	defer cdi.nvml.Shutdown()
 
-	commonEdits, err := nvcdi.GetCommonEdits(cdi.logger, "/run/nvidia/driver", cdi.nvml)
+	commonEdits, err := cdi.nvcdi.GetCommonEdits()
 	if err != nil {
 		return fmt.Errorf("failed to get common CDI spec edits: %v", err)
 	}
@@ -132,7 +143,7 @@ func (cdi *CDIHandler) CreateClaimSpecFile(claimUid string, devices AllocatedDev
 			if err != nil {
 				return fmt.Errorf("unable to get nvlib GPU device for UUID '%v': %v", device.gpu.uuid, ret)
 			}
-			gpuEdits, err := nvcdi.GetSpecificGPUEdits(cdi.logger, "/run/nvidia/driver", nvlibDevice)
+			gpuEdits, err := cdi.nvcdi.GetGPUDeviceEdits(nvlibDevice)
 			if err != nil {
 				return fmt.Errorf("unable to get CDI spec edits for GPU: %v", device.gpu)
 			}
@@ -164,7 +175,7 @@ func (cdi *CDIHandler) CreateClaimSpecFile(claimUid string, devices AllocatedDev
 			if nvlibMigDevice == nil {
 				return fmt.Errorf("unable to find MIG device '%v' on parent GPU '%v'", device.mig.uuid, device.mig.parent.uuid)
 			}
-			migEdits, err := nvcdi.GetSpecificMIGDeviceEdits(cdi.logger, "/run/nvidia/driver", nvlibParentDevice, nvlibMigDevice)
+			migEdits, err := cdi.nvcdi.GetMIGDeviceEdits(nvlibParentDevice, nvlibMigDevice)
 			if err != nil {
 				return fmt.Errorf("unable to get CDI spec edits for MIG device: %v", device.mig)
 			}
