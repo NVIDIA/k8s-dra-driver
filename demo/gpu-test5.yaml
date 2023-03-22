@@ -19,7 +19,7 @@ spec:
   uninitialized: true
 
 ---
-apiVersion: resource.k8s.io/v1alpha1
+apiVersion: resource.k8s.io/v1alpha2
 kind: ResourceClaimTemplate
 metadata:
   namespace: gpu-test5
@@ -43,7 +43,7 @@ spec:
   migDeviceClaimName: "shared-2g.10gb"
 
 ---
-apiVersion: resource.k8s.io/v1alpha1
+apiVersion: resource.k8s.io/v1alpha2
 kind: ResourceClaimTemplate
 metadata:
   namespace: gpu-test5

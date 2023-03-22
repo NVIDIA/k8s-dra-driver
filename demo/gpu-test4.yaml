@@ -19,7 +19,7 @@ spec:
   migEnabled: true
 
 ---
-apiVersion: resource.k8s.io/v1alpha1
+apiVersion: resource.k8s.io/v1alpha2
 kind: ResourceClaimTemplate
 metadata:
   namespace: gpu-test4
@@ -43,7 +43,7 @@ spec:
   gpuClaimName: "mig-enabled-gpu"
 
 ---
-apiVersion: resource.k8s.io/v1alpha1
+apiVersion: resource.k8s.io/v1alpha2
 kind: ResourceClaimTemplate
 metadata:
   namespace: gpu-test4
@@ -67,7 +67,7 @@ spec:
   gpuClaimName: "mig-enabled-gpu"
 
 ---
-apiVersion: resource.k8s.io/v1alpha1
+apiVersion: resource.k8s.io/v1alpha2
 kind: ResourceClaimTemplate
 metadata:
   namespace: gpu-test4
@@ -91,7 +91,7 @@ spec:
   gpuClaimName: "mig-enabled-gpu"
 
 ---
-apiVersion: resource.k8s.io/v1alpha1
+apiVersion: resource.k8s.io/v1alpha2
 kind: ResourceClaimTemplate
 metadata:
   namespace: gpu-test4

@@ -22,7 +22,7 @@ import (
 
 	"k8s.io/client-go/util/retry"
 	"k8s.io/klog/v2"
-	drapbv1 "k8s.io/kubelet/pkg/apis/dra/v1alpha1"
+	drapbv1 "k8s.io/kubelet/pkg/apis/dra/v1alpha2"
 
 	nascrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1"
 	nasclient "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1/client"

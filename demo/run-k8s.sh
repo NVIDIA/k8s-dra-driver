@@ -11,7 +11,7 @@ nameserver 8.8.8.8
 EOF
 
 # Export variables needed to run k8s with DRA enabled
-export RUNTIME_CONFIG="resource.k8s.io/v1alpha1"
+export RUNTIME_CONFIG="resource.k8s.io/v1alpha2"
 export FEATURE_GATES=DynamicResourceAllocation=true 
 export KUBELET_RESOLV_CONF="/etc/resolv-9999.conf"
 export DNS_ADDON="coredns"

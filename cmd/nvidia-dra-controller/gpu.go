@@ -20,7 +20,7 @@ import (
 	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
-	resourcev1alpha1 "k8s.io/api/resource/v1alpha1"
+	resourcev1 "k8s.io/api/resource/v1alpha2"
 	"k8s.io/dynamic-resource-allocation/controller"
 
 	nascrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1"
@@ -44,7 +44,7 @@ func (g *gpudriver) ValidateClaimParameters(claimParams *gpucrd.GpuClaimParamete
 	return nil
 }
 
-func (g *gpudriver) Allocate(crd *nascrd.NodeAllocationState, claim *resourcev1alpha1.ResourceClaim, claimParams *gpucrd.GpuClaimParametersSpec, class *resourcev1alpha1.ResourceClass, classParams *gpucrd.DeviceClassParametersSpec, selectedNode string) (OnSuccessCallback, error) {
+func (g *gpudriver) Allocate(crd *nascrd.NodeAllocationState, claim *resourcev1.ResourceClaim, claimParams *gpucrd.GpuClaimParametersSpec, class *resourcev1.ResourceClass, classParams *gpucrd.DeviceClassParametersSpec, selectedNode string) (OnSuccessCallback, error) {
 	claimUID := string(claim.UID)
 
 	if !g.PendingClaimRequests.Exists(claimUID, selectedNode) {
@@ -59,7 +59,7 @@ func (g *gpudriver) Allocate(crd *nascrd.NodeAllocationState, claim *resourcev1a
 	return onSuccess, nil
 }
 
-func (g *gpudriver) Deallocate(crd *nascrd.NodeAllocationState, claim *resourcev1alpha1.ResourceClaim) error {
+func (g *gpudriver) Deallocate(crd *nascrd.NodeAllocationState, claim *resourcev1.ResourceClaim) error {
 	g.PendingClaimRequests.Remove(string(claim.UID))
 	return nil
 }
