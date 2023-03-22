@@ -17,12 +17,7 @@ MKDIR    ?= mkdir
 TR       ?= tr
 DIST_DIR ?= $(CURDIR)/dist
 
-include $(CURDIR)/versions.mk
-
-ifeq ($(IMAGE_NAME),)
-REGISTRY ?= nvcr.io/nvidia/cloud-native
-IMAGE_NAME = $(REGISTRY)/k8s-dra-driver
-endif
+include $(CURDIR)/common.mk
 
 BUILDIMAGE_TAG ?= golang$(GOLANG_VERSION)
 BUILDIMAGE ?= $(IMAGE_NAME)-build:$(BUILDIMAGE_TAG)
@@ -31,7 +26,7 @@ CMDS := $(patsubst ./cmd/%/,%,$(sort $(dir $(wildcard ./cmd/*/))))
 CMD_TARGETS := $(patsubst %,cmd-%, $(CMDS))
 
 CHECK_TARGETS := assert-fmt vet lint ineffassign misspell
-MAKE_TARGETS := binaries build check fmt lint-internal test examples cmds coverage generate $(CHECK_TARGETS)
+MAKE_TARGETS := binaries build check fmt vendor lint-internal test examples cmds coverage generate $(CHECK_TARGETS)
 
 TARGETS := $(MAKE_TARGETS) $(CMD_TARGETS)
 
@@ -59,6 +54,10 @@ $(EXAMPLE_TARGETS): example-%:
 all: check test build binary
 check: $(CHECK_TARGETS)
 
+# Update the vendor folder
+vendor:
+	go mod vendor
+
 # Apply go fmt to the codebase
 fmt:
 	go list -f '{{.Dir}}' $(MODULE)/... \
@@ -81,11 +80,11 @@ ineffassign:
 
 lint:
 # We use `go list -f '{{.Dir}}' $(MODULE)/...` to skip the `vendor` folder.
-	go list -f '{{.Dir}}' $(MODULE)/... | xargs golint -set_exit_status
+	go list -f '{{.Dir}}' $(MODULE)/... | xargs golangci-lint run
 
 lint-internal:
 # We use `go list -f '{{.Dir}}' $(MODULE)/...` to skip the `vendor` folder.
-	go list -f '{{.Dir}}' $(MODULE)/internal/... | xargs golint -set_exit_status
+	go list -f '{{.Dir}}' $(MODULE)/internal/... | xargs golangci-lint run
 
 misspell:
 	misspell $(MODULE)/...
@@ -119,7 +118,7 @@ generate-clientset: generate-crds
        $(CURDIR)/pkg/$(VENDOR)/resource/clientset
 	rm -rf $(CURDIR)/pkg/tmp_clientset
 
-generate-crds:
+generate-crds: vendor
 	rm -rf $(CURDIR)/deployments/helm/$(DRIVER_NAME)/crds
 	for api in $(APIS); do \
 		rm -f $(CURDIR)/api/$(VENDOR)/resource/$${api}/zz_generated.deepcopy.go; \
@@ -155,7 +154,9 @@ $(DOCKER_TARGETS): docker-%: .build-image
 	@echo "Running 'make $(*)' in docker container $(BUILDIMAGE)"
 	$(DOCKER) run \
 		--rm \
-		-e GOCACHE=/tmp/.cache \
+		-e HOME=$(PWD) \
+		-e GOCACHE=$(PWD)/.cache/go \
+		-e GOPATH=$(PWD)/.cache/gopath \
 		-v $(PWD):$(PWD) \
 		-w $(PWD) \
 		--user $$(id -u):$$(id -g) \
@@ -168,7 +169,9 @@ PHONY: .shell
 	$(DOCKER) run \
 		--rm \
 		-ti \
-		-e GOCACHE=/tmp/.cache \
+		-e HOME=$(PWD) \
+		-e GOCACHE=$(PWD)/.cache/go \
+		-e GOPATH=$(PWD)/.cache/gopath \
 		-v $(PWD):$(PWD) \
 		-w $(PWD) \
 		--user $$(id -u):$$(id -g) \

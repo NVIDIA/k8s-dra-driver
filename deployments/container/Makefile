@@ -21,12 +21,7 @@ endif
 MKDIR    ?= mkdir
 
 ##### Global variables #####
-include $(CURDIR)/versions.mk
-
-ifeq ($(IMAGE_NAME),)
-REGISTRY ?= nvcr.io/nvidia/cloud-native
-IMAGE_NAME := $(REGISTRY)/k8s-dra-driver
-endif
+include $(CURDIR)/common.mk
 
 IMAGE_VERSION := $(VERSION)
 

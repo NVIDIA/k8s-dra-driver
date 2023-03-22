@@ -1,4 +1,4 @@
-# Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+# Copyright (c) 2023, NVIDIA CORPORATION.  All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,8 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+GOLANG_VERSION ?= 1.19.2
+CUDA_VERSION ?= 11.8.0
+
 DRIVER_NAME := k8s-dra-driver
 MODULE := github.com/NVIDIA/$(DRIVER_NAME)
+
+VERSION  ?= v0.1.0
+vVERSION := v$(VERSION:v%=%)
 
 VENDOR := nvidia.com
 APIS := gpu/nas/v1alpha1 gpu/v1alpha1
@@ -23,10 +29,7 @@ PLURAL_EXCEPTIONS += GpuClaimParameters:GpuClaimParameters
 PLURAL_EXCEPTIONS += MigDeviceClaimParameters:MigDeviceClaimParameters
 PLURAL_EXCEPTIONS += ComputeInstanceParameters:ComputeInstanceParameters
 
-VERSION  ?= v0.1.0
-
-# vVERSION represents the version with a guaranteed v-prefix
-vVERSION := v$(VERSION:v%=%)
-
-CUDA_VERSION ?= 11.8.0
-GOLANG_VERSION ?= 1.19.2
+ifeq ($(IMAGE_NAME),)
+REGISTRY ?= nvcr.io/nvidia/cloud-native
+IMAGE_NAME = $(REGISTRY)/k8s-dra-driver
+endif
