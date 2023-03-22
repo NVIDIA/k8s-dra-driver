@@ -24,6 +24,7 @@ import (
 
 	nascrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1"
 	"github.com/NVIDIA/nvidia-container-toolkit/pkg/nvcdi"
+	"github.com/NVIDIA/nvidia-container-toolkit/pkg/nvcdi/transform"
 	cdiapi "github.com/container-orchestrated-devices/container-device-interface/pkg/cdi"
 	cdispec "github.com/container-orchestrated-devices/container-device-interface/specs-go"
 	nvdevice "gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvlib/device"
@@ -39,11 +40,13 @@ const (
 )
 
 type CDIHandler struct {
-	logger   *logrus.Logger
-	nvml     nvml.Interface
-	nvdevice nvdevice.Interface
-	nvcdi    nvcdi.Interface
-	registry cdiapi.Registry
+	logger     *logrus.Logger
+	nvml       nvml.Interface
+	nvdevice   nvdevice.Interface
+	nvcdi      nvcdi.Interface
+	registry   cdiapi.Registry
+	driverRoot string
+	targetRoot string
 }
 
 func NewCDIHandler(config *Config) (*CDIHandler, error) {
@@ -56,6 +59,10 @@ func NewCDIHandler(config *Config) (*CDIHandler, error) {
 		return nil, fmt.Errorf("unable to refresh the CDI registry: %v", err)
 	}
 
+	mode := "nvml"
+	driverRoot := "/run/nvidia/driver"
+	targetRoot := "/"
+
 	logger := logrus.New()
 	logger.Out = os.Stdout
 	logger.Level = logrus.DebugLevel
@@ -66,18 +73,20 @@ func NewCDIHandler(config *Config) (*CDIHandler, error) {
 	)
 	nvcdilib := nvcdi.New(
 		nvcdi.WithDeviceLib(nvdevicelib),
-		nvcdi.WithDriverRoot("/run/nvidia/driver"),
+		nvcdi.WithDriverRoot(driverRoot),
 		nvcdi.WithLogger(logger),
 		nvcdi.WithNvmlLib(nvmllib),
-		nvcdi.WithMode("nvml"),
+		nvcdi.WithMode(mode),
 	)
 
 	handler := &CDIHandler{
-		logger:   logger,
-		nvml:     nvmllib,
-		nvdevice: nvdevicelib,
-		nvcdi:    nvcdilib,
-		registry: registry,
+		logger:     logger,
+		nvml:       nvmllib,
+		nvdevice:   nvdevicelib,
+		nvcdi:      nvcdilib,
+		registry:   registry,
+		driverRoot: driverRoot,
+		targetRoot: targetRoot,
 	}
 
 	return handler, nil
@@ -114,6 +123,11 @@ func (cdi *CDIHandler) CreateCommonSpecFile() error {
 		return fmt.Errorf("failed to get minimum required CDI spec version: %v", err)
 	}
 	spec.Version = minVersion
+
+	err = transform.NewRootTransformer(cdi.driverRoot, cdi.targetRoot).Transform(spec)
+	if err != nil {
+		return fmt.Errorf("failed to transform driver root in CDI spec: %v", err)
+	}
 
 	specName, err := cdiapi.GenerateNameForTransientSpec(spec, cdiCommonDeviceName)
 	if err != nil {
