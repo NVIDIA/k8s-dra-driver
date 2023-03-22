@@ -3,7 +3,6 @@ module github.com/NVIDIA/k8s-dra-driver
 go 1.19
 
 replace (
-	github.com/NVIDIA/nvidia-container-toolkit => gitlab.com/nvidia/container-toolkit/container-toolkit v1.12.0-rc.2.0.20221205163925-c170c4af4307
 	k8s.io/api => k8s.io/api v0.27.0-beta.0
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.27.0-beta.0
 	k8s.io/apimachinery => k8s.io/apimachinery v0.27.0-beta.0
@@ -31,7 +30,7 @@ replace (
 
 require (
 	github.com/NVIDIA/go-nvml v0.12.0-1
-	github.com/NVIDIA/nvidia-container-toolkit v1.12.1
+	github.com/NVIDIA/nvidia-container-toolkit v1.13.0-rc.2
 	github.com/container-orchestrated-devices/container-device-interface v0.5.4
 	github.com/prometheus/client_golang v1.14.0
 	github.com/sirupsen/logrus v1.9.0
@@ -53,7 +52,6 @@ require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
-	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/emicklei/go-restful/v3 v3.9.0 // indirect
 	github.com/evanphx/json-patch v4.12.0+incompatible // indirect
@@ -91,13 +89,11 @@ require (
 	github.com/prometheus/client_model v0.3.0 // indirect
 	github.com/prometheus/common v0.37.0 // indirect
 	github.com/prometheus/procfs v0.8.0 // indirect
-	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/spf13/afero v1.9.3 // indirect
 	github.com/spf13/cast v1.5.0 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/subosito/gotenv v1.4.2 // indirect
 	github.com/syndtr/gocapability v0.0.0-20200815063812-42c35b437635 // indirect
-	github.com/urfave/cli/v2 v2.3.0 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
 	go.uber.org/zap v1.21.0 // indirect
