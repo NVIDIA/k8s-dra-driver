@@ -22,7 +22,14 @@ VERSION  ?= v0.1.0
 vVERSION := v$(VERSION:v%=%)
 
 VENDOR := nvidia.com
-APIS := gpu/nas/v1alpha1 gpu/v1alpha1
+
+API_BASE := api/$(VENDOR)/resource
+PKG_BASE := pkg/$(VENDOR)/resource
+
+CLIENT_APIS := gpu/nas/v1alpha1 gpu/v1alpha1
+CLIENT_SOURCES += $(patsubst %, $(API_BASE)/%, $(CLIENT_APIS))
+
+DEEPCOPY_SOURCES = $(CLIENT_SOURCES)
 
 PLURAL_EXCEPTIONS  = DeviceClassParameters:DeviceClassParameters
 PLURAL_EXCEPTIONS += GpuClaimParameters:GpuClaimParameters
