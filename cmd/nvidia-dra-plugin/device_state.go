@@ -29,10 +29,15 @@ type AllocatedDevices map[string]AllocatedDeviceInfo
 type ClaimAllocations map[string]AllocatedDevices
 
 type GpuInfo struct {
-	uuid       string
-	model      string
-	minor      int
-	migEnabled bool
+	minor                 int
+	index                 int
+	uuid                  string
+	migEnabled            bool
+	memoryBytes           uint64
+	productName           string
+	brand                 string
+	architecture          string
+	cudaComputeCapability string
 }
 
 type MigDeviceInfo struct {
@@ -250,9 +255,14 @@ func (s *DeviceState) syncAllocatableDevicesToCRDSpec(spec *nascrd.NodeAllocatio
 	for _, device := range s.allocatable {
 		gpus[device.uuid] = nascrd.AllocatableDevice{
 			Gpu: &nascrd.AllocatableGpu{
-				Model:      device.model,
-				UUID:       device.uuid,
-				MigEnabled: device.migEnabled,
+				Index:                 device.index,
+				UUID:                  device.uuid,
+				MigEnabled:            device.migEnabled,
+				MemoryBytes:           device.memoryBytes,
+				ProductName:           device.productName,
+				Brand:                 device.brand,
+				Architecture:          device.architecture,
+				CUDAComputeCapability: device.cudaComputeCapability,
 			},
 		}
 
@@ -261,11 +271,11 @@ func (s *DeviceState) syncAllocatableDevicesToCRDSpec(spec *nascrd.NodeAllocatio
 		}
 
 		for _, mig := range device.migProfiles {
-			if _, exists := migs[device.model]; !exists {
-				migs[device.model] = make(map[string]nascrd.AllocatableDevice)
+			if _, exists := migs[device.productName]; !exists {
+				migs[device.productName] = make(map[string]nascrd.AllocatableDevice)
 			}
 
-			if _, exists := migs[device.model][mig.profile.String()]; exists {
+			if _, exists := migs[device.productName][mig.profile.String()]; exists {
 				continue
 			}
 
@@ -280,13 +290,13 @@ func (s *DeviceState) syncAllocatableDevicesToCRDSpec(spec *nascrd.NodeAllocatio
 
 			ad := nascrd.AllocatableDevice{
 				Mig: &nascrd.AllocatableMigDevice{
-					Profile:     mig.profile.String(),
-					ParentModel: device.model,
-					Placements:  placements,
+					Profile:           mig.profile.String(),
+					ParentProductName: device.productName,
+					Placements:        placements,
 				},
 			}
 
-			migs[device.model][mig.profile.String()] = ad
+			migs[device.productName][mig.profile.String()] = ad
 		}
 	}
 
@@ -371,8 +381,7 @@ func (s *DeviceState) syncAllocatedDevicesToCRDSpec(spec *nascrd.NodeAllocationS
 			switch device.Type() {
 			case nascrd.GpuDeviceType:
 				outdevice.Gpu = &nascrd.AllocatedGpu{
-					UUID:  uuid,
-					Model: device.gpu.model,
+					UUID: uuid,
 				}
 			case nascrd.MigDeviceType:
 				placement := nascrd.MigDevicePlacement{
@@ -380,11 +389,10 @@ func (s *DeviceState) syncAllocatedDevicesToCRDSpec(spec *nascrd.NodeAllocationS
 					Size:  int(device.mig.giInfo.Placement.Size),
 				}
 				outdevice.Mig = &nascrd.AllocatedMigDevice{
-					UUID:        uuid,
-					Profile:     device.mig.profile.String(),
-					ParentUUID:  device.mig.parent.uuid,
-					ParentModel: device.mig.parent.model,
-					Placement:   placement,
+					UUID:       uuid,
+					Profile:    device.mig.profile.String(),
+					ParentUUID: device.mig.parent.uuid,
+					Placement:  placement,
 				}
 			}
 			allocated = append(allocated, outdevice)

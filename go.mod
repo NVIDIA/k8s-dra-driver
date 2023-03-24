@@ -37,7 +37,8 @@ require (
 	github.com/spf13/cobra v1.6.1
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.15.0
-	gitlab.com/nvidia/cloud-native/go-nvlib v0.0.0-20230316153206-62b1c915e151
+	gitlab.com/nvidia/cloud-native/go-nvlib v0.0.0-20230327171225-18ad7cd513cf
+	golang.org/x/mod v0.8.0
 	k8s.io/api v0.27.0-beta.0
 	k8s.io/apimachinery v0.27.0-beta.0
 	k8s.io/client-go v0.27.0-beta.0
@@ -97,7 +98,6 @@ require (
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
 	go.uber.org/zap v1.21.0 // indirect
-	golang.org/x/mod v0.8.0 // indirect
 	golang.org/x/net v0.8.0 // indirect
 	golang.org/x/oauth2 v0.0.0-20221014153046-6fdb5e3db783 // indirect
 	golang.org/x/sys v0.6.0 // indirect

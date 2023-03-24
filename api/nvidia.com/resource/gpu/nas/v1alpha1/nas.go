@@ -28,16 +28,21 @@ type MigDevicePlacement struct {
 
 // AllocatableGpu represents an allocatable GPU on a node
 type AllocatableGpu struct {
-	Model      string `json:"model"`
-	UUID       string `json:"uuid"`
-	MigEnabled bool   `json:"migEnabled"`
+	Index                 int    `json:"index"`
+	UUID                  string `json:"uuid"`
+	MigEnabled            bool   `json:"migEnabled"`
+	MemoryBytes           uint64 `json:"memoryBytes"`
+	ProductName           string `json:"productName"`
+	Brand                 string `json:"brand"`
+	Architecture          string `json:"architecture"`
+	CUDAComputeCapability string `json:"cudaComputeCapability"`
 }
 
 // AllocatableMigDevice represents an allocatable MIG device (and its possible placements) on a given type of GPU
 type AllocatableMigDevice struct {
-	Profile     string               `json:"profile"`
-	ParentModel string               `json:"parentModel"`
-	Placements  []MigDevicePlacement `json:"placements"`
+	Profile           string               `json:"profile"`
+	ParentProductName string               `json:"parentProductName"`
+	Placements        []MigDevicePlacement `json:"placements"`
 }
 
 // AllocatableDevice represents an allocatable device on a node
@@ -59,17 +64,15 @@ func (d AllocatableDevice) Type() string {
 
 // AllocatedGpu represents an allocated GPU on a node
 type AllocatedGpu struct {
-	Model string `json:"model"`
-	UUID  string `json:"uuid"`
+	UUID string `json:"uuid"`
 }
 
 // AllocatedMigDevice represents an allocated MIG device on a node
 type AllocatedMigDevice struct {
-	UUID        string             `json:"uuid"`
-	Profile     string             `json:"profile"`
-	ParentUUID  string             `json:"parentUUID"`
-	ParentModel string             `json:"parentModel"`
-	Placement   MigDevicePlacement `json:"placement"`
+	UUID       string             `json:"uuid"`
+	Profile    string             `json:"profile"`
+	ParentUUID string             `json:"parentUUID"`
+	Placement  MigDevicePlacement `json:"placement"`
 }
 
 // AllocatedDevice represents an allocated device on a node

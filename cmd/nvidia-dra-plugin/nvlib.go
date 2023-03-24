@@ -44,19 +44,14 @@ func enumerateAllPossibleDevices() (AllocatableDevices, error) {
 
 	alldevices := make(AllocatableDevices)
 	err := nvdevlib.VisitDevices(func(i int, d nvdev.Device) error {
-		uuid, ret := d.GetUUID()
-		if ret != nvml.SUCCESS {
-			return fmt.Errorf("error getting UUID for device %d: %v", i, ret)
-		}
-
-		gpuInfo, err := getGpuInfo(uuid)
+		gpuInfo, err := getGpuInfo(i, d)
 		if err != nil {
-			return fmt.Errorf("error getting info for GPU %d: %v", uuid, err)
+			return fmt.Errorf("error getting info for GPU %d: %v", i, err)
 		}
 
 		migProfileInfos, err := getMigProfileInfos(gpuInfo)
 		if ret != nvml.SUCCESS {
-			return fmt.Errorf("error getting MIG profile info for GPU %v: %v", uuid, err)
+			return fmt.Errorf("error getting MIG profile info for GPU %v: %v", i, err)
 		}
 
 		deviceInfo := &AllocatableDeviceInfo{
@@ -64,7 +59,7 @@ func enumerateAllPossibleDevices() (AllocatableDevices, error) {
 			migProfiles: migProfileInfos,
 		}
 
-		alldevices[uuid] = deviceInfo
+		alldevices[gpuInfo.uuid] = deviceInfo
 
 		return nil
 	})
@@ -75,38 +70,50 @@ func enumerateAllPossibleDevices() (AllocatableDevices, error) {
 	return alldevices, nil
 }
 
-func getGpuInfo(uuid string) (*GpuInfo, error) {
-	nvmllib := nvml.New()
-	nvdevlib := nvdev.New(nvdev.WithNvml(nvmllib))
-
-	ret := nvmllib.Init()
-	if ret != nvml.SUCCESS {
-		return nil, fmt.Errorf("error initializing NVML: %v", ret)
-	}
-	defer tryNvmlShutdown(nvmllib)
-
-	device, err := nvdevlib.NewDeviceByUUID(uuid + string(rune(0)))
-	if err != nil {
-		return nil, fmt.Errorf("error getting handle for device %d: %v", uuid, err)
-	}
+func getGpuInfo(index int, device nvdev.Device) (*GpuInfo, error) {
 	minor, ret := device.GetMinorNumber()
 	if ret != nvml.SUCCESS {
-		return nil, fmt.Errorf("error getting minor number for device %d: %v", uuid, ret)
+		return nil, fmt.Errorf("error getting minor number for device %d: %v", index, ret)
 	}
-	name, ret := device.GetName()
+	uuid, ret := device.GetUUID()
 	if ret != nvml.SUCCESS {
-		return nil, fmt.Errorf("error getting name for device %d: %v", uuid, ret)
+		return nil, fmt.Errorf("error getting UUID for device %d: %v", index, ret)
 	}
 	migEnabled, err := device.IsMigEnabled()
 	if err != nil {
-		return nil, fmt.Errorf("error checking if MIG mode enabled for device %d: %v", uuid, err)
+		return nil, fmt.Errorf("error checking if MIG mode enabled for device %d: %v", index, err)
+	}
+	memory, ret := device.GetMemoryInfo()
+	if ret != nvml.SUCCESS {
+		return nil, fmt.Errorf("error getting memory info for device %d: %v", index, ret)
+	}
+	productName, ret := device.GetName()
+	if ret != nvml.SUCCESS {
+		return nil, fmt.Errorf("error getting product name for device %d: %v", index, ret)
+	}
+	architecture, err := device.GetArchitectureAsString()
+	if err != nil {
+		return nil, fmt.Errorf("error getting architecture for device %d: %v", index, err)
+	}
+	brand, err := device.GetBrandAsString()
+	if err != nil {
+		return nil, fmt.Errorf("error getting brand for device %d: %v", index, err)
+	}
+	cudaComputeCapability, err := device.GetCudaComputeCapabilityAsString()
+	if err != nil {
+		return nil, fmt.Errorf("error getting CUDA compute capability for device %d: %v", index, err)
 	}
 
 	gpuInfo := &GpuInfo{
-		uuid:       uuid,
-		minor:      minor,
-		model:      name,
-		migEnabled: migEnabled,
+		minor:                 minor,
+		index:                 index,
+		uuid:                  uuid,
+		migEnabled:            migEnabled,
+		memoryBytes:           memory.Total,
+		productName:           productName,
+		brand:                 brand,
+		architecture:          architecture,
+		cudaComputeCapability: cudaComputeCapability,
 	}
 
 	return gpuInfo, nil

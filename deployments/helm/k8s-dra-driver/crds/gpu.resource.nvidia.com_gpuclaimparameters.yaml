@@ -39,8 +39,1599 @@ spec:
             properties:
               count:
                 type: integer
-              migEnabled:
-                type: boolean
+              selector:
+                allOf:
+                - maxProperties: 1
+                - maxProperties: 1
+                description: "GpuSelector defines the set of conditions that can be
+                  used to select a specific GPU. This condition can either be a single
+                  property from the set of available GpuSelectorProperties or a nested
+                  list of GpuSelectors that are 'anded' or 'ored' together. \n NOTE:
+                  Because CRDs do not allow recursively defined structs, we explicitly
+                  define up to 3 levels of nesting. This is done by defining new types
+                  with the same fields as this struct, up to 3 levels deep."
+                properties:
+                  andExpression:
+                    items:
+                      allOf:
+                      - maxProperties: 1
+                      - maxProperties: 1
+                      description: GpuSelector1 is a copy of GpuSelector to enable
+                        the first level of nesting
+                      properties:
+                        andExpression:
+                          items:
+                            allOf:
+                            - maxProperties: 1
+                            - maxProperties: 1
+                            description: GpuSelector2 is a copy of GpuSelector to
+                              enable the second level of nesting
+                            properties:
+                              andExpression:
+                                items:
+                                  allOf:
+                                  - maxProperties: 1
+                                  - maxProperties: 1
+                                  description: GpuSelector3 is a copy of GpuSelector
+                                    to enable the third level of nesting
+                                  properties:
+                                    architecture:
+                                      description: GlobProperty defines a string type
+                                        that can contain glob for matching against
+                                      type: string
+                                    brand:
+                                      description: GlobProperty defines a string type
+                                        that can contain glob for matching against
+                                      type: string
+                                    cudaComputeCapability:
+                                      description: VersionComparator compares a version
+                                        SelectorCondition using a specific operator
+                                      properties:
+                                        operator:
+                                          description: VersionComparatorOperator defines
+                                            the operators for use with a VersionComparator
+                                          enum:
+                                          - Equals
+                                          - LessThan
+                                          - LessThanOrEqualTo
+                                          - GreaterThan
+                                          - GreaterThanOrEqualTo
+                                          type: string
+                                        value:
+                                          type: string
+                                      type: object
+                                    cudaRuntimeVersion:
+                                      description: VersionComparator compares a version
+                                        SelectorCondition using a specific operator
+                                      properties:
+                                        operator:
+                                          description: VersionComparatorOperator defines
+                                            the operators for use with a VersionComparator
+                                          enum:
+                                          - Equals
+                                          - LessThan
+                                          - LessThanOrEqualTo
+                                          - GreaterThan
+                                          - GreaterThanOrEqualTo
+                                          type: string
+                                        value:
+                                          type: string
+                                      type: object
+                                    driverVersion:
+                                      description: VersionComparator compares a version
+                                        SelectorCondition using a specific operator
+                                      properties:
+                                        operator:
+                                          description: VersionComparatorOperator defines
+                                            the operators for use with a VersionComparator
+                                          enum:
+                                          - Equals
+                                          - LessThan
+                                          - LessThanOrEqualTo
+                                          - GreaterThan
+                                          - GreaterThanOrEqualTo
+                                          type: string
+                                        value:
+                                          type: string
+                                      type: object
+                                    index:
+                                      description: IntProperty defines an int type
+                                        that methods can hang off of
+                                      type: integer
+                                    memory:
+                                      description: QuantityComparator compares a quantity
+                                        SelectorCondition using a specific operator
+                                      properties:
+                                        operator:
+                                          description: QuantityComparatorOperator
+                                            defines the operators for use with a QuantityComparator
+                                          enum:
+                                          - Equals
+                                          - LessThan
+                                          - LessThanOrEqualTo
+                                          - GreaterThan
+                                          - GreaterThanOrEqualTo
+                                          type: string
+                                        value:
+                                          anyOf:
+                                          - type: integer
+                                          - type: string
+                                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                          x-kubernetes-int-or-string: true
+                                      type: object
+                                    migEnabled:
+                                      description: BoolProperty defines a bool type
+                                        that methods can hang off of
+                                      type: boolean
+                                    productName:
+                                      description: GlobProperty defines a string type
+                                        that can contain glob for matching against
+                                      type: string
+                                    uuid:
+                                      description: StringProperty defines a string
+                                        type that methods can hang off of
+                                      type: string
+                                  type: object
+                                type: array
+                              architecture:
+                                description: GlobProperty defines a string type that
+                                  can contain glob for matching against
+                                type: string
+                              brand:
+                                description: GlobProperty defines a string type that
+                                  can contain glob for matching against
+                                type: string
+                              cudaComputeCapability:
+                                description: VersionComparator compares a version
+                                  SelectorCondition using a specific operator
+                                properties:
+                                  operator:
+                                    description: VersionComparatorOperator defines
+                                      the operators for use with a VersionComparator
+                                    enum:
+                                    - Equals
+                                    - LessThan
+                                    - LessThanOrEqualTo
+                                    - GreaterThan
+                                    - GreaterThanOrEqualTo
+                                    type: string
+                                  value:
+                                    type: string
+                                type: object
+                              cudaRuntimeVersion:
+                                description: VersionComparator compares a version
+                                  SelectorCondition using a specific operator
+                                properties:
+                                  operator:
+                                    description: VersionComparatorOperator defines
+                                      the operators for use with a VersionComparator
+                                    enum:
+                                    - Equals
+                                    - LessThan
+                                    - LessThanOrEqualTo
+                                    - GreaterThan
+                                    - GreaterThanOrEqualTo
+                                    type: string
+                                  value:
+                                    type: string
+                                type: object
+                              driverVersion:
+                                description: VersionComparator compares a version
+                                  SelectorCondition using a specific operator
+                                properties:
+                                  operator:
+                                    description: VersionComparatorOperator defines
+                                      the operators for use with a VersionComparator
+                                    enum:
+                                    - Equals
+                                    - LessThan
+                                    - LessThanOrEqualTo
+                                    - GreaterThan
+                                    - GreaterThanOrEqualTo
+                                    type: string
+                                  value:
+                                    type: string
+                                type: object
+                              index:
+                                description: IntProperty defines an int type that
+                                  methods can hang off of
+                                type: integer
+                              memory:
+                                description: QuantityComparator compares a quantity
+                                  SelectorCondition using a specific operator
+                                properties:
+                                  operator:
+                                    description: QuantityComparatorOperator defines
+                                      the operators for use with a QuantityComparator
+                                    enum:
+                                    - Equals
+                                    - LessThan
+                                    - LessThanOrEqualTo
+                                    - GreaterThan
+                                    - GreaterThanOrEqualTo
+                                    type: string
+                                  value:
+                                    anyOf:
+                                    - type: integer
+                                    - type: string
+                                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                    x-kubernetes-int-or-string: true
+                                type: object
+                              migEnabled:
+                                description: BoolProperty defines a bool type that
+                                  methods can hang off of
+                                type: boolean
+                              orExpression:
+                                items:
+                                  allOf:
+                                  - maxProperties: 1
+                                  - maxProperties: 1
+                                  description: GpuSelector3 is a copy of GpuSelector
+                                    to enable the third level of nesting
+                                  properties:
+                                    architecture:
+                                      description: GlobProperty defines a string type
+                                        that can contain glob for matching against
+                                      type: string
+                                    brand:
+                                      description: GlobProperty defines a string type
+                                        that can contain glob for matching against
+                                      type: string
+                                    cudaComputeCapability:
+                                      description: VersionComparator compares a version
+                                        SelectorCondition using a specific operator
+                                      properties:
+                                        operator:
+                                          description: VersionComparatorOperator defines
+                                            the operators for use with a VersionComparator
+                                          enum:
+                                          - Equals
+                                          - LessThan
+                                          - LessThanOrEqualTo
+                                          - GreaterThan
+                                          - GreaterThanOrEqualTo
+                                          type: string
+                                        value:
+                                          type: string
+                                      type: object
+                                    cudaRuntimeVersion:
+                                      description: VersionComparator compares a version
+                                        SelectorCondition using a specific operator
+                                      properties:
+                                        operator:
+                                          description: VersionComparatorOperator defines
+                                            the operators for use with a VersionComparator
+                                          enum:
+                                          - Equals
+                                          - LessThan
+                                          - LessThanOrEqualTo
+                                          - GreaterThan
+                                          - GreaterThanOrEqualTo
+                                          type: string
+                                        value:
+                                          type: string
+                                      type: object
+                                    driverVersion:
+                                      description: VersionComparator compares a version
+                                        SelectorCondition using a specific operator
+                                      properties:
+                                        operator:
+                                          description: VersionComparatorOperator defines
+                                            the operators for use with a VersionComparator
+                                          enum:
+                                          - Equals
+                                          - LessThan
+                                          - LessThanOrEqualTo
+                                          - GreaterThan
+                                          - GreaterThanOrEqualTo
+                                          type: string
+                                        value:
+                                          type: string
+                                      type: object
+                                    index:
+                                      description: IntProperty defines an int type
+                                        that methods can hang off of
+                                      type: integer
+                                    memory:
+                                      description: QuantityComparator compares a quantity
+                                        SelectorCondition using a specific operator
+                                      properties:
+                                        operator:
+                                          description: QuantityComparatorOperator
+                                            defines the operators for use with a QuantityComparator
+                                          enum:
+                                          - Equals
+                                          - LessThan
+                                          - LessThanOrEqualTo
+                                          - GreaterThan
+                                          - GreaterThanOrEqualTo
+                                          type: string
+                                        value:
+                                          anyOf:
+                                          - type: integer
+                                          - type: string
+                                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                          x-kubernetes-int-or-string: true
+                                      type: object
+                                    migEnabled:
+                                      description: BoolProperty defines a bool type
+                                        that methods can hang off of
+                                      type: boolean
+                                    productName:
+                                      description: GlobProperty defines a string type
+                                        that can contain glob for matching against
+                                      type: string
+                                    uuid:
+                                      description: StringProperty defines a string
+                                        type that methods can hang off of
+                                      type: string
+                                  type: object
+                                type: array
+                              productName:
+                                description: GlobProperty defines a string type that
+                                  can contain glob for matching against
+                                type: string
+                              uuid:
+                                description: StringProperty defines a string type
+                                  that methods can hang off of
+                                type: string
+                            type: object
+                          type: array
+                        architecture:
+                          description: GlobProperty defines a string type that can
+                            contain glob for matching against
+                          type: string
+                        brand:
+                          description: GlobProperty defines a string type that can
+                            contain glob for matching against
+                          type: string
+                        cudaComputeCapability:
+                          description: VersionComparator compares a version SelectorCondition
+                            using a specific operator
+                          properties:
+                            operator:
+                              description: VersionComparatorOperator defines the operators
+                                for use with a VersionComparator
+                              enum:
+                              - Equals
+                              - LessThan
+                              - LessThanOrEqualTo
+                              - GreaterThan
+                              - GreaterThanOrEqualTo
+                              type: string
+                            value:
+                              type: string
+                          type: object
+                        cudaRuntimeVersion:
+                          description: VersionComparator compares a version SelectorCondition
+                            using a specific operator
+                          properties:
+                            operator:
+                              description: VersionComparatorOperator defines the operators
+                                for use with a VersionComparator
+                              enum:
+                              - Equals
+                              - LessThan
+                              - LessThanOrEqualTo
+                              - GreaterThan
+                              - GreaterThanOrEqualTo
+                              type: string
+                            value:
+                              type: string
+                          type: object
+                        driverVersion:
+                          description: VersionComparator compares a version SelectorCondition
+                            using a specific operator
+                          properties:
+                            operator:
+                              description: VersionComparatorOperator defines the operators
+                                for use with a VersionComparator
+                              enum:
+                              - Equals
+                              - LessThan
+                              - LessThanOrEqualTo
+                              - GreaterThan
+                              - GreaterThanOrEqualTo
+                              type: string
+                            value:
+                              type: string
+                          type: object
+                        index:
+                          description: IntProperty defines an int type that methods
+                            can hang off of
+                          type: integer
+                        memory:
+                          description: QuantityComparator compares a quantity SelectorCondition
+                            using a specific operator
+                          properties:
+                            operator:
+                              description: QuantityComparatorOperator defines the
+                                operators for use with a QuantityComparator
+                              enum:
+                              - Equals
+                              - LessThan
+                              - LessThanOrEqualTo
+                              - GreaterThan
+                              - GreaterThanOrEqualTo
+                              type: string
+                            value:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
+                          type: object
+                        migEnabled:
+                          description: BoolProperty defines a bool type that methods
+                            can hang off of
+                          type: boolean
+                        orExpression:
+                          items:
+                            allOf:
+                            - maxProperties: 1
+                            - maxProperties: 1
+                            description: GpuSelector2 is a copy of GpuSelector to
+                              enable the second level of nesting
+                            properties:
+                              andExpression:
+                                items:
+                                  allOf:
+                                  - maxProperties: 1
+                                  - maxProperties: 1
+                                  description: GpuSelector3 is a copy of GpuSelector
+                                    to enable the third level of nesting
+                                  properties:
+                                    architecture:
+                                      description: GlobProperty defines a string type
+                                        that can contain glob for matching against
+                                      type: string
+                                    brand:
+                                      description: GlobProperty defines a string type
+                                        that can contain glob for matching against
+                                      type: string
+                                    cudaComputeCapability:
+                                      description: VersionComparator compares a version
+                                        SelectorCondition using a specific operator
+                                      properties:
+                                        operator:
+                                          description: VersionComparatorOperator defines
+                                            the operators for use with a VersionComparator
+                                          enum:
+                                          - Equals
+                                          - LessThan
+                                          - LessThanOrEqualTo
+                                          - GreaterThan
+                                          - GreaterThanOrEqualTo
+                                          type: string
+                                        value:
+                                          type: string
+                                      type: object
+                                    cudaRuntimeVersion:
+                                      description: VersionComparator compares a version
+                                        SelectorCondition using a specific operator
+                                      properties:
+                                        operator:
+                                          description: VersionComparatorOperator defines
+                                            the operators for use with a VersionComparator
+                                          enum:
+                                          - Equals
+                                          - LessThan
+                                          - LessThanOrEqualTo
+                                          - GreaterThan
+                                          - GreaterThanOrEqualTo
+                                          type: string
+                                        value:
+                                          type: string
+                                      type: object
+                                    driverVersion:
+                                      description: VersionComparator compares a version
+                                        SelectorCondition using a specific operator
+                                      properties:
+                                        operator:
+                                          description: VersionComparatorOperator defines
+                                            the operators for use with a VersionComparator
+                                          enum:
+                                          - Equals
+                                          - LessThan
+                                          - LessThanOrEqualTo
+                                          - GreaterThan
+                                          - GreaterThanOrEqualTo
+                                          type: string
+                                        value:
+                                          type: string
+                                      type: object
+                                    index:
+                                      description: IntProperty defines an int type
+                                        that methods can hang off of
+                                      type: integer
+                                    memory:
+                                      description: QuantityComparator compares a quantity
+                                        SelectorCondition using a specific operator
+                                      properties:
+                                        operator:
+                                          description: QuantityComparatorOperator
+                                            defines the operators for use with a QuantityComparator
+                                          enum:
+                                          - Equals
+                                          - LessThan
+                                          - LessThanOrEqualTo
+                                          - GreaterThan
+                                          - GreaterThanOrEqualTo
+                                          type: string
+                                        value:
+                                          anyOf:
+                                          - type: integer
+                                          - type: string
+                                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                          x-kubernetes-int-or-string: true
+                                      type: object
+                                    migEnabled:
+                                      description: BoolProperty defines a bool type
+                                        that methods can hang off of
+                                      type: boolean
+                                    productName:
+                                      description: GlobProperty defines a string type
+                                        that can contain glob for matching against
+                                      type: string
+                                    uuid:
+                                      description: StringProperty defines a string
+                                        type that methods can hang off of
+                                      type: string
+                                  type: object
+                                type: array
+                              architecture:
+                                description: GlobProperty defines a string type that
+                                  can contain glob for matching against
+                                type: string
+                              brand:
+                                description: GlobProperty defines a string type that
+                                  can contain glob for matching against
+                                type: string
+                              cudaComputeCapability:
+                                description: VersionComparator compares a version
+                                  SelectorCondition using a specific operator
+                                properties:
+                                  operator:
+                                    description: VersionComparatorOperator defines
+                                      the operators for use with a VersionComparator
+                                    enum:
+                                    - Equals
+                                    - LessThan
+                                    - LessThanOrEqualTo
+                                    - GreaterThan
+                                    - GreaterThanOrEqualTo
+                                    type: string
+                                  value:
+                                    type: string
+                                type: object
+                              cudaRuntimeVersion:
+                                description: VersionComparator compares a version
+                                  SelectorCondition using a specific operator
+                                properties:
+                                  operator:
+                                    description: VersionComparatorOperator defines
+                                      the operators for use with a VersionComparator
+                                    enum:
+                                    - Equals
+                                    - LessThan
+                                    - LessThanOrEqualTo
+                                    - GreaterThan
+                                    - GreaterThanOrEqualTo
+                                    type: string
+                                  value:
+                                    type: string
+                                type: object
+                              driverVersion:
+                                description: VersionComparator compares a version
+                                  SelectorCondition using a specific operator
+                                properties:
+                                  operator:
+                                    description: VersionComparatorOperator defines
+                                      the operators for use with a VersionComparator
+                                    enum:
+                                    - Equals
+                                    - LessThan
+                                    - LessThanOrEqualTo
+                                    - GreaterThan
+                                    - GreaterThanOrEqualTo
+                                    type: string
+                                  value:
+                                    type: string
+                                type: object
+                              index:
+                                description: IntProperty defines an int type that
+                                  methods can hang off of
+                                type: integer
+                              memory:
+                                description: QuantityComparator compares a quantity
+                                  SelectorCondition using a specific operator
+                                properties:
+                                  operator:
+                                    description: QuantityComparatorOperator defines
+                                      the operators for use with a QuantityComparator
+                                    enum:
+                                    - Equals
+                                    - LessThan
+                                    - LessThanOrEqualTo
+                                    - GreaterThan
+                                    - GreaterThanOrEqualTo
+                                    type: string
+                                  value:
+                                    anyOf:
+                                    - type: integer
+                                    - type: string
+                                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                    x-kubernetes-int-or-string: true
+                                type: object
+                              migEnabled:
+                                description: BoolProperty defines a bool type that
+                                  methods can hang off of
+                                type: boolean
+                              orExpression:
+                                items:
+                                  allOf:
+                                  - maxProperties: 1
+                                  - maxProperties: 1
+                                  description: GpuSelector3 is a copy of GpuSelector
+                                    to enable the third level of nesting
+                                  properties:
+                                    architecture:
+                                      description: GlobProperty defines a string type
+                                        that can contain glob for matching against
+                                      type: string
+                                    brand:
+                                      description: GlobProperty defines a string type
+                                        that can contain glob for matching against
+                                      type: string
+                                    cudaComputeCapability:
+                                      description: VersionComparator compares a version
+                                        SelectorCondition using a specific operator
+                                      properties:
+                                        operator:
+                                          description: VersionComparatorOperator defines
+                                            the operators for use with a VersionComparator
+                                          enum:
+                                          - Equals
+                                          - LessThan
+                                          - LessThanOrEqualTo
+                                          - GreaterThan
+                                          - GreaterThanOrEqualTo
+                                          type: string
+                                        value:
+                                          type: string
+                                      type: object
+                                    cudaRuntimeVersion:
+                                      description: VersionComparator compares a version
+                                        SelectorCondition using a specific operator
+                                      properties:
+                                        operator:
+                                          description: VersionComparatorOperator defines
+                                            the operators for use with a VersionComparator
+                                          enum:
+                                          - Equals
+                                          - LessThan
+                                          - LessThanOrEqualTo
+                                          - GreaterThan
+                                          - GreaterThanOrEqualTo
+                                          type: string
+                                        value:
+                                          type: string
+                                      type: object
+                                    driverVersion:
+                                      description: VersionComparator compares a version
+                                        SelectorCondition using a specific operator
+                                      properties:
+                                        operator:
+                                          description: VersionComparatorOperator defines
+                                            the operators for use with a VersionComparator
+                                          enum:
+                                          - Equals
+                                          - LessThan
+                                          - LessThanOrEqualTo
+                                          - GreaterThan
+                                          - GreaterThanOrEqualTo
+                                          type: string
+                                        value:
+                                          type: string
+                                      type: object
+                                    index:
+                                      description: IntProperty defines an int type
+                                        that methods can hang off of
+                                      type: integer
+                                    memory:
+                                      description: QuantityComparator compares a quantity
+                                        SelectorCondition using a specific operator
+                                      properties:
+                                        operator:
+                                          description: QuantityComparatorOperator
+                                            defines the operators for use with a QuantityComparator
+                                          enum:
+                                          - Equals
+                                          - LessThan
+                                          - LessThanOrEqualTo
+                                          - GreaterThan
+                                          - GreaterThanOrEqualTo
+                                          type: string
+                                        value:
+                                          anyOf:
+                                          - type: integer
+                                          - type: string
+                                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                          x-kubernetes-int-or-string: true
+                                      type: object
+                                    migEnabled:
+                                      description: BoolProperty defines a bool type
+                                        that methods can hang off of
+                                      type: boolean
+                                    productName:
+                                      description: GlobProperty defines a string type
+                                        that can contain glob for matching against
+                                      type: string
+                                    uuid:
+                                      description: StringProperty defines a string
+                                        type that methods can hang off of
+                                      type: string
+                                  type: object
+                                type: array
+                              productName:
+                                description: GlobProperty defines a string type that
+                                  can contain glob for matching against
+                                type: string
+                              uuid:
+                                description: StringProperty defines a string type
+                                  that methods can hang off of
+                                type: string
+                            type: object
+                          type: array
+                        productName:
+                          description: GlobProperty defines a string type that can
+                            contain glob for matching against
+                          type: string
+                        uuid:
+                          description: StringProperty defines a string type that methods
+                            can hang off of
+                          type: string
+                      type: object
+                    type: array
+                  architecture:
+                    description: GlobProperty defines a string type that can contain
+                      glob for matching against
+                    type: string
+                  brand:
+                    description: GlobProperty defines a string type that can contain
+                      glob for matching against
+                    type: string
+                  cudaComputeCapability:
+                    description: VersionComparator compares a version SelectorCondition
+                      using a specific operator
+                    properties:
+                      operator:
+                        description: VersionComparatorOperator defines the operators
+                          for use with a VersionComparator
+                        enum:
+                        - Equals
+                        - LessThan
+                        - LessThanOrEqualTo
+                        - GreaterThan
+                        - GreaterThanOrEqualTo
+                        type: string
+                      value:
+                        type: string
+                    type: object
+                  cudaRuntimeVersion:
+                    description: VersionComparator compares a version SelectorCondition
+                      using a specific operator
+                    properties:
+                      operator:
+                        description: VersionComparatorOperator defines the operators
+                          for use with a VersionComparator
+                        enum:
+                        - Equals
+                        - LessThan
+                        - LessThanOrEqualTo
+                        - GreaterThan
+                        - GreaterThanOrEqualTo
+                        type: string
+                      value:
+                        type: string
+                    type: object
+                  driverVersion:
+                    description: VersionComparator compares a version SelectorCondition
+                      using a specific operator
+                    properties:
+                      operator:
+                        description: VersionComparatorOperator defines the operators
+                          for use with a VersionComparator
+                        enum:
+                        - Equals
+                        - LessThan
+                        - LessThanOrEqualTo
+                        - GreaterThan
+                        - GreaterThanOrEqualTo
+                        type: string
+                      value:
+                        type: string
+                    type: object
+                  index:
+                    description: IntProperty defines an int type that methods can
+                      hang off of
+                    type: integer
+                  memory:
+                    description: QuantityComparator compares a quantity SelectorCondition
+                      using a specific operator
+                    properties:
+                      operator:
+                        description: QuantityComparatorOperator defines the operators
+                          for use with a QuantityComparator
+                        enum:
+                        - Equals
+                        - LessThan
+                        - LessThanOrEqualTo
+                        - GreaterThan
+                        - GreaterThanOrEqualTo
+                        type: string
+                      value:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                        x-kubernetes-int-or-string: true
+                    type: object
+                  migEnabled:
+                    description: BoolProperty defines a bool type that methods can
+                      hang off of
+                    type: boolean
+                  orExpression:
+                    items:
+                      allOf:
+                      - maxProperties: 1
+                      - maxProperties: 1
+                      description: GpuSelector1 is a copy of GpuSelector to enable
+                        the first level of nesting
+                      properties:
+                        andExpression:
+                          items:
+                            allOf:
+                            - maxProperties: 1
+                            - maxProperties: 1
+                            description: GpuSelector2 is a copy of GpuSelector to
+                              enable the second level of nesting
+                            properties:
+                              andExpression:
+                                items:
+                                  allOf:
+                                  - maxProperties: 1
+                                  - maxProperties: 1
+                                  description: GpuSelector3 is a copy of GpuSelector
+                                    to enable the third level of nesting
+                                  properties:
+                                    architecture:
+                                      description: GlobProperty defines a string type
+                                        that can contain glob for matching against
+                                      type: string
+                                    brand:
+                                      description: GlobProperty defines a string type
+                                        that can contain glob for matching against
+                                      type: string
+                                    cudaComputeCapability:
+                                      description: VersionComparator compares a version
+                                        SelectorCondition using a specific operator
+                                      properties:
+                                        operator:
+                                          description: VersionComparatorOperator defines
+                                            the operators for use with a VersionComparator
+                                          enum:
+                                          - Equals
+                                          - LessThan
+                                          - LessThanOrEqualTo
+                                          - GreaterThan
+                                          - GreaterThanOrEqualTo
+                                          type: string
+                                        value:
+                                          type: string
+                                      type: object
+                                    cudaRuntimeVersion:
+                                      description: VersionComparator compares a version
+                                        SelectorCondition using a specific operator
+                                      properties:
+                                        operator:
+                                          description: VersionComparatorOperator defines
+                                            the operators for use with a VersionComparator
+                                          enum:
+                                          - Equals
+                                          - LessThan
+                                          - LessThanOrEqualTo
+                                          - GreaterThan
+                                          - GreaterThanOrEqualTo
+                                          type: string
+                                        value:
+                                          type: string
+                                      type: object
+                                    driverVersion:
+                                      description: VersionComparator compares a version
+                                        SelectorCondition using a specific operator
+                                      properties:
+                                        operator:
+                                          description: VersionComparatorOperator defines
+                                            the operators for use with a VersionComparator
+                                          enum:
+                                          - Equals
+                                          - LessThan
+                                          - LessThanOrEqualTo
+                                          - GreaterThan
+                                          - GreaterThanOrEqualTo
+                                          type: string
+                                        value:
+                                          type: string
+                                      type: object
+                                    index:
+                                      description: IntProperty defines an int type
+                                        that methods can hang off of
+                                      type: integer
+                                    memory:
+                                      description: QuantityComparator compares a quantity
+                                        SelectorCondition using a specific operator
+                                      properties:
+                                        operator:
+                                          description: QuantityComparatorOperator
+                                            defines the operators for use with a QuantityComparator
+                                          enum:
+                                          - Equals
+                                          - LessThan
+                                          - LessThanOrEqualTo
+                                          - GreaterThan
+                                          - GreaterThanOrEqualTo
+                                          type: string
+                                        value:
+                                          anyOf:
+                                          - type: integer
+                                          - type: string
+                                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                          x-kubernetes-int-or-string: true
+                                      type: object
+                                    migEnabled:
+                                      description: BoolProperty defines a bool type
+                                        that methods can hang off of
+                                      type: boolean
+                                    productName:
+                                      description: GlobProperty defines a string type
+                                        that can contain glob for matching against
+                                      type: string
+                                    uuid:
+                                      description: StringProperty defines a string
+                                        type that methods can hang off of
+                                      type: string
+                                  type: object
+                                type: array
+                              architecture:
+                                description: GlobProperty defines a string type that
+                                  can contain glob for matching against
+                                type: string
+                              brand:
+                                description: GlobProperty defines a string type that
+                                  can contain glob for matching against
+                                type: string
+                              cudaComputeCapability:
+                                description: VersionComparator compares a version
+                                  SelectorCondition using a specific operator
+                                properties:
+                                  operator:
+                                    description: VersionComparatorOperator defines
+                                      the operators for use with a VersionComparator
+                                    enum:
+                                    - Equals
+                                    - LessThan
+                                    - LessThanOrEqualTo
+                                    - GreaterThan
+                                    - GreaterThanOrEqualTo
+                                    type: string
+                                  value:
+                                    type: string
+                                type: object
+                              cudaRuntimeVersion:
+                                description: VersionComparator compares a version
+                                  SelectorCondition using a specific operator
+                                properties:
+                                  operator:
+                                    description: VersionComparatorOperator defines
+                                      the operators for use with a VersionComparator
+                                    enum:
+                                    - Equals
+                                    - LessThan
+                                    - LessThanOrEqualTo
+                                    - GreaterThan
+                                    - GreaterThanOrEqualTo
+                                    type: string
+                                  value:
+                                    type: string
+                                type: object
+                              driverVersion:
+                                description: VersionComparator compares a version
+                                  SelectorCondition using a specific operator
+                                properties:
+                                  operator:
+                                    description: VersionComparatorOperator defines
+                                      the operators for use with a VersionComparator
+                                    enum:
+                                    - Equals
+                                    - LessThan
+                                    - LessThanOrEqualTo
+                                    - GreaterThan
+                                    - GreaterThanOrEqualTo
+                                    type: string
+                                  value:
+                                    type: string
+                                type: object
+                              index:
+                                description: IntProperty defines an int type that
+                                  methods can hang off of
+                                type: integer
+                              memory:
+                                description: QuantityComparator compares a quantity
+                                  SelectorCondition using a specific operator
+                                properties:
+                                  operator:
+                                    description: QuantityComparatorOperator defines
+                                      the operators for use with a QuantityComparator
+                                    enum:
+                                    - Equals
+                                    - LessThan
+                                    - LessThanOrEqualTo
+                                    - GreaterThan
+                                    - GreaterThanOrEqualTo
+                                    type: string
+                                  value:
+                                    anyOf:
+                                    - type: integer
+                                    - type: string
+                                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                    x-kubernetes-int-or-string: true
+                                type: object
+                              migEnabled:
+                                description: BoolProperty defines a bool type that
+                                  methods can hang off of
+                                type: boolean
+                              orExpression:
+                                items:
+                                  allOf:
+                                  - maxProperties: 1
+                                  - maxProperties: 1
+                                  description: GpuSelector3 is a copy of GpuSelector
+                                    to enable the third level of nesting
+                                  properties:
+                                    architecture:
+                                      description: GlobProperty defines a string type
+                                        that can contain glob for matching against
+                                      type: string
+                                    brand:
+                                      description: GlobProperty defines a string type
+                                        that can contain glob for matching against
+                                      type: string
+                                    cudaComputeCapability:
+                                      description: VersionComparator compares a version
+                                        SelectorCondition using a specific operator
+                                      properties:
+                                        operator:
+                                          description: VersionComparatorOperator defines
+                                            the operators for use with a VersionComparator
+                                          enum:
+                                          - Equals
+                                          - LessThan
+                                          - LessThanOrEqualTo
+                                          - GreaterThan
+                                          - GreaterThanOrEqualTo
+                                          type: string
+                                        value:
+                                          type: string
+                                      type: object
+                                    cudaRuntimeVersion:
+                                      description: VersionComparator compares a version
+                                        SelectorCondition using a specific operator
+                                      properties:
+                                        operator:
+                                          description: VersionComparatorOperator defines
+                                            the operators for use with a VersionComparator
+                                          enum:
+                                          - Equals
+                                          - LessThan
+                                          - LessThanOrEqualTo
+                                          - GreaterThan
+                                          - GreaterThanOrEqualTo
+                                          type: string
+                                        value:
+                                          type: string
+                                      type: object
+                                    driverVersion:
+                                      description: VersionComparator compares a version
+                                        SelectorCondition using a specific operator
+                                      properties:
+                                        operator:
+                                          description: VersionComparatorOperator defines
+                                            the operators for use with a VersionComparator
+                                          enum:
+                                          - Equals
+                                          - LessThan
+                                          - LessThanOrEqualTo
+                                          - GreaterThan
+                                          - GreaterThanOrEqualTo
+                                          type: string
+                                        value:
+                                          type: string
+                                      type: object
+                                    index:
+                                      description: IntProperty defines an int type
+                                        that methods can hang off of
+                                      type: integer
+                                    memory:
+                                      description: QuantityComparator compares a quantity
+                                        SelectorCondition using a specific operator
+                                      properties:
+                                        operator:
+                                          description: QuantityComparatorOperator
+                                            defines the operators for use with a QuantityComparator
+                                          enum:
+                                          - Equals
+                                          - LessThan
+                                          - LessThanOrEqualTo
+                                          - GreaterThan
+                                          - GreaterThanOrEqualTo
+                                          type: string
+                                        value:
+                                          anyOf:
+                                          - type: integer
+                                          - type: string
+                                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                          x-kubernetes-int-or-string: true
+                                      type: object
+                                    migEnabled:
+                                      description: BoolProperty defines a bool type
+                                        that methods can hang off of
+                                      type: boolean
+                                    productName:
+                                      description: GlobProperty defines a string type
+                                        that can contain glob for matching against
+                                      type: string
+                                    uuid:
+                                      description: StringProperty defines a string
+                                        type that methods can hang off of
+                                      type: string
+                                  type: object
+                                type: array
+                              productName:
+                                description: GlobProperty defines a string type that
+                                  can contain glob for matching against
+                                type: string
+                              uuid:
+                                description: StringProperty defines a string type
+                                  that methods can hang off of
+                                type: string
+                            type: object
+                          type: array
+                        architecture:
+                          description: GlobProperty defines a string type that can
+                            contain glob for matching against
+                          type: string
+                        brand:
+                          description: GlobProperty defines a string type that can
+                            contain glob for matching against
+                          type: string
+                        cudaComputeCapability:
+                          description: VersionComparator compares a version SelectorCondition
+                            using a specific operator
+                          properties:
+                            operator:
+                              description: VersionComparatorOperator defines the operators
+                                for use with a VersionComparator
+                              enum:
+                              - Equals
+                              - LessThan
+                              - LessThanOrEqualTo
+                              - GreaterThan
+                              - GreaterThanOrEqualTo
+                              type: string
+                            value:
+                              type: string
+                          type: object
+                        cudaRuntimeVersion:
+                          description: VersionComparator compares a version SelectorCondition
+                            using a specific operator
+                          properties:
+                            operator:
+                              description: VersionComparatorOperator defines the operators
+                                for use with a VersionComparator
+                              enum:
+                              - Equals
+                              - LessThan
+                              - LessThanOrEqualTo
+                              - GreaterThan
+                              - GreaterThanOrEqualTo
+                              type: string
+                            value:
+                              type: string
+                          type: object
+                        driverVersion:
+                          description: VersionComparator compares a version SelectorCondition
+                            using a specific operator
+                          properties:
+                            operator:
+                              description: VersionComparatorOperator defines the operators
+                                for use with a VersionComparator
+                              enum:
+                              - Equals
+                              - LessThan
+                              - LessThanOrEqualTo
+                              - GreaterThan
+                              - GreaterThanOrEqualTo
+                              type: string
+                            value:
+                              type: string
+                          type: object
+                        index:
+                          description: IntProperty defines an int type that methods
+                            can hang off of
+                          type: integer
+                        memory:
+                          description: QuantityComparator compares a quantity SelectorCondition
+                            using a specific operator
+                          properties:
+                            operator:
+                              description: QuantityComparatorOperator defines the
+                                operators for use with a QuantityComparator
+                              enum:
+                              - Equals
+                              - LessThan
+                              - LessThanOrEqualTo
+                              - GreaterThan
+                              - GreaterThanOrEqualTo
+                              type: string
+                            value:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
+                          type: object
+                        migEnabled:
+                          description: BoolProperty defines a bool type that methods
+                            can hang off of
+                          type: boolean
+                        orExpression:
+                          items:
+                            allOf:
+                            - maxProperties: 1
+                            - maxProperties: 1
+                            description: GpuSelector2 is a copy of GpuSelector to
+                              enable the second level of nesting
+                            properties:
+                              andExpression:
+                                items:
+                                  allOf:
+                                  - maxProperties: 1
+                                  - maxProperties: 1
+                                  description: GpuSelector3 is a copy of GpuSelector
+                                    to enable the third level of nesting
+                                  properties:
+                                    architecture:
+                                      description: GlobProperty defines a string type
+                                        that can contain glob for matching against
+                                      type: string
+                                    brand:
+                                      description: GlobProperty defines a string type
+                                        that can contain glob for matching against
+                                      type: string
+                                    cudaComputeCapability:
+                                      description: VersionComparator compares a version
+                                        SelectorCondition using a specific operator
+                                      properties:
+                                        operator:
+                                          description: VersionComparatorOperator defines
+                                            the operators for use with a VersionComparator
+                                          enum:
+                                          - Equals
+                                          - LessThan
+                                          - LessThanOrEqualTo
+                                          - GreaterThan
+                                          - GreaterThanOrEqualTo
+                                          type: string
+                                        value:
+                                          type: string
+                                      type: object
+                                    cudaRuntimeVersion:
+                                      description: VersionComparator compares a version
+                                        SelectorCondition using a specific operator
+                                      properties:
+                                        operator:
+                                          description: VersionComparatorOperator defines
+                                            the operators for use with a VersionComparator
+                                          enum:
+                                          - Equals
+                                          - LessThan
+                                          - LessThanOrEqualTo
+                                          - GreaterThan
+                                          - GreaterThanOrEqualTo
+                                          type: string
+                                        value:
+                                          type: string
+                                      type: object
+                                    driverVersion:
+                                      description: VersionComparator compares a version
+                                        SelectorCondition using a specific operator
+                                      properties:
+                                        operator:
+                                          description: VersionComparatorOperator defines
+                                            the operators for use with a VersionComparator
+                                          enum:
+                                          - Equals
+                                          - LessThan
+                                          - LessThanOrEqualTo
+                                          - GreaterThan
+                                          - GreaterThanOrEqualTo
+                                          type: string
+                                        value:
+                                          type: string
+                                      type: object
+                                    index:
+                                      description: IntProperty defines an int type
+                                        that methods can hang off of
+                                      type: integer
+                                    memory:
+                                      description: QuantityComparator compares a quantity
+                                        SelectorCondition using a specific operator
+                                      properties:
+                                        operator:
+                                          description: QuantityComparatorOperator
+                                            defines the operators for use with a QuantityComparator
+                                          enum:
+                                          - Equals
+                                          - LessThan
+                                          - LessThanOrEqualTo
+                                          - GreaterThan
+                                          - GreaterThanOrEqualTo
+                                          type: string
+                                        value:
+                                          anyOf:
+                                          - type: integer
+                                          - type: string
+                                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                          x-kubernetes-int-or-string: true
+                                      type: object
+                                    migEnabled:
+                                      description: BoolProperty defines a bool type
+                                        that methods can hang off of
+                                      type: boolean
+                                    productName:
+                                      description: GlobProperty defines a string type
+                                        that can contain glob for matching against
+                                      type: string
+                                    uuid:
+                                      description: StringProperty defines a string
+                                        type that methods can hang off of
+                                      type: string
+                                  type: object
+                                type: array
+                              architecture:
+                                description: GlobProperty defines a string type that
+                                  can contain glob for matching against
+                                type: string
+                              brand:
+                                description: GlobProperty defines a string type that
+                                  can contain glob for matching against
+                                type: string
+                              cudaComputeCapability:
+                                description: VersionComparator compares a version
+                                  SelectorCondition using a specific operator
+                                properties:
+                                  operator:
+                                    description: VersionComparatorOperator defines
+                                      the operators for use with a VersionComparator
+                                    enum:
+                                    - Equals
+                                    - LessThan
+                                    - LessThanOrEqualTo
+                                    - GreaterThan
+                                    - GreaterThanOrEqualTo
+                                    type: string
+                                  value:
+                                    type: string
+                                type: object
+                              cudaRuntimeVersion:
+                                description: VersionComparator compares a version
+                                  SelectorCondition using a specific operator
+                                properties:
+                                  operator:
+                                    description: VersionComparatorOperator defines
+                                      the operators for use with a VersionComparator
+                                    enum:
+                                    - Equals
+                                    - LessThan
+                                    - LessThanOrEqualTo
+                                    - GreaterThan
+                                    - GreaterThanOrEqualTo
+                                    type: string
+                                  value:
+                                    type: string
+                                type: object
+                              driverVersion:
+                                description: VersionComparator compares a version
+                                  SelectorCondition using a specific operator
+                                properties:
+                                  operator:
+                                    description: VersionComparatorOperator defines
+                                      the operators for use with a VersionComparator
+                                    enum:
+                                    - Equals
+                                    - LessThan
+                                    - LessThanOrEqualTo
+                                    - GreaterThan
+                                    - GreaterThanOrEqualTo
+                                    type: string
+                                  value:
+                                    type: string
+                                type: object
+                              index:
+                                description: IntProperty defines an int type that
+                                  methods can hang off of
+                                type: integer
+                              memory:
+                                description: QuantityComparator compares a quantity
+                                  SelectorCondition using a specific operator
+                                properties:
+                                  operator:
+                                    description: QuantityComparatorOperator defines
+                                      the operators for use with a QuantityComparator
+                                    enum:
+                                    - Equals
+                                    - LessThan
+                                    - LessThanOrEqualTo
+                                    - GreaterThan
+                                    - GreaterThanOrEqualTo
+                                    type: string
+                                  value:
+                                    anyOf:
+                                    - type: integer
+                                    - type: string
+                                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                    x-kubernetes-int-or-string: true
+                                type: object
+                              migEnabled:
+                                description: BoolProperty defines a bool type that
+                                  methods can hang off of
+                                type: boolean
+                              orExpression:
+                                items:
+                                  allOf:
+                                  - maxProperties: 1
+                                  - maxProperties: 1
+                                  description: GpuSelector3 is a copy of GpuSelector
+                                    to enable the third level of nesting
+                                  properties:
+                                    architecture:
+                                      description: GlobProperty defines a string type
+                                        that can contain glob for matching against
+                                      type: string
+                                    brand:
+                                      description: GlobProperty defines a string type
+                                        that can contain glob for matching against
+                                      type: string
+                                    cudaComputeCapability:
+                                      description: VersionComparator compares a version
+                                        SelectorCondition using a specific operator
+                                      properties:
+                                        operator:
+                                          description: VersionComparatorOperator defines
+                                            the operators for use with a VersionComparator
+                                          enum:
+                                          - Equals
+                                          - LessThan
+                                          - LessThanOrEqualTo
+                                          - GreaterThan
+                                          - GreaterThanOrEqualTo
+                                          type: string
+                                        value:
+                                          type: string
+                                      type: object
+                                    cudaRuntimeVersion:
+                                      description: VersionComparator compares a version
+                                        SelectorCondition using a specific operator
+                                      properties:
+                                        operator:
+                                          description: VersionComparatorOperator defines
+                                            the operators for use with a VersionComparator
+                                          enum:
+                                          - Equals
+                                          - LessThan
+                                          - LessThanOrEqualTo
+                                          - GreaterThan
+                                          - GreaterThanOrEqualTo
+                                          type: string
+                                        value:
+                                          type: string
+                                      type: object
+                                    driverVersion:
+                                      description: VersionComparator compares a version
+                                        SelectorCondition using a specific operator
+                                      properties:
+                                        operator:
+                                          description: VersionComparatorOperator defines
+                                            the operators for use with a VersionComparator
+                                          enum:
+                                          - Equals
+                                          - LessThan
+                                          - LessThanOrEqualTo
+                                          - GreaterThan
+                                          - GreaterThanOrEqualTo
+                                          type: string
+                                        value:
+                                          type: string
+                                      type: object
+                                    index:
+                                      description: IntProperty defines an int type
+                                        that methods can hang off of
+                                      type: integer
+                                    memory:
+                                      description: QuantityComparator compares a quantity
+                                        SelectorCondition using a specific operator
+                                      properties:
+                                        operator:
+                                          description: QuantityComparatorOperator
+                                            defines the operators for use with a QuantityComparator
+                                          enum:
+                                          - Equals
+                                          - LessThan
+                                          - LessThanOrEqualTo
+                                          - GreaterThan
+                                          - GreaterThanOrEqualTo
+                                          type: string
+                                        value:
+                                          anyOf:
+                                          - type: integer
+                                          - type: string
+                                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                          x-kubernetes-int-or-string: true
+                                      type: object
+                                    migEnabled:
+                                      description: BoolProperty defines a bool type
+                                        that methods can hang off of
+                                      type: boolean
+                                    productName:
+                                      description: GlobProperty defines a string type
+                                        that can contain glob for matching against
+                                      type: string
+                                    uuid:
+                                      description: StringProperty defines a string
+                                        type that methods can hang off of
+                                      type: string
+                                  type: object
+                                type: array
+                              productName:
+                                description: GlobProperty defines a string type that
+                                  can contain glob for matching against
+                                type: string
+                              uuid:
+                                description: StringProperty defines a string type
+                                  that methods can hang off of
+                                type: string
+                            type: object
+                          type: array
+                        productName:
+                          description: GlobProperty defines a string type that can
+                            contain glob for matching against
+                          type: string
+                        uuid:
+                          description: StringProperty defines a string type that methods
+                            can hang off of
+                          type: string
+                      type: object
+                    type: array
+                  productName:
+                    description: GlobProperty defines a string type that can contain
+                      glob for matching against
+                    type: string
+                  uuid:
+                    description: StringProperty defines a string type that methods
+                      can hang off of
+                    type: string
+                type: object
             type: object
         type: object
     served: true

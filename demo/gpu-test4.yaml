@@ -16,7 +16,8 @@ metadata:
   name: mig-enabled-gpu
 spec:
   count: 1
-  migEnabled: true
+  selector:
+    migEnabled: true
 
 ---
 apiVersion: resource.k8s.io/v1alpha2

@@ -21,6 +21,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	resourcev1 "k8s.io/api/resource/v1alpha2"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/dynamic-resource-allocation/controller"
 
 	nascrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1"
@@ -144,7 +145,7 @@ func (g *gpudriver) allocate(crd *nascrd.NodeAllocationState, pod *corev1.Pod, g
 		var devices []string
 		for i := 0; i < claimParams.Count; i++ {
 			for _, device := range available {
-				if device.MigEnabled == claimParams.MigEnabled {
+				if selectorMatchesGpu(claimParams.Selector, device) {
 					devices = append(devices, device.UUID)
 					delete(available, device.UUID)
 					break
@@ -155,4 +156,44 @@ func (g *gpudriver) allocate(crd *nascrd.NodeAllocationState, pod *corev1.Pod, g
 	}
 
 	return allocated
+}
+
+func selectorMatchesGpu(selector *gpucrd.GpuSelector, gpu *nascrd.AllocatableGpu) bool {
+	checkedMigEnabled := false
+	if selector == nil {
+		return gpu.MigEnabled == false
+	}
+	matches := selector.Matches(func(p *gpucrd.GpuSelectorProperties) bool {
+		if p.Index != nil {
+			return p.Index.Matches(gpu.Index)
+		}
+		if p.UUID != nil {
+			return p.UUID.Matches(gpu.UUID)
+		}
+		if p.MigEnabled != nil {
+			checkedMigEnabled = true
+			return p.MigEnabled.Matches(gpu.MigEnabled)
+		}
+		if p.Memory != nil {
+			quantity := resource.NewQuantity(int64(gpu.MemoryBytes), resource.BinarySI)
+			return p.Memory.Matches(quantity)
+		}
+		if p.ProductName != nil {
+			return p.ProductName.Matches(gpu.ProductName)
+		}
+		if p.Brand != nil {
+			return p.Brand.Matches(gpu.Brand)
+		}
+		if p.Architecture != nil {
+			return p.Architecture.Matches(gpu.Architecture)
+		}
+		if p.CUDAComputeCapability != nil {
+			return p.CUDAComputeCapability.Matches(gpu.CUDAComputeCapability)
+		}
+		return false
+	})
+	if matches && !checkedMigEnabled {
+		return gpu.MigEnabled == false
+	}
+	return matches
 }

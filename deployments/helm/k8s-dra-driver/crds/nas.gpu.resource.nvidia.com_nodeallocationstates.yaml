@@ -46,15 +46,31 @@ spec:
                       description: AllocatableGpu represents an allocatable GPU on
                         a node
                       properties:
+                        architecture:
+                          type: string
+                        brand:
+                          type: string
+                        cudaComputeCapability:
+                          type: string
+                        index:
+                          type: integer
+                        memoryBytes:
+                          format: int64
+                          type: integer
                         migEnabled:
                           type: boolean
-                        model:
+                        productName:
                           type: string
                         uuid:
                           type: string
                       required:
+                      - architecture
+                      - brand
+                      - cudaComputeCapability
+                      - index
+                      - memoryBytes
                       - migEnabled
-                      - model
+                      - productName
                       - uuid
                       type: object
                     mig:
@@ -62,7 +78,7 @@ spec:
                         MIG device (and its possible placements) on a given type of
                         GPU
                       properties:
-                        parentModel:
+                        parentProductName:
                           type: string
                         placements:
                           items:
@@ -81,7 +97,7 @@ spec:
                         profile:
                           type: string
                       required:
-                      - parentModel
+                      - parentProductName
                       - placements
                       - profile
                       type: object
@@ -99,20 +115,15 @@ spec:
                         description: AllocatedGpu represents an allocated GPU on a
                           node
                         properties:
-                          model:
-                            type: string
                           uuid:
                             type: string
                         required:
-                        - model
                         - uuid
                         type: object
                       mig:
                         description: AllocatedMigDevice represents an allocated MIG
                           device on a node
                         properties:
-                          parentModel:
-                            type: string
                           parentUUID:
                             type: string
                           placement:
@@ -132,7 +143,6 @@ spec:
                           uuid:
                             type: string
                         required:
-                        - parentModel
                         - parentUUID
                         - placement
                         - profile
