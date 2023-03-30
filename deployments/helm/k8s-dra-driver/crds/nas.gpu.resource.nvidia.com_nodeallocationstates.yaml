@@ -169,6 +169,36 @@ spec:
                                 type: string
                             type: object
                           type: array
+                        sharing:
+                          description: GpuSharing holds the current sharing strategy
+                            and its settings
+                          maxProperties: 2
+                          properties:
+                            strategy:
+                              default: TimeSlicing
+                              description: GpuSharingStrategy encodes the valid Sharing
+                                strategies as a string
+                              enum:
+                              - TimeSlicing
+                              type: string
+                            timeSlicingSettings:
+                              description: CudaTimeSlicingSettings provides the settings
+                                for CUDA time-slicing.
+                              properties:
+                                timeSlice:
+                                  default: Default
+                                  description: CudaTimeSliceConfig encodes the valid
+                                    CUDA time-slicing configs as a string
+                                  enum:
+                                  - Default
+                                  - Short
+                                  - Medium
+                                  - Long
+                                  type: string
+                              type: object
+                          required:
+                          - strategy
+                          type: object
                       required:
                       - devices
                       type: object

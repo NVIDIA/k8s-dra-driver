@@ -27,6 +27,10 @@ spec:
     - orExpression:
       - migEnabled: true
       - migEnabled: false
+  sharing:
+    strategy: TimeSlicing
+    timeSlicingSettings:
+      timeSlice: Long
 
 ---
 apiVersion: resource.k8s.io/v1alpha2

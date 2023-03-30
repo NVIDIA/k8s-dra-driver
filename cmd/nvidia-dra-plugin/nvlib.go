@@ -18,6 +18,7 @@ package main
 
 import (
 	"fmt"
+	"os/exec"
 
 	"k8s.io/klog/v2"
 
@@ -426,6 +427,22 @@ func walkMigDevices(d nvml.Device, f func(i int, d nvml.Device) error) error {
 		if err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+func setCudaTimeSlice(gpu *GpuInfo, nvidiaDriverRoot string, timeSlice int) error {
+	cmd := exec.Command(
+		"chroot",
+		nvidiaDriverRoot,
+		"nvidia-smi",
+		"compute-policy",
+		"-i", fmt.Sprintf("%s", gpu.uuid),
+		"--set-timeslice", fmt.Sprintf("%d", timeSlice))
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		klog.Errorf("\n%v", output)
+		return fmt.Errorf("error running nvidia-smi: %v", err)
 	}
 	return nil
 }

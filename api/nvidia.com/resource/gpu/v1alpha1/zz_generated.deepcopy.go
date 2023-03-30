@@ -22,6 +22,7 @@
 package v1alpha1
 
 import (
+	nasv1alpha1 "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1"
 	"github.com/NVIDIA/k8s-dra-driver/api/utils/selector"
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -256,6 +257,11 @@ func (in *GpuClaimParametersSpec) DeepCopyInto(out *GpuClaimParametersSpec) {
 	if in.Selector != nil {
 		in, out := &in.Selector, &out.Selector
 		*out = new(GpuSelector)
+		(*in).DeepCopyInto(*out)
+	}
+	if in.Sharing != nil {
+		in, out := &in.Sharing, &out.Sharing
+		*out = new(nasv1alpha1.GpuSharing)
 		(*in).DeepCopyInto(*out)
 	}
 }
