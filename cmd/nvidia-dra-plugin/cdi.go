@@ -18,7 +18,7 @@ package main
 
 import (
 	"fmt"
-	"os"
+	"io"
 
 	"github.com/sirupsen/logrus"
 
@@ -64,8 +64,7 @@ func NewCDIHandler(config *Config) (*CDIHandler, error) {
 	targetRoot := "/"
 
 	logger := logrus.New()
-	logger.Out = os.Stdout
-	logger.Level = logrus.DebugLevel
+	logger.SetOutput(io.Discard)
 
 	nvmllib := nvml.New()
 	nvdevicelib := nvdevice.New(
