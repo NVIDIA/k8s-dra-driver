@@ -184,7 +184,7 @@ spec:
                           type: array
                         sharing:
                           description: GpuSharing holds the current sharing strategy
-                            and its settings
+                            for GPUs and its settings
                           maxProperties: 2
                           properties:
                             strategy:
@@ -194,14 +194,14 @@ spec:
                               enum:
                               - TimeSlicing
                               type: string
-                            timeSlicingSettings:
-                              description: CudaTimeSlicingSettings provides the settings
+                            timeSlicingConfig:
+                              description: TimeSlicingSettings provides the settings
                                 for CUDA time-slicing.
                               properties:
                                 timeSlice:
                                   default: Default
-                                  description: CudaTimeSliceConfig encodes the valid
-                                    CUDA time-slicing configs as a string
+                                  description: TimeSliceDuration encodes the valid
+                                    timeslice duration as a string
                                   enum:
                                   - Default
                                   - Short

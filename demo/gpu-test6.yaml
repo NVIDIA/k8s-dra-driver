@@ -29,7 +29,7 @@ spec:
       - migEnabled: false
   sharing:
     strategy: TimeSlicing
-    timeSlicingSettings:
+    timeSlicingConfig:
       timeSlice: Long
 
 ---
