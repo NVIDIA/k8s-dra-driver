@@ -75,14 +75,24 @@ type AllocatedMigDevice struct {
 	Placement  MigDevicePlacement `json:"placement"`
 }
 
-// AllocatedDevice represents an allocated device on a node
-type AllocatedDevice struct {
-	Gpu *AllocatedGpu       `json:"gpu,omitempty"`
-	Mig *AllocatedMigDevice `json:"mig,omitempty"`
+// AllocatedGpus represents a set of allocated GPUs
+type AllocatedGpus struct {
+	Devices []AllocatedGpu `json:"devices"`
+}
+
+// AllocatedMigDevices represents a set of allocated MIG devices
+type AllocatedMigDevices struct {
+	Devices []AllocatedMigDevice `json:"devices"`
+}
+
+// AllocatedDevices represents an allocated device on a node
+type AllocatedDevices struct {
+	Gpu *AllocatedGpus       `json:"gpu,omitempty"`
+	Mig *AllocatedMigDevices `json:"mig,omitempty"`
 }
 
 // Type returns the type of AllocatedDevice this represents
-func (d AllocatedDevice) Type() string {
+func (d AllocatedDevices) Type() string {
 	if d.Gpu != nil {
 		return GpuDeviceType
 	}
@@ -90,17 +100,6 @@ func (d AllocatedDevice) Type() string {
 		return MigDeviceType
 	}
 	return UnknownDeviceType
-}
-
-// AllocatedDevices represents a list of allocated devices on a node
-type AllocatedDevices []AllocatedDevice
-
-// Type returns the type of AllocatedDevices this represents
-func (d AllocatedDevices) Type() string {
-	if len(d) == 0 {
-		return UnknownDeviceType
-	}
-	return d[0].Type()
 }
 
 // RequestedGpu represents a GPU being requested for allocation

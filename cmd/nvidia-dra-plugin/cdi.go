@@ -137,7 +137,7 @@ func (cdi *CDIHandler) CreateCommonSpecFile() error {
 	return cdi.registry.SpecDB().WriteSpec(spec, specName)
 }
 
-func (cdi *CDIHandler) CreateClaimSpecFile(claimUid string, devices AllocatedDevices) error {
+func (cdi *CDIHandler) CreateClaimSpecFile(claimUid string, devices *AllocatedDevices) error {
 	ret := cdi.nvml.Init()
 	if ret != nvml.SUCCESS {
 		return ret
@@ -146,52 +146,54 @@ func (cdi *CDIHandler) CreateClaimSpecFile(claimUid string, devices AllocatedDev
 
 	claimEdits := cdiapi.ContainerEdits{}
 
-	for _, device := range devices {
-		switch device.Type() {
-		case nascrd.GpuDeviceType:
-			nvmlDevice, ret := cdi.nvml.DeviceGetHandleByUUID(device.gpu.uuid)
+	switch devices.Type() {
+	case nascrd.GpuDeviceType:
+		for _, device := range devices.Gpu.Devices {
+			nvmlDevice, ret := cdi.nvml.DeviceGetHandleByUUID(device.uuid)
 			if ret != nvml.SUCCESS {
-				return fmt.Errorf("unable to get nvml GPU device for UUID '%v': %v", device.gpu.uuid, ret)
+				return fmt.Errorf("unable to get nvml GPU device for UUID '%v': %v", device.uuid, ret)
 			}
 			nvlibDevice, err := cdi.nvdevice.NewDevice(nvmlDevice)
 			if err != nil {
-				return fmt.Errorf("unable to get nvlib GPU device for UUID '%v': %v", device.gpu.uuid, ret)
+				return fmt.Errorf("unable to get nvlib GPU device for UUID '%v': %v", device.uuid, ret)
 			}
 			gpuEdits, err := cdi.nvcdi.GetGPUDeviceEdits(nvlibDevice)
 			if err != nil {
-				return fmt.Errorf("unable to get CDI spec edits for GPU: %v", device.gpu)
+				return fmt.Errorf("unable to get CDI spec edits for GPU: %v", device)
 			}
 			claimEdits.Append(gpuEdits)
-		case nascrd.MigDeviceType:
-			nvmlParentDevice, ret := cdi.nvml.DeviceGetHandleByUUID(device.mig.parent.uuid)
+		}
+	case nascrd.MigDeviceType:
+		for _, device := range devices.Mig.Devices {
+			nvmlParentDevice, ret := cdi.nvml.DeviceGetHandleByUUID(device.parent.uuid)
 			if ret != nvml.SUCCESS {
-				return fmt.Errorf("unable to get nvml GPU parent device for MIG UUID '%v': %v", device.mig.uuid, ret)
+				return fmt.Errorf("unable to get nvml GPU parent device for MIG UUID '%v': %v", device.uuid, ret)
 			}
 			nvlibParentDevice, err := cdi.nvdevice.NewDevice(nvmlParentDevice)
 			if err != nil {
-				return fmt.Errorf("unable to get nvlib GPU parent device for MIG UUID '%v': %v", device.mig.uuid, ret)
+				return fmt.Errorf("unable to get nvlib GPU parent device for MIG UUID '%v': %v", device.uuid, ret)
 			}
 			var nvlibMigDevice nvdevice.MigDevice
 			migs, err := nvlibParentDevice.GetMigDevices()
 			if err != nil {
-				return fmt.Errorf("unable to get MIG devices on GPU '%v': %v", device.mig.parent.uuid, err)
+				return fmt.Errorf("unable to get MIG devices on GPU '%v': %v", device.parent.uuid, err)
 			}
 			for _, mig := range migs {
 				uuid, ret := mig.GetUUID()
 				if err != nil {
 					return fmt.Errorf("unable to get MIG UUID: %v", ret)
 				}
-				if uuid == device.mig.uuid {
+				if uuid == device.uuid {
 					nvlibMigDevice = mig
 					break
 				}
 			}
 			if nvlibMigDevice == nil {
-				return fmt.Errorf("unable to find MIG device '%v' on parent GPU '%v'", device.mig.uuid, device.mig.parent.uuid)
+				return fmt.Errorf("unable to find MIG device '%v' on parent GPU '%v'", device.uuid, device.parent.uuid)
 			}
 			migEdits, err := cdi.nvcdi.GetMIGDeviceEdits(nvlibParentDevice, nvlibMigDevice)
 			if err != nil {
-				return fmt.Errorf("unable to get CDI spec edits for MIG device: %v", device.mig)
+				return fmt.Errorf("unable to get CDI spec edits for MIG device: %v", device)
 			}
 			claimEdits.Append(migEdits)
 		}

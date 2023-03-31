@@ -105,51 +105,64 @@ spec:
                 type: array
               claimAllocations:
                 additionalProperties:
-                  description: AllocatedDevices represents a list of allocated devices
-                    on a node
-                  items:
-                    description: AllocatedDevice represents an allocated device on
-                      a node
-                    properties:
-                      gpu:
-                        description: AllocatedGpu represents an allocated GPU on a
-                          node
-                        properties:
-                          uuid:
-                            type: string
-                        required:
-                        - uuid
-                        type: object
-                      mig:
-                        description: AllocatedMigDevice represents an allocated MIG
-                          device on a node
-                        properties:
-                          parentUUID:
-                            type: string
-                          placement:
-                            description: MigDevicePlacement represents the placement
-                              of a MIG device within a GPU
+                  description: AllocatedDevices represents an allocated device on
+                    a node
+                  properties:
+                    gpu:
+                      description: AllocatedGpus represents a set of allocated GPUs
+                      properties:
+                        devices:
+                          items:
+                            description: AllocatedGpu represents an allocated GPU
+                              on a node
                             properties:
-                              size:
-                                type: integer
-                              start:
-                                type: integer
+                              uuid:
+                                type: string
                             required:
-                            - size
-                            - start
+                            - uuid
                             type: object
-                          profile:
-                            type: string
-                          uuid:
-                            type: string
-                        required:
-                        - parentUUID
-                        - placement
-                        - profile
-                        - uuid
-                        type: object
-                    type: object
-                  type: array
+                          type: array
+                      required:
+                      - devices
+                      type: object
+                    mig:
+                      description: AllocatedMigDevices represents a set of allocated
+                        MIG devices
+                      properties:
+                        devices:
+                          items:
+                            description: AllocatedMigDevice represents an allocated
+                              MIG device on a node
+                            properties:
+                              parentUUID:
+                                type: string
+                              placement:
+                                description: MigDevicePlacement represents the placement
+                                  of a MIG device within a GPU
+                                properties:
+                                  size:
+                                    type: integer
+                                  start:
+                                    type: integer
+                                required:
+                                - size
+                                - start
+                                type: object
+                              profile:
+                                type: string
+                              uuid:
+                                type: string
+                            required:
+                            - parentUUID
+                            - placement
+                            - profile
+                            - uuid
+                            type: object
+                          type: array
+                      required:
+                      - devices
+                      type: object
+                  type: object
                 type: object
               claimRequests:
                 additionalProperties:

@@ -25,8 +25,7 @@ import (
 )
 
 type AllocatableDevices map[string]*AllocatableDeviceInfo
-type AllocatedDevices map[string]AllocatedDeviceInfo
-type ClaimAllocations map[string]AllocatedDevices
+type ClaimAllocations map[string]*AllocatedDevices
 
 type GpuInfo struct {
 	minor                 int
@@ -48,19 +47,37 @@ type MigDeviceInfo struct {
 	ciInfo  *nvml.ComputeInstanceInfo
 }
 
-type AllocatedDeviceInfo struct {
-	gpu *GpuInfo
-	mig *MigDeviceInfo
+type AllocatedGpus struct {
+	Devices []*GpuInfo
 }
 
-func (i AllocatedDeviceInfo) Type() string {
-	if i.gpu != nil {
+type AllocatedMigDevices struct {
+	Devices []*MigDeviceInfo
+}
+
+type AllocatedDevices struct {
+	Gpu *AllocatedGpus
+	Mig *AllocatedMigDevices
+}
+
+func (d AllocatedDevices) Type() string {
+	if d.Gpu != nil {
 		return nascrd.GpuDeviceType
 	}
-	if i.mig != nil {
+	if d.Mig != nil {
 		return nascrd.MigDeviceType
 	}
 	return nascrd.UnknownDeviceType
+}
+
+func (d AllocatedDevices) Len() int {
+	if d.Gpu != nil {
+		return len(d.Gpu.Devices)
+	}
+	if d.Mig != nil {
+		return len(d.Mig.Devices)
+	}
+	return 0
 }
 
 type MigProfileInfo struct {
@@ -119,11 +136,11 @@ func (s *DeviceState) Allocate(claimUid string, request nascrd.RequestedDevices)
 	s.Lock()
 	defer s.Unlock()
 
-	if len(s.allocated[claimUid]) != 0 {
+	if s.allocated[claimUid] != nil && s.allocated[claimUid].Len() != 0 {
 		return s.cdi.GetClaimDevices(claimUid), nil
 	}
 
-	s.allocated[claimUid] = make(AllocatedDevices)
+	s.allocated[claimUid] = &AllocatedDevices{}
 
 	var err error
 	switch request.Type() {
@@ -151,17 +168,20 @@ func (s *DeviceState) Free(claimUid string) error {
 	if s.allocated[claimUid] == nil {
 		return nil
 	}
-
-	for _, device := range s.allocated[claimUid] {
-		var err error
-		switch device.Type() {
-		case nascrd.GpuDeviceType:
-			err = s.freeGpu(device.gpu)
-		case nascrd.MigDeviceType:
-			err = s.freeMigDevice(device.mig)
+	switch s.allocated[claimUid].Type() {
+	case nascrd.GpuDeviceType:
+		for _, device := range s.allocated[claimUid].Gpu.Devices {
+			err := s.freeGpu(device)
+			if err != nil {
+				return fmt.Errorf("free failed: %v", err)
+			}
 		}
-		if err != nil {
-			return fmt.Errorf("free failed: %v", err)
+	case nascrd.MigDeviceType:
+		for _, device := range s.allocated[claimUid].Mig.Devices {
+			err := s.freeMigDevice(device)
+			if err != nil {
+				return fmt.Errorf("free failed: %v", err)
+			}
 		}
 	}
 
@@ -205,9 +225,11 @@ func (s *DeviceState) allocateGpus(claimUid string, requested *nascrd.RequestedG
 			}
 		}
 
-		s.allocated[claimUid][device.UUID] = AllocatedDeviceInfo{
-			gpu: gpuInfo,
+		if s.allocated[claimUid].Gpu == nil {
+			s.allocated[claimUid].Gpu = &AllocatedGpus{}
 		}
+
+		s.allocated[claimUid].Gpu.Devices = append(s.allocated[claimUid].Gpu.Devices, gpuInfo)
 	}
 
 	return nil
@@ -239,13 +261,11 @@ func (s *DeviceState) allocateMigDevices(claimUid string, requested *nascrd.Requ
 			return fmt.Errorf("error creating MIG device: %v", err)
 		}
 
-		allocated := AllocatedDevices{
-			migInfo.uuid: AllocatedDeviceInfo{
-				mig: migInfo,
-			},
+		if s.allocated[claimUid].Mig == nil {
+			s.allocated[claimUid].Mig = &AllocatedMigDevices{}
 		}
 
-		s.allocated[claimUid][migInfo.uuid] = allocated[migInfo.uuid]
+		s.allocated[claimUid].Mig.Devices = append(s.allocated[claimUid].Mig.Devices, migInfo)
 	}
 
 	return nil
@@ -344,16 +364,14 @@ func (s *DeviceState) syncAllocatedDevicesFromCRDSpec(spec *nascrd.NodeAllocatio
 
 	allocated := make(ClaimAllocations)
 	for claim, devices := range spec.ClaimAllocations {
-		allocated[claim] = make(AllocatedDevices)
-		for _, d := range devices {
-			switch d.Type() {
-			case nascrd.GpuDeviceType:
-				gpuInfo := gpus[d.Gpu.UUID].GpuInfo
+		allocated[claim] = &AllocatedDevices{}
+		switch devices.Type() {
+		case nascrd.GpuDeviceType:
+			allocated[claim].Gpu = &AllocatedGpus{}
+			for _, d := range devices.Gpu.Devices {
+				gpuInfo := gpus[d.UUID].GpuInfo
 				nvidiaDriverRoot := "/run/nvidia/driver"
 				requested := spec.ClaimRequests[claim].Gpu
-				allocated[claim][d.Gpu.UUID] = AllocatedDeviceInfo{
-					gpu: gpuInfo,
-				}
 				if requested.Sharing.IsTimeSlicing() {
 					timeSlice, err := requested.Sharing.GetTimeSliceConfig()
 					if err != nil {
@@ -364,30 +382,32 @@ func (s *DeviceState) syncAllocatedDevicesFromCRDSpec(spec *nascrd.NodeAllocatio
 						return fmt.Errorf("error setting timeslice for %v: %v", gpuInfo.uuid, err)
 					}
 				}
-			case nascrd.MigDeviceType:
-				migInfo := migs[d.Mig.ParentUUID][d.Mig.UUID]
+				allocated[claim].Gpu.Devices = append(allocated[claim].Gpu.Devices, gpuInfo)
+			}
+		case nascrd.MigDeviceType:
+			allocated[claim].Mig = &AllocatedMigDevices{}
+			for _, d := range devices.Mig.Devices {
+				migInfo := migs[d.ParentUUID][d.UUID]
 				if migInfo == nil {
-					profile, err := ParseMigProfile(d.Mig.Profile)
+					profile, err := ParseMigProfile(d.Profile)
 					if err != nil {
-						return fmt.Errorf("error parsing MIG profile for '%v': %v", d.Mig.Profile, err)
+						return fmt.Errorf("error parsing MIG profile for '%v': %v", d.Profile, err)
 					}
 					placement := &nvml.GpuInstancePlacement{
-						Start: uint32(d.Mig.Placement.Start),
-						Size:  uint32(d.Mig.Placement.Size),
+						Start: uint32(d.Placement.Start),
+						Size:  uint32(d.Placement.Size),
 					}
-					migInfo, err = createMigDevice(gpus[d.Mig.ParentUUID].GpuInfo, profile, placement)
+					migInfo, err = createMigDevice(gpus[d.ParentUUID].GpuInfo, profile, placement)
 					if err != nil {
-						return fmt.Errorf("error creating MIG device info for '%v' on GPU '%v': %v", d.Mig.Profile, d.Mig.ParentUUID, err)
+						return fmt.Errorf("error creating MIG device info for '%v' on GPU '%v': %v", d.Profile, d.ParentUUID, err)
 					}
 				} else {
-					delete(migs[d.Mig.ParentUUID], d.Mig.UUID)
-					if len(migs[d.Mig.ParentUUID]) == 0 {
-						delete(migs, d.Mig.ParentUUID)
+					delete(migs[d.ParentUUID], d.UUID)
+					if len(migs[d.ParentUUID]) == 0 {
+						delete(migs, d.ParentUUID)
 					}
 				}
-				allocated[claim][migInfo.uuid] = AllocatedDeviceInfo{
-					mig: migInfo,
-				}
+				allocated[claim].Mig.Devices = append(allocated[claim].Mig.Devices, migInfo)
 			}
 		}
 	}
@@ -403,27 +423,31 @@ func (s *DeviceState) syncAllocatedDevicesFromCRDSpec(spec *nascrd.NodeAllocatio
 func (s *DeviceState) syncAllocatedDevicesToCRDSpec(spec *nascrd.NodeAllocationStateSpec) {
 	outcas := make(map[string]nascrd.AllocatedDevices)
 	for claim, devices := range s.allocated {
-		var allocated []nascrd.AllocatedDevice
-		for uuid, device := range devices {
-			outdevice := nascrd.AllocatedDevice{}
-			switch device.Type() {
-			case nascrd.GpuDeviceType:
-				outdevice.Gpu = &nascrd.AllocatedGpu{
-					UUID: uuid,
+		var allocated nascrd.AllocatedDevices
+		switch devices.Type() {
+		case nascrd.GpuDeviceType:
+			allocated.Gpu = &nascrd.AllocatedGpus{}
+			for _, device := range devices.Gpu.Devices {
+				outdevice := nascrd.AllocatedGpu{
+					UUID: device.uuid,
 				}
-			case nascrd.MigDeviceType:
+				allocated.Gpu.Devices = append(allocated.Gpu.Devices, outdevice)
+			}
+		case nascrd.MigDeviceType:
+			allocated.Mig = &nascrd.AllocatedMigDevices{}
+			for _, device := range devices.Mig.Devices {
 				placement := nascrd.MigDevicePlacement{
-					Start: int(device.mig.giInfo.Placement.Start),
-					Size:  int(device.mig.giInfo.Placement.Size),
+					Start: int(device.giInfo.Placement.Start),
+					Size:  int(device.giInfo.Placement.Size),
 				}
-				outdevice.Mig = &nascrd.AllocatedMigDevice{
-					UUID:       uuid,
-					Profile:    device.mig.profile.String(),
-					ParentUUID: device.mig.parent.uuid,
+				outdevice := nascrd.AllocatedMigDevice{
+					UUID:       device.uuid,
+					Profile:    device.profile.String(),
+					ParentUUID: device.parent.uuid,
 					Placement:  placement,
 				}
+				allocated.Mig.Devices = append(allocated.Mig.Devices, outdevice)
 			}
-			allocated = append(allocated, outdevice)
 		}
 		outcas[claim] = allocated
 	}
