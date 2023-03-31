@@ -27,33 +27,33 @@ const (
 
 // These constants represent the different TimeSlicing configurations
 const (
-	DefaultTimeSlice CudaTimeSliceConfig = "Default"
-	ShortTimeSlice   CudaTimeSliceConfig = "Short"
-	MediumTimeSlice  CudaTimeSliceConfig = "Medium"
-	LongTimeSlice    CudaTimeSliceConfig = "Long"
+	DefaultTimeSlice TimeSliceDuration = "Default"
+	ShortTimeSlice   TimeSliceDuration = "Short"
+	MediumTimeSlice  TimeSliceDuration = "Medium"
+	LongTimeSlice    TimeSliceDuration = "Long"
 )
 
 // GpuSharingStrategy encodes the valid Sharing strategies as a string
 // +kubebuilder:validation:Enum=TimeSlicing
 type GpuSharingStrategy string
 
-// CudaTimeSliceConfig encodes the valid CUDA time-slicing configs as a string
+// TimeSliceDuration encodes the valid timeslice duration as a string
 // +kubebuilder:validation:Enum=Default;Short;Medium;Long
-type CudaTimeSliceConfig string
+type TimeSliceDuration string
 
-// GpuSharing holds the current sharing strategy and its settings
+// GpuSharing holds the current sharing strategy for GPUs and its settings
 // +kubebuilder:validation:MaxProperties=2
 type GpuSharing struct {
 	// +kubebuilder:default=TimeSlicing
 	// +kubebuilder:validation:Required
-	Strategy            GpuSharingStrategy       `json:"strategy"`
-	TimeSlicingSettings *CudaTimeSlicingSettings `json:"timeSlicingSettings,omitempty"`
+	Strategy          GpuSharingStrategy `json:"strategy"`
+	TimeSlicingConfig *TimeSlicingConfig `json:"timeSlicingConfig,omitempty"`
 }
 
-// CudaTimeSlicingSettings provides the settings for CUDA time-slicing.
-type CudaTimeSlicingSettings struct {
+// TimeSlicingSettings provides the settings for CUDA time-slicing.
+type TimeSlicingConfig struct {
 	// +kubebuilder:default=Default
-	TimeSlice *CudaTimeSliceConfig `json:"timeSlice,omitempty"`
+	TimeSlice *TimeSliceDuration `json:"timeSlice,omitempty"`
 }
 
 // IsTimeSlicing checks if the TimeSlicing strategy is applied
@@ -65,26 +65,21 @@ func (s *GpuSharing) IsTimeSlicing() bool {
 	return s.Strategy == TimeSlicingStrategy
 }
 
-// GetTimeSliceConfig returns the CUDA timeslice config that applies to the given settings
-func (s *GpuSharing) GetTimeSliceConfig() (CudaTimeSliceConfig, error) {
+// GetTimeSlicingConfig returns the timeslicing config that applies to the given strategy
+func (s *GpuSharing) GetTimeSlicingConfig() (*TimeSlicingConfig, error) {
 	if s == nil {
 		// TimeSlicing is the default strategy
-		return DefaultTimeSlice, nil
+		dts := DefaultTimeSlice
+		return &TimeSlicingConfig{&dts}, nil
 	}
 	if s.Strategy != TimeSlicingStrategy {
-		return "", fmt.Errorf("strategy is not set to '%v'", TimeSlicingStrategy)
+		return nil, fmt.Errorf("strategy is not set to '%v'", TimeSlicingStrategy)
 	}
-	if s.TimeSlicingSettings == nil {
-		return DefaultTimeSlice, nil
-	}
-	if s.TimeSlicingSettings.TimeSlice == nil {
-		return DefaultTimeSlice, nil
-	}
-	return *s.TimeSlicingSettings.TimeSlice, nil
+	return s.TimeSlicingConfig, nil
 }
 
-// Int returns the integer representations of a CUDA timeslice config
-func (c CudaTimeSliceConfig) Int() int {
+// Int returns the integer representations of a timeslice duration
+func (c TimeSliceDuration) Int() int {
 	switch c {
 	case DefaultTimeSlice:
 		return 0

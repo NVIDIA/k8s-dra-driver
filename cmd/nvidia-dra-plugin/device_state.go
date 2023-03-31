@@ -215,11 +215,11 @@ func (s *DeviceState) allocateGpus(claimUid string, requested *nascrd.RequestedG
 
 		if requested.Sharing.IsTimeSlicing() {
 			nvidiaDriverRoot := "/run/nvidia/driver"
-			timeSlice, err := requested.Sharing.GetTimeSliceConfig()
+			config, err := requested.Sharing.GetTimeSlicingConfig()
 			if err != nil {
-				return fmt.Errorf("error getting timeslice for %v: %v", gpuInfo.uuid, err)
+				return fmt.Errorf("error getting timeslice config for %v: %v", gpuInfo.uuid, err)
 			}
-			err = setCudaTimeSlice(gpuInfo, nvidiaDriverRoot, timeSlice.Int())
+			err = setCudaTimeSlice(gpuInfo, nvidiaDriverRoot, config)
 			if err != nil {
 				return fmt.Errorf("error setting timeslice for %v: %v", gpuInfo.uuid, err)
 			}
@@ -273,7 +273,7 @@ func (s *DeviceState) allocateMigDevices(claimUid string, requested *nascrd.Requ
 
 func (s *DeviceState) freeGpu(gpu *GpuInfo) error {
 	nvidiaDriverRoot := "/run/nvidia/driver"
-	err := setCudaTimeSlice(gpu, nvidiaDriverRoot, nascrd.DefaultTimeSlice.Int())
+	err := setCudaTimeSlice(gpu, nvidiaDriverRoot, nil)
 	if err != nil {
 		return fmt.Errorf("error setting timeslice for %v: %v", gpu.uuid, err)
 	}
@@ -373,11 +373,11 @@ func (s *DeviceState) syncAllocatedDevicesFromCRDSpec(spec *nascrd.NodeAllocatio
 				nvidiaDriverRoot := "/run/nvidia/driver"
 				requested := spec.ClaimRequests[claim].Gpu
 				if requested.Sharing.IsTimeSlicing() {
-					timeSlice, err := requested.Sharing.GetTimeSliceConfig()
+					config, err := requested.Sharing.GetTimeSlicingConfig()
 					if err != nil {
 						return fmt.Errorf("error getting timeslice for %v: %v", gpuInfo.uuid, err)
 					}
-					err = setCudaTimeSlice(gpuInfo, nvidiaDriverRoot, timeSlice.Int())
+					err = setCudaTimeSlice(gpuInfo, nvidiaDriverRoot, config)
 					if err != nil {
 						return fmt.Errorf("error setting timeslice for %v: %v", gpuInfo.uuid, err)
 					}
