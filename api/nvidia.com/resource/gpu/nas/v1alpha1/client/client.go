@@ -21,6 +21,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/watch"
 
 	nascrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1"
 	nasclient "github.com/NVIDIA/k8s-dra-driver/pkg/nvidia.com/resource/clientset/versioned/typed/nas/v1alpha1"
@@ -98,4 +99,20 @@ func (c *Client) Get() error {
 	}
 	*c.nas = *crd
 	return nil
+}
+
+func (c *Client) List(options metav1.ListOptions) (*nascrd.NodeAllocationStateList, error) {
+	watcher, err := c.client.NodeAllocationStates(c.nas.Namespace).List(context.TODO(), options)
+	if err != nil {
+		return nil, err
+	}
+	return watcher, nil
+}
+
+func (c *Client) Watch(options metav1.ListOptions) (watch.Interface, error) {
+	watcher, err := c.client.NodeAllocationStates(c.nas.Namespace).Watch(context.TODO(), options)
+	if err != nil {
+		return nil, err
+	}
+	return watcher, nil
 }
