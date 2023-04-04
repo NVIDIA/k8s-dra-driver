@@ -36,7 +36,7 @@ type driver struct {
 
 func NewDriver(config *Config) (*driver, error) {
 	var d *driver
-	client := nasclient.New(config.nascrd, config.nvclient.NasV1alpha1())
+	client := nasclient.New(config.nascrd, config.clientset.nvidia.NasV1alpha1())
 	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		err := client.GetOrCreate()
 		if err != nil {

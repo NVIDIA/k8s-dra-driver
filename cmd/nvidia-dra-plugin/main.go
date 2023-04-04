@@ -59,10 +59,15 @@ type Flags struct {
 	cdiRoot *string
 }
 
+type Clientset struct {
+	core   coreclientset.Interface
+	nvidia nvclientset.Interface
+}
+
 type Config struct {
-	flags    *Flags
-	nascrd   *nascrd.NodeAllocationState
-	nvclient nvclientset.Interface
+	flags     *Flags
+	nascrd    *nascrd.NodeAllocationState
+	clientset *Clientset
 }
 
 func main() {
@@ -133,9 +138,12 @@ func NewCommand() *cobra.Command {
 		nascrd := nascrd.NewNodeAllocationState(crdconfig)
 
 		config := &Config{
-			flags:    flags,
-			nascrd:   nascrd,
-			nvclient: nvclient,
+			flags:  flags,
+			nascrd: nascrd,
+			clientset: &Clientset{
+				coreclient,
+				nvclient,
+			},
 		}
 
 		return StartPlugin(config)
