@@ -136,27 +136,29 @@ func (s *DeviceState) Allocate(claimUid string, request nascrd.RequestedDevices)
 	s.Lock()
 	defer s.Unlock()
 
-	if s.allocated[claimUid] != nil && s.allocated[claimUid].Len() != 0 {
+	if s.allocated[claimUid] != nil {
 		return s.cdi.GetClaimDevices(claimUid), nil
 	}
 
-	s.allocated[claimUid] = &AllocatedDevices{}
+	allocated := &AllocatedDevices{}
 
 	var err error
 	switch request.Type() {
 	case nascrd.GpuDeviceType:
-		err = s.allocateGpus(claimUid, request.Gpu)
+		allocated.Gpu, err = s.allocateGpus(claimUid, request.Gpu)
 	case nascrd.MigDeviceType:
-		err = s.allocateMigDevices(claimUid, request.Mig)
+		allocated.Mig, err = s.allocateMigDevices(claimUid, request.Mig)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("allocation failed: %v", err)
 	}
 
-	err = s.cdi.CreateClaimSpecFile(claimUid, s.allocated[claimUid])
+	err = s.cdi.CreateClaimSpecFile(claimUid, allocated)
 	if err != nil {
 		return nil, fmt.Errorf("unable to create CDI spec file for claim: %v", err)
 	}
+
+	s.allocated[claimUid] = allocated
 
 	return s.cdi.GetClaimDevices(claimUid), nil
 }
@@ -170,18 +172,14 @@ func (s *DeviceState) Free(claimUid string) error {
 	}
 	switch s.allocated[claimUid].Type() {
 	case nascrd.GpuDeviceType:
-		for _, device := range s.allocated[claimUid].Gpu.Devices {
-			err := s.freeGpu(device)
-			if err != nil {
-				return fmt.Errorf("free failed: %v", err)
-			}
+		err := s.freeGpus(claimUid, s.allocated[claimUid].Gpu)
+		if err != nil {
+			return fmt.Errorf("free failed: %v", err)
 		}
 	case nascrd.MigDeviceType:
-		for _, device := range s.allocated[claimUid].Mig.Devices {
-			err := s.freeMigDevice(device)
-			if err != nil {
-				return fmt.Errorf("free failed: %v", err)
-			}
+		err := s.freeMigDevices(claimUid, s.allocated[claimUid].Mig)
+		if err != nil {
+			return fmt.Errorf("free failed: %v", err)
 		}
 	}
 
@@ -205,50 +203,50 @@ func (s *DeviceState) GetUpdatedSpec(inspec *nascrd.NodeAllocationStateSpec) *na
 	return outspec
 }
 
-func (s *DeviceState) allocateGpus(claimUid string, requested *nascrd.RequestedGpus) error {
+func (s *DeviceState) allocateGpus(claimUid string, requested *nascrd.RequestedGpus) (*AllocatedGpus, error) {
+	allocated := &AllocatedGpus{}
+
 	for _, device := range requested.Devices {
 		gpuInfo := s.allocatable[device.UUID].GpuInfo
 
 		if _, exists := s.allocatable[device.UUID]; !exists {
-			return fmt.Errorf("requested GPU does not exist: %v", device.UUID)
+			return nil, fmt.Errorf("requested GPU does not exist: %v", device.UUID)
 		}
 
 		if requested.Sharing.IsTimeSlicing() {
 			nvidiaDriverRoot := "/run/nvidia/driver"
 			config, err := requested.Sharing.GetTimeSlicingConfig()
 			if err != nil {
-				return fmt.Errorf("error getting timeslice config for %v: %v", gpuInfo.uuid, err)
+				return nil, fmt.Errorf("error getting timeslice config for %v: %v", gpuInfo.uuid, err)
 			}
 			err = setCudaTimeSlice(gpuInfo, nvidiaDriverRoot, config)
 			if err != nil {
-				return fmt.Errorf("error setting timeslice for %v: %v", gpuInfo.uuid, err)
+				return nil, fmt.Errorf("error setting timeslice for %v: %v", gpuInfo.uuid, err)
 			}
 		}
 
-		if s.allocated[claimUid].Gpu == nil {
-			s.allocated[claimUid].Gpu = &AllocatedGpus{}
-		}
-
-		s.allocated[claimUid].Gpu.Devices = append(s.allocated[claimUid].Gpu.Devices, gpuInfo)
+		allocated.Devices = append(allocated.Devices, gpuInfo)
 	}
 
-	return nil
+	return allocated, nil
 }
 
-func (s *DeviceState) allocateMigDevices(claimUid string, requested *nascrd.RequestedMigDevices) error {
+func (s *DeviceState) allocateMigDevices(claimUid string, requested *nascrd.RequestedMigDevices) (*AllocatedMigDevices, error) {
+	allocated := &AllocatedMigDevices{}
+
 	for _, device := range requested.Devices {
 		if _, exists := s.allocatable[device.ParentUUID]; !exists {
-			return fmt.Errorf("requested GPU does not exist: %v", device.ParentUUID)
+			return nil, fmt.Errorf("requested GPU does not exist: %v", device.ParentUUID)
 		}
 
 		parent := s.allocatable[device.ParentUUID]
 
 		if !parent.migEnabled {
-			return fmt.Errorf("cannot allocate a GPU with MIG mode disabled: %v", device.ParentUUID)
+			return nil, fmt.Errorf("cannot allocate a GPU with MIG mode disabled: %v", device.ParentUUID)
 		}
 
 		if _, exists := parent.migProfiles[device.Profile]; !exists {
-			return fmt.Errorf("MIG profile %v does not exist on GPU: %v", device.Profile, device.ParentUUID)
+			return nil, fmt.Errorf("MIG profile %v does not exist on GPU: %v", device.Profile, device.ParentUUID)
 		}
 
 		placement := nvml.GpuInstancePlacement{
@@ -258,30 +256,34 @@ func (s *DeviceState) allocateMigDevices(claimUid string, requested *nascrd.Requ
 
 		migInfo, err := createMigDevice(parent.GpuInfo, parent.migProfiles[device.Profile].profile, &placement)
 		if err != nil {
-			return fmt.Errorf("error creating MIG device: %v", err)
+			return nil, fmt.Errorf("error creating MIG device: %v", err)
 		}
 
-		if s.allocated[claimUid].Mig == nil {
-			s.allocated[claimUid].Mig = &AllocatedMigDevices{}
-		}
-
-		s.allocated[claimUid].Mig.Devices = append(s.allocated[claimUid].Mig.Devices, migInfo)
+		allocated.Devices = append(allocated.Devices, migInfo)
 	}
 
-	return nil
+	return allocated, nil
 }
 
-func (s *DeviceState) freeGpu(gpu *GpuInfo) error {
-	nvidiaDriverRoot := "/run/nvidia/driver"
-	err := setCudaTimeSlice(gpu, nvidiaDriverRoot, nil)
-	if err != nil {
-		return fmt.Errorf("error setting timeslice for %v: %v", gpu.uuid, err)
+func (s *DeviceState) freeGpus(claimUid string, gpu *AllocatedGpus) error {
+	for _, device := range gpu.Devices {
+		nvidiaDriverRoot := "/run/nvidia/driver"
+		err := setCudaTimeSlice(device, nvidiaDriverRoot, nil)
+		if err != nil {
+			return fmt.Errorf("error setting timeslice for %v: %v", device.uuid, err)
+		}
 	}
 	return nil
 }
 
-func (s *DeviceState) freeMigDevice(mig *MigDeviceInfo) error {
-	return deleteMigDevice(mig)
+func (s *DeviceState) freeMigDevices(claimUid string, mig *AllocatedMigDevices) error {
+	for _, device := range mig.Devices {
+		err := deleteMigDevice(device)
+		if err != nil {
+			return fmt.Errorf("error deleting MIG device for %v: %v", device.uuid, err)
+		}
+	}
+	return nil
 }
 
 func (s *DeviceState) syncAllocatableDevicesToCRDSpec(spec *nascrd.NodeAllocationStateSpec) {
@@ -364,14 +366,17 @@ func (s *DeviceState) syncAllocatedDevicesFromCRDSpec(spec *nascrd.NodeAllocatio
 
 	allocated := make(ClaimAllocations)
 	for claim, devices := range spec.ClaimAllocations {
+		if _, exists := spec.ClaimRequests[claim]; !exists {
+			continue
+		}
 		allocated[claim] = &AllocatedDevices{}
 		switch devices.Type() {
 		case nascrd.GpuDeviceType:
+			requested := spec.ClaimRequests[claim].Gpu
 			allocated[claim].Gpu = &AllocatedGpus{}
 			for _, d := range devices.Gpu.Devices {
 				gpuInfo := gpus[d.UUID].GpuInfo
 				nvidiaDriverRoot := "/run/nvidia/driver"
-				requested := spec.ClaimRequests[claim].Gpu
 				if requested.Sharing.IsTimeSlicing() {
 					config, err := requested.Sharing.GetTimeSlicingConfig()
 					if err != nil {
