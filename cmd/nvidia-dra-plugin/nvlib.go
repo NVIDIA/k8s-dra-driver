@@ -22,7 +22,6 @@ import (
 
 	"k8s.io/klog/v2"
 
-	nascrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1"
 	nvdev "gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvlib/device"
 	"gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvml"
 )
@@ -432,23 +431,20 @@ func walkMigDevices(d nvml.Device, f func(i int, d nvml.Device) error) error {
 	return nil
 }
 
-func setCudaTimeSlice(gpu *GpuInfo, nvidiaDriverRoot string, config *nascrd.TimeSlicingConfig) error {
-	timeSlice := nascrd.DefaultTimeSlice
-	if config != nil && config.TimeSlice != nil {
-		timeSlice = *config.TimeSlice
-	}
-
-	cmd := exec.Command(
-		"chroot",
-		nvidiaDriverRoot,
-		"nvidia-smi",
-		"compute-policy",
-		"-i", fmt.Sprintf("%s", gpu.uuid),
-		"--set-timeslice", fmt.Sprintf("%d", timeSlice.Int()))
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		klog.Errorf("\n%v", output)
-		return fmt.Errorf("error running nvidia-smi: %v", err)
+func setTimeSlice(nvidiaDriverRoot string, uuids []string, timeSlice int) error {
+	for _, uuid := range uuids {
+		cmd := exec.Command(
+			"chroot",
+			nvidiaDriverRoot,
+			"nvidia-smi",
+			"compute-policy",
+			"-i", uuid,
+			"--set-timeslice", fmt.Sprintf("%d", timeSlice))
+		output, err := cmd.CombinedOutput()
+		if err != nil {
+			klog.Errorf("\n%v", string(output))
+			return fmt.Errorf("error running nvidia-smi: %v", err)
+		}
 	}
 	return nil
 }
