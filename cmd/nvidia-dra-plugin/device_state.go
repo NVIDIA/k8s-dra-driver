@@ -56,8 +56,9 @@ type AllocatedMigDevices struct {
 }
 
 type AllocatedDevices struct {
-	Gpu *AllocatedGpus
-	Mig *AllocatedMigDevices
+	Gpu              *AllocatedGpus
+	Mig              *AllocatedMigDevices
+	MpsControlDaemon *MpsControlDaemon
 }
 
 func (d AllocatedDevices) Type() string {
@@ -114,8 +115,10 @@ type DeviceState struct {
 	sync.Mutex
 	cdi         *CDIHandler
 	tsManager   *TimeSlicingManager
+	mpsManager  *MpsManager
 	allocatable AllocatableDevices
 	allocated   ClaimAllocations
+	config      *Config
 }
 
 func NewDeviceState(config *Config) (*DeviceState, error) {
@@ -137,12 +140,15 @@ func NewDeviceState(config *Config) (*DeviceState, error) {
 	}
 
 	tsManager := NewTimeSlicingManager(nvidiaDriverRoot)
+	mpsManager := NewMpsManager(config, MpsRoot, nvidiaDriverRoot, MpsControlDaemonTemplatePath)
 
 	state := &DeviceState{
 		cdi:         cdi,
 		tsManager:   tsManager,
+		mpsManager:  mpsManager,
 		allocatable: allocatable,
 		allocated:   make(ClaimAllocations),
+		config:      config,
 	}
 
 	err = state.syncAllocatedDevicesFromCRDSpec(&config.nascrd.Spec)
@@ -179,6 +185,10 @@ func (s *DeviceState) Allocate(claimUid string, requested nascrd.RequestedDevice
 		if err != nil {
 			return nil, fmt.Errorf("MIG device allocation failed: %v", err)
 		}
+		err = s.setupSharing(requested.Mig.Sharing, requested.ClaimInfo, allocated)
+		if err != nil {
+			return nil, fmt.Errorf("error setting up sharing: %v", err)
+		}
 	}
 
 	err = s.cdi.CreateClaimSpecFile(claimUid, allocated)
@@ -198,6 +208,14 @@ func (s *DeviceState) Free(claimUid string) error {
 	if s.allocated[claimUid] == nil {
 		return nil
 	}
+
+	if s.allocated[claimUid].MpsControlDaemon != nil {
+		err := s.allocated[claimUid].MpsControlDaemon.Stop()
+		if err != nil {
+			return fmt.Errorf("error stopping MPS control daemon: %v", err)
+		}
+	}
+
 	switch s.allocated[claimUid].Type() {
 	case nascrd.GpuDeviceType:
 		err := s.freeGpus(claimUid, s.allocated[claimUid])
@@ -299,7 +317,7 @@ func (s *DeviceState) freeMigDevices(claimUid string, devices *AllocatedDevices)
 	return nil
 }
 
-func (s *DeviceState) setupSharing(sharing *nascrd.GpuSharing, claim *nascrd.ClaimInfo, devices *AllocatedDevices) error {
+func (s *DeviceState) setupSharing(sharing nascrd.Sharing, claim *nascrd.ClaimInfo, devices *AllocatedDevices) error {
 	if sharing.IsTimeSlicing() {
 		config, err := sharing.GetTimeSlicingConfig()
 		if err != nil {
@@ -310,6 +328,24 @@ func (s *DeviceState) setupSharing(sharing *nascrd.GpuSharing, claim *nascrd.Cla
 			return fmt.Errorf("error setting timeslice for %v: %v", claim.UID, err)
 		}
 	}
+
+	if sharing.IsMps() {
+		config, err := sharing.GetMpsConfig()
+		if err != nil {
+			return fmt.Errorf("error getting MPS configuration: %v", err)
+		}
+		mpsControlDaemon := s.mpsManager.NewMpsControlDaemon(claim, devices, config)
+		err = mpsControlDaemon.Start()
+		if err != nil {
+			return fmt.Errorf("error starting MPS control daemon: %v", err)
+		}
+		err = mpsControlDaemon.AssertReady()
+		if err != nil {
+			return fmt.Errorf("MPS control daemon is not yet ready: %v", err)
+		}
+		devices.MpsControlDaemon = mpsControlDaemon
+	}
+
 	return nil
 }
 
@@ -396,10 +432,10 @@ func (s *DeviceState) syncAllocatedDevicesFromCRDSpec(spec *nascrd.NodeAllocatio
 		if _, exists := spec.ClaimRequests[claim]; !exists {
 			continue
 		}
+		requested := spec.ClaimRequests[claim]
 		allocated[claim] = &AllocatedDevices{}
 		switch devices.Type() {
 		case nascrd.GpuDeviceType:
-			requested := spec.ClaimRequests[claim]
 			allocated[claim].Gpu = &AllocatedGpus{}
 			for _, d := range devices.Gpu.Devices {
 				allocated[claim].Gpu.Devices = append(allocated[claim].Gpu.Devices, gpus[d.UUID].GpuInfo)
@@ -432,6 +468,10 @@ func (s *DeviceState) syncAllocatedDevicesFromCRDSpec(spec *nascrd.NodeAllocatio
 					}
 				}
 				allocated[claim].Mig.Devices = append(allocated[claim].Mig.Devices, migInfo)
+			}
+			err := s.setupSharing(requested.Mig.Sharing, requested.ClaimInfo, allocated[claim])
+			if err != nil {
+				return fmt.Errorf("error setting up sharing: %v", err)
 			}
 		}
 	}

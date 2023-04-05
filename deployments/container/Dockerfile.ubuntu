@@ -45,6 +45,7 @@ RUN mkdir /licenses && mv /NGC-DL-CONTAINER-LICENSE /licenses/NGC-DL-CONTAINER-L
 COPY --from=build /artifacts/nvidia-dra-controller /usr/bin/nvidia-dra-controller
 COPY --from=build /artifacts/nvidia-dra-plugin     /usr/bin/nvidia-dra-plugin
 COPY --from=build /artifacts/set-nas-status        /usr/bin/set-nas-status
+COPY --from=build /build/templates                 /templates
 
 # Install / upgrade packages here that are required to resolve CVEs
 ARG CVE_UPDATES

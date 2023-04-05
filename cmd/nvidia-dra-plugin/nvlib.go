@@ -448,3 +448,20 @@ func setTimeSlice(nvidiaDriverRoot string, uuids []string, timeSlice int) error 
 	}
 	return nil
 }
+
+func setComputeMode(nvidiaDriverRoot string, uuids []string, mode string) error {
+	for _, uuid := range uuids {
+		cmd := exec.Command(
+			"chroot",
+			nvidiaDriverRoot,
+			"nvidia-smi",
+			"-i", uuid,
+			"-c", mode)
+		output, err := cmd.CombinedOutput()
+		if err != nil {
+			klog.Errorf("\n%v", string(output))
+			return fmt.Errorf("error running nvidia-smi: %v", err)
+		}
+	}
+	return nil
+}

@@ -130,6 +130,7 @@ type RequestedGpus struct {
 // RequestedMigDevices represents a set of MIG device being requested for allocation
 type RequestedMigDevices struct {
 	Devices []RequestedMigDevice `json:"devices"`
+	Sharing *MigDeviceSharing    `json:"sharing,omitempty"`
 }
 
 // RequestedDevices represents a list of requests for devices to be allocated

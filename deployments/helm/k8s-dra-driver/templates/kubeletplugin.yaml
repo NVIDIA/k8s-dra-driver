@@ -83,6 +83,7 @@ spec:
           mountPath: /var/lib/kubelet/plugins_registry
         - name: plugins
           mountPath: /var/lib/kubelet/plugins
+          mountPropagation: Bidirectional
         - name: cdi
           mountPath: /var/run/cdi
         - name: driver-root
