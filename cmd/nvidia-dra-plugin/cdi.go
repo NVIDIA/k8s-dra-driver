@@ -198,6 +198,10 @@ func (cdi *CDIHandler) CreateClaimSpecFile(claimUid string, devices *AllocatedDe
 		}
 	}
 
+	if devices.MpsControlDaemon != nil {
+		claimEdits.Append(devices.MpsControlDaemon.GetCDIContainerEdits())
+	}
+
 	spec := &cdispec.Spec{
 		Kind: cdiKind,
 		Devices: []cdispec.Device{

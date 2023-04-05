@@ -17,14 +17,15 @@
 package v1alpha1
 
 import (
+	nascrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // MigDeviceClaimParametersSpec is the spec for the MigDeviceClaimParameters CRD
 type MigDeviceClaimParametersSpec struct {
-	Profile                string `json:"profile,omitempty"`
-	GpuClaimParametersName string `json:"gpuClaimName,omitempty"`
-	Uninitialized          bool   `json:"uninitialized,omitempty"`
+	Profile                string                   `json:"profile,omitempty"`
+	Sharing                *nascrd.MigDeviceSharing `json:"sharing,omitempty"`
+	GpuClaimParametersName string                   `json:"gpuClaimName,omitempty"`
 }
 
 // +genclient

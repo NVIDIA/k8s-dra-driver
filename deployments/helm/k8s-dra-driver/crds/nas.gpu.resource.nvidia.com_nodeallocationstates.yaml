@@ -202,12 +202,33 @@ spec:
                             for GPUs and its settings
                           maxProperties: 2
                           properties:
+                            mpsConfig:
+                              description: MpsConfig provides the configuring for
+                                an MPS control daemon.
+                              properties:
+                                activeThreadPercentage:
+                                  type: integer
+                                maxConnections:
+                                  type: integer
+                                pinnedDeviceMemoryLimit:
+                                  additionalProperties:
+                                    anyOf:
+                                    - type: integer
+                                    - type: string
+                                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                    x-kubernetes-int-or-string: true
+                                  description: MpsPinnedDeviceMemoryLimit holds the
+                                    string representation of the limits across multiple
+                                    devices
+                                  type: object
+                              type: object
                             strategy:
                               default: TimeSlicing
                               description: GpuSharingStrategy encodes the valid Sharing
                                 strategies as a string
                               enum:
                               - TimeSlicing
+                              - MPS
                               type: string
                             timeSlicingConfig:
                               description: TimeSlicingSettings provides the settings
@@ -261,6 +282,42 @@ spec:
                             - profile
                             type: object
                           type: array
+                        sharing:
+                          description: MigDeviceSharing holds the current sharing
+                            strategy for MIG Devices and its settings
+                          maxProperties: 2
+                          properties:
+                            mpsConfig:
+                              description: MpsConfig provides the configuring for
+                                an MPS control daemon.
+                              properties:
+                                activeThreadPercentage:
+                                  type: integer
+                                maxConnections:
+                                  type: integer
+                                pinnedDeviceMemoryLimit:
+                                  additionalProperties:
+                                    anyOf:
+                                    - type: integer
+                                    - type: string
+                                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                    x-kubernetes-int-or-string: true
+                                  description: MpsPinnedDeviceMemoryLimit holds the
+                                    string representation of the limits across multiple
+                                    devices
+                                  type: object
+                              type: object
+                            strategy:
+                              default: TimeSlicing
+                              description: GpuSharingStrategy encodes the valid Sharing
+                                strategies as a string
+                              enum:
+                              - TimeSlicing
+                              - MPS
+                              type: string
+                          required:
+                          - strategy
+                          type: object
                       required:
                       - devices
                       type: object

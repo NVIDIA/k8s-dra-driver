@@ -1,0 +1,72 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: {{ .MpsControlDaemonNamespace }}
+  name: {{ .MpsControlDaemonName }}
+  labels:
+    app: {{ .MpsControlDaemonName }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .MpsControlDaemonName }}
+  template:
+    metadata:
+      labels:
+        app: {{ .MpsControlDaemonName }}
+    spec:
+      containers:
+      - name: mps-control-daemon
+        image: ubuntu:22.04
+        securityContext:
+          privileged: true
+        command:
+        - "chroot"
+        - "/run/nvidia/driver"
+        - "nvidia-cuda-mps-control"
+        - "-f"
+        startupProbe:
+          exec:
+            command:
+            - "ls"
+            - "/run/nvidia/driver/tmp/nvidia-mps/control"
+          initialDelaySeconds: 1
+          periodSeconds: 1
+        env:
+        - name: CUDA_VISIBLE_DEVICES
+          value: "{{ .CUDA_VISIBLE_DEVICES }}"
+        {{- if .CUDA_DEVICE_MAX_CONNECTIONS }}
+        - name: CUDA_DEVICE_MAX_CONNECTIONS
+          value: "{{ .CUDA_DEVICE_MAX_CONNECTIONS }}"
+        {{- end}}
+		{{- if .CUDA_MPS_ACTIVE_THREAD_PERCENTAGE }}
+        - name: CUDA_MPS_ACTIVE_THREAD_PERCENTAGE
+          value: "{{ .CUDA_MPS_ACTIVE_THREAD_PERCENTAGE }}"
+        {{- end}}
+		{{- if .CUDA_MPS_PINNED_DEVICE_MEM_LIMIT }}
+        - name: CUDA_MPS_PINNED_DEVICE_MEM_LIMIT
+          value: "{{ .CUDA_MPS_PINNED_DEVICE_MEM_LIMIT }}"
+        {{- end}}
+        volumeMounts:
+        - name: nvidia-driver-root
+          mountPath: /run/nvidia/driver
+        - name: mps-shm-directory
+          mountPath: /run/nvidia/driver/dev/shm
+        - name: mps-pipe-directory
+          mountPath: /run/nvidia/driver/tmp/nvidia-mps
+        - name: mps-log-directory
+          mountPath: /run/nvidia/driver/var/log/nvidia-mps
+      volumes:
+      - name: nvidia-driver-root
+        hostPath:
+          path: {{ .NvidiaDriverRoot }}
+      - name: mps-shm-directory
+        hostPath:
+          path: {{ .MpsShmDirectory }}
+      - name: mps-pipe-directory
+        hostPath:
+          path: {{ .MpsPipeDirectory }}
+      - name: mps-log-directory
+        hostPath:
+          path: {{ .MpsLogDirectory }}

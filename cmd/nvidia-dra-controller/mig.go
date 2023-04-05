@@ -105,6 +105,7 @@ func (m *migdriver) UnsuitableNode(crd *nascrd.NodeAllocationState, pod *corev1.
 		requestedDevices := nascrd.RequestedDevices{
 			Mig: &nascrd.RequestedMigDevices{
 				Devices: devices,
+				Sharing: claimParams.Sharing.DeepCopy(),
 			},
 		}
 
