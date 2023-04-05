@@ -20,6 +20,13 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// ClaimInfo holds the identifying information about a claim
+type ClaimInfo struct {
+	Namespace string `json:"namespace"`
+	Name      string `json:"name"`
+	UID       string `json:"uid"`
+}
+
 // MigDevicePlacement represents the placement of a MIG device within a GPU
 type MigDevicePlacement struct {
 	Start int `json:"start"`
@@ -127,8 +134,9 @@ type RequestedMigDevices struct {
 
 // RequestedDevices represents a list of requests for devices to be allocated
 type RequestedDevices struct {
-	Gpu *RequestedGpus       `json:"gpu,omitempty"`
-	Mig *RequestedMigDevices `json:"mig,omitempty"`
+	ClaimInfo *ClaimInfo           `json:"claimInfo"`
+	Gpu       *RequestedGpus       `json:"gpu,omitempty"`
+	Mig       *RequestedMigDevices `json:"mig,omitempty"`
 }
 
 // Type returns the type of RequestedDevices this represents

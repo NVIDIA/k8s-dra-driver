@@ -169,6 +169,21 @@ spec:
                   description: RequestedDevices represents a list of requests for
                     devices to be allocated
                   properties:
+                    claimInfo:
+                      description: ClaimInfo holds the identifying information about
+                        a claim
+                      properties:
+                        name:
+                          type: string
+                        namespace:
+                          type: string
+                        uid:
+                          type: string
+                      required:
+                      - name
+                      - namespace
+                      - uid
+                      type: object
                     gpu:
                       description: RequestedGpus represents a set of GPUs being requested
                         for allocation
@@ -249,6 +264,8 @@ spec:
                       required:
                       - devices
                       type: object
+                  required:
+                  - claimInfo
                   type: object
                 type: object
             type: object

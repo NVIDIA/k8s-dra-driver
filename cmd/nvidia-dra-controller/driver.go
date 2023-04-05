@@ -150,6 +150,14 @@ func (d driver) Allocate(ctx context.Context, claim *resourcev1.ResourceClaim, c
 		return nil, fmt.Errorf("unable to allocate devices on node '%v': %v", selectedNode, err)
 	}
 
+	requested := crd.Spec.ClaimRequests[string(claim.UID)]
+	requested.ClaimInfo = &nascrd.ClaimInfo{
+		Namespace: claim.Namespace,
+		Name:      claim.Name,
+		UID:       string(claim.UID),
+	}
+	crd.Spec.ClaimRequests[string(claim.UID)] = requested
+
 	err = client.Update(&crd.Spec)
 	if err != nil {
 		return nil, fmt.Errorf("error updating NodeAllocationState CRD: %v", err)
