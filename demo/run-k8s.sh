@@ -4,6 +4,7 @@ cd ../../kubernetes
 # Reset logs and k8s state
 sudo rm -rf /tmp/kube*
 sudo rm -rf /var/run/kubernetes
+sudo rm -rf /var/lib/kubelet
 
 # Setup a custom resolv.conf file
 sudo cat > /etc/resolv-9999.conf <<EOF
