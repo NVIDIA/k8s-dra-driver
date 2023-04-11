@@ -20,15 +20,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// DeviceSelector allows one to match on a specific type of Device as part of the class
-type DeviceSelector struct {
-	Type string `json:"type"`
-	Name string `json:"name"`
-}
-
 // DeviceClassParametersSpec is the spec for the DeviceClassParametersSpec CRD
 type DeviceClassParametersSpec struct {
-	DeviceSelector []DeviceSelector `json:"deviceSelector,omitempty"`
+	Shareable *bool `json:"sharable,omitempty"`
 }
 
 // +genclient

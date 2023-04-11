@@ -16,10 +16,6 @@
 
 package v1alpha1
 
-import (
-	nascrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1"
-)
-
 const (
 	GroupName = "gpu.resource.nvidia.com"
 	Version   = "v1alpha1"
@@ -28,23 +24,34 @@ const (
 	MigDeviceClaimParametersKind = "MigDeviceClaimParameters"
 )
 
-func DefaultDeviceClassParametersSpec() *DeviceClassParametersSpec {
-	return &DeviceClassParametersSpec{
-		DeviceSelector: []DeviceSelector{
-			{
-				Type: nascrd.GpuDeviceType,
-				Name: "*",
-			},
-			{
-				Type: nascrd.MigDeviceType,
-				Name: "*",
-			},
-		},
+func UpdateDeviceClassParametersSpecWithDefaults(oldspec *DeviceClassParametersSpec) *DeviceClassParametersSpec {
+	newspec := &DeviceClassParametersSpec{}
+	if oldspec != nil {
+		newspec = oldspec.DeepCopy()
 	}
+	if newspec.Shareable == nil {
+		shareable := true
+		newspec.Shareable = &shareable
+	}
+	return newspec
 }
 
-func DefaultGpuClaimParametersSpec() *GpuClaimParametersSpec {
-	return &GpuClaimParametersSpec{
-		Count: 1,
+func UpdateGpuClaimParametersSpecWithDefaults(oldspec *GpuClaimParametersSpec) *GpuClaimParametersSpec {
+	newspec := &GpuClaimParametersSpec{}
+	if oldspec != nil {
+		newspec = oldspec.DeepCopy()
 	}
+	if newspec.Count == nil {
+		count := 1
+		newspec.Count = &count
+	}
+	return newspec
+}
+
+func UpdateMigDeviceClaimParametersSpecWithDefaults(oldspec *MigDeviceClaimParametersSpec) *MigDeviceClaimParametersSpec {
+	newspec := &MigDeviceClaimParametersSpec{}
+	if oldspec != nil {
+		newspec = oldspec.DeepCopy()
+	}
+	return newspec
 }
