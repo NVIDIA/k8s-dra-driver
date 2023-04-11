@@ -60,7 +60,7 @@ func NewDriver(config *Config) *driver {
 
 func (d driver) GetClassParameters(ctx context.Context, class *resourcev1.ResourceClass) (interface{}, error) {
 	if class.ParametersRef == nil {
-		return gpucrd.DefaultDeviceClassParametersSpec(), nil
+		return gpucrd.UpdateDeviceClassParametersSpecWithDefaults(nil), nil
 	}
 	if class.ParametersRef.APIGroup != DriverAPIGroup {
 		return nil, fmt.Errorf("incorrect API group: %v", class.ParametersRef.APIGroup)
@@ -69,12 +69,12 @@ func (d driver) GetClassParameters(ctx context.Context, class *resourcev1.Resour
 	if err != nil {
 		return nil, fmt.Errorf("error getting DeviceClassParameters called '%v': %v", class.ParametersRef.Name, err)
 	}
-	return &dc.Spec, nil
+	return gpucrd.UpdateDeviceClassParametersSpecWithDefaults(&dc.Spec), nil
 }
 
 func (d driver) GetClaimParameters(ctx context.Context, claim *resourcev1.ResourceClaim, class *resourcev1.ResourceClass, classParameters interface{}) (interface{}, error) {
 	if claim.Spec.ParametersRef == nil {
-		return gpucrd.DefaultGpuClaimParametersSpec(), nil
+		return gpucrd.UpdateGpuClaimParametersSpecWithDefaults(nil), nil
 	}
 	if claim.Spec.ParametersRef.APIGroup != DriverAPIGroup {
 		return nil, fmt.Errorf("incorrect API group: %v", claim.Spec.ParametersRef.APIGroup)
@@ -85,21 +85,23 @@ func (d driver) GetClaimParameters(ctx context.Context, claim *resourcev1.Resour
 		if err != nil {
 			return nil, fmt.Errorf("error getting GpuClaimParameters called '%v' in namespace '%v': %v", claim.Spec.ParametersRef.Name, claim.Namespace, err)
 		}
-		err = d.gpu.ValidateClaimParameters(&gc.Spec)
+		claimParameters := gpucrd.UpdateGpuClaimParametersSpecWithDefaults(&gc.Spec)
+		err = d.gpu.ValidateClaimParameters(claimParameters)
 		if err != nil {
 			return nil, fmt.Errorf("error validating GpuClaimParameters called '%v' in namespace '%v': %v", claim.Spec.ParametersRef.Name, claim.Namespace, err)
 		}
-		return &gc.Spec, nil
+		return claimParameters, nil
 	case gpucrd.MigDeviceClaimParametersKind:
 		mc, err := d.clientset.GpuV1alpha1().MigDeviceClaimParameters(claim.Namespace).Get(ctx, claim.Spec.ParametersRef.Name, metav1.GetOptions{})
 		if err != nil {
 			return nil, fmt.Errorf("error getting MigDeviceClaimParameters called '%v' in namespace '%v': %v", claim.Spec.ParametersRef.Name, claim.Namespace, err)
 		}
+		claimParameters := gpucrd.UpdateMigDeviceClaimParametersSpecWithDefaults(&mc.Spec)
 		err = d.mig.ValidateClaimParameters(&mc.Spec)
 		if err != nil {
 			return nil, fmt.Errorf("error validating MigDeviceClaimParameters called '%v' in namespace '%v': %v", claim.Spec.ParametersRef.Name, claim.Namespace, err)
 		}
-		return &mc.Spec, nil
+		return claimParameters, nil
 	}
 	return nil, fmt.Errorf("unknown ResourceClaim.ParametersRef.Kind: %v", claim.Spec.ParametersRef.Kind)
 }
@@ -165,7 +167,7 @@ func (d driver) Allocate(ctx context.Context, claim *resourcev1.ResourceClaim, c
 
 	onSuccess()
 
-	return buildAllocationResult(selectedNode, true), nil
+	return buildAllocationResult(selectedNode, *classParams.Shareable), nil
 }
 
 func (d driver) Deallocate(ctx context.Context, claim *resourcev1.ResourceClaim) error {

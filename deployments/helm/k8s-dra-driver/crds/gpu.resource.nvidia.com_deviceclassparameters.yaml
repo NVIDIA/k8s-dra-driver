@@ -37,20 +37,8 @@ spec:
             description: DeviceClassParametersSpec is the spec for the DeviceClassParametersSpec
               CRD
             properties:
-              deviceSelector:
-                items:
-                  description: DeviceSelector allows one to match on a specific type
-                    of Device as part of the class
-                  properties:
-                    name:
-                      type: string
-                    type:
-                      type: string
-                  required:
-                  - name
-                  - type
-                  type: object
-                type: array
+              sharable:
+                type: boolean
             type: object
         type: object
     served: true

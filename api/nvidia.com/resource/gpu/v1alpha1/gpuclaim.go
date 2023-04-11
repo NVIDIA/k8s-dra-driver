@@ -23,7 +23,7 @@ import (
 
 // GpuClaimParametersSpec is the spec for the GpuClaimParameters CRD
 type GpuClaimParametersSpec struct {
-	Count    int                `json:"count,omitempty"`
+	Count    *int               `json:"count,omitempty"`
 	Selector *GpuSelector       `json:"selector,omitempty"`
 	Sharing  *nascrd.GpuSharing `json:"sharing,omitempty"`
 }

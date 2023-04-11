@@ -76,8 +76,6 @@ spec:
                 required:
                 - strategy
                 type: object
-              uninitialized:
-                type: boolean
             type: object
         type: object
     served: true

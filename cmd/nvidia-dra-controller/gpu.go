@@ -39,7 +39,7 @@ func NewGpuDriver() *gpudriver {
 }
 
 func (g *gpudriver) ValidateClaimParameters(claimParams *gpucrd.GpuClaimParametersSpec) error {
-	if claimParams.Count < 1 {
+	if *claimParams.Count < 1 {
 		return fmt.Errorf("invalid number of GPUs requested: %v", claimParams.Count)
 	}
 	return nil
@@ -79,7 +79,7 @@ func (g *gpudriver) UnsuitableNode(crd *nascrd.NodeAllocationState, pod *corev1.
 		claimUID := string(ca.Claim.UID)
 		claimParams := ca.ClaimParameters.(*gpucrd.GpuClaimParametersSpec)
 
-		if claimParams.Count != len(allocated[claimUID]) {
+		if *claimParams.Count != len(allocated[claimUID]) {
 			for _, ca := range allcas {
 				ca.UnsuitableNodes = append(ca.UnsuitableNodes, potentialNode)
 			}
@@ -144,7 +144,7 @@ func (g *gpudriver) allocate(crd *nascrd.NodeAllocationState, pod *corev1.Pod, g
 
 		claimParams := ca.ClaimParameters.(*gpucrd.GpuClaimParametersSpec)
 		var devices []string
-		for i := 0; i < claimParams.Count; i++ {
+		for i := 0; i < *claimParams.Count; i++ {
 			for _, device := range available {
 				if selectorMatchesGpu(claimParams.Selector, device) {
 					devices = append(devices, device.UUID)
