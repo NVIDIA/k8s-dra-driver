@@ -69,7 +69,7 @@ type MpsControlDaemon struct {
 	shmDir    string
 	logDir    string
 	claim     *nascrd.ClaimInfo
-	devices   *AllocatedDevices
+	devices   *PreparedDevices
 	config    *nascrd.MpsConfig
 	manager   *MpsManager
 }
@@ -94,7 +94,7 @@ func NewTimeSlicingManager(nvidiaDriverRoot string) *TimeSlicingManager {
 	}
 }
 
-func (t *TimeSlicingManager) SetTimeSlice(devices *AllocatedDevices, config *nascrd.TimeSlicingConfig) error {
+func (t *TimeSlicingManager) SetTimeSlice(devices *PreparedDevices, config *nascrd.TimeSlicingConfig) error {
 	if devices.Mig != nil {
 		return fmt.Errorf("setting a TimeSlice duration on MIG devices is unsupported")
 	}
@@ -126,7 +126,7 @@ func NewMpsManager(config *Config, controlFilesRoot, nvidiaDriverRoot, templateP
 	}
 }
 
-func (m *MpsManager) NewMpsControlDaemon(claim *nascrd.ClaimInfo, devices *AllocatedDevices, config *nascrd.MpsConfig) *MpsControlDaemon {
+func (m *MpsManager) NewMpsControlDaemon(claim *nascrd.ClaimInfo, devices *PreparedDevices, config *nascrd.MpsConfig) *MpsControlDaemon {
 	return &MpsControlDaemon{
 		nodeName:  m.config.nascrd.Name,
 		namespace: m.config.nascrd.Namespace,

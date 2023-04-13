@@ -28,7 +28,7 @@ import (
 )
 
 type migdriver struct {
-	PendingClaimRequests *PerNodeClaimRequests
+	PendingAllocatedClaims *PerNodeAllocatedClaims
 }
 
 type ClaimInfo struct {
@@ -45,7 +45,7 @@ type MigDevicePlacements map[string][]MigDevicePlacement
 
 func NewMigDriver() *migdriver {
 	return &migdriver{
-		PendingClaimRequests: NewPerNodeClaimRequests(),
+		PendingAllocatedClaims: NewPerNodeAllocatedClaims(),
 	}
 }
 
@@ -56,29 +56,29 @@ func (m migdriver) ValidateClaimParameters(claimParams *gpucrd.MigDeviceClaimPar
 func (m *migdriver) Allocate(crd *nascrd.NodeAllocationState, claim *resourcev1.ResourceClaim, claimParams *gpucrd.MigDeviceClaimParametersSpec, class *resourcev1.ResourceClass, classParams *gpucrd.DeviceClassParametersSpec, selectedNode string) (OnSuccessCallback, error) {
 	claimUID := string(claim.UID)
 
-	if !m.PendingClaimRequests.Exists(claimUID, selectedNode) {
-		return nil, fmt.Errorf("no allocation requests generated for claim '%v' on node '%v' yet", claim.UID, selectedNode)
+	if !m.PendingAllocatedClaims.Exists(claimUID, selectedNode) {
+		return nil, fmt.Errorf("no allocations generated for claim '%v' on node '%v' yet", claim.UID, selectedNode)
 	}
 
-	crd.Spec.ClaimRequests[claimUID] = m.PendingClaimRequests.Get(claimUID, selectedNode)
+	crd.Spec.AllocatedClaims[claimUID] = m.PendingAllocatedClaims.Get(claimUID, selectedNode)
 	onSuccess := func() {
-		m.PendingClaimRequests.Remove(claimUID)
+		m.PendingAllocatedClaims.Remove(claimUID)
 	}
 
 	return onSuccess, nil
 }
 
 func (m *migdriver) Deallocate(crd *nascrd.NodeAllocationState, claim *resourcev1.ResourceClaim) error {
-	m.PendingClaimRequests.Remove(string(claim.UID))
+	m.PendingAllocatedClaims.Remove(string(claim.UID))
 	return nil
 }
 
 func (m *migdriver) UnsuitableNode(crd *nascrd.NodeAllocationState, pod *corev1.Pod, migcas []*controller.ClaimAllocation, allcas []*controller.ClaimAllocation, potentialNode string) error {
-	m.PendingClaimRequests.VisitNode(potentialNode, func(claimUID string, request nascrd.RequestedDevices) {
-		if _, exists := crd.Spec.ClaimRequests[claimUID]; exists {
-			m.PendingClaimRequests.Remove(claimUID)
+	m.PendingAllocatedClaims.VisitNode(potentialNode, func(claimUID string, allocated nascrd.AllocatedDevices) {
+		if _, exists := crd.Spec.AllocatedClaims[claimUID]; exists {
+			m.PendingAllocatedClaims.Remove(claimUID)
 		} else {
-			crd.Spec.ClaimRequests[claimUID] = request
+			crd.Spec.AllocatedClaims[claimUID] = allocated
 		}
 	})
 
@@ -94,7 +94,7 @@ func (m *migdriver) UnsuitableNode(crd *nascrd.NodeAllocationState, pod *corev1.
 		claimUID := string(ca.Claim.UID)
 		claimParams := ca.ClaimParameters.(*gpucrd.MigDeviceClaimParametersSpec)
 
-		devices := []nascrd.RequestedMigDevice{
+		devices := []nascrd.AllocatedMigDevice{
 			{
 				Profile:    claimParams.Profile,
 				ParentUUID: placements[ca].ParentUUID,
@@ -102,15 +102,15 @@ func (m *migdriver) UnsuitableNode(crd *nascrd.NodeAllocationState, pod *corev1.
 			},
 		}
 
-		requestedDevices := nascrd.RequestedDevices{
-			Mig: &nascrd.RequestedMigDevices{
+		AllocatedDevices := nascrd.AllocatedDevices{
+			Mig: &nascrd.AllocatedMigDevices{
 				Devices: devices,
 				Sharing: claimParams.Sharing.DeepCopy(),
 			},
 		}
 
-		m.PendingClaimRequests.Set(claimUID, potentialNode, requestedDevices)
-		crd.Spec.ClaimRequests[claimUID] = requestedDevices
+		m.PendingAllocatedClaims.Set(claimUID, potentialNode, AllocatedDevices)
+		crd.Spec.AllocatedClaims[claimUID] = AllocatedDevices
 	}
 
 	return nil
@@ -149,10 +149,10 @@ func (m *migdriver) available(crd *nascrd.NodeAllocationState) MigDevicePlacemen
 		}
 	}
 
-	for _, request := range crd.Spec.ClaimRequests {
-		switch request.Type() {
+	for _, allocated := range crd.Spec.AllocatedClaims {
+		switch allocated.Type() {
 		case nascrd.MigDeviceType:
-			for _, device := range request.Mig.Devices {
+			for _, device := range allocated.Mig.Devices {
 				p := MigDevicePlacement{
 					ParentUUID: device.ParentUUID,
 					Placement:  device.Placement,
@@ -172,8 +172,8 @@ func (m *migdriver) allocate(crd *nascrd.NodeAllocationState, pod *corev1.Pod, m
 	possiblePlacements := make(map[*controller.ClaimAllocation][]MigDevicePlacement)
 	for _, ca := range migcas {
 		claimUID := string(ca.Claim.UID)
-		if _, exists := crd.Spec.ClaimRequests[claimUID]; exists {
-			device := crd.Spec.ClaimRequests[claimUID].Mig.Devices[0]
+		if _, exists := crd.Spec.AllocatedClaims[claimUID]; exists {
+			device := crd.Spec.AllocatedClaims[claimUID].Mig.Devices[0]
 			possiblePlacements[ca] = []MigDevicePlacement{
 				{
 					ParentUUID: device.ParentUUID,
@@ -259,10 +259,10 @@ func (m *migdriver) allocate(crd *nascrd.NodeAllocationState, pod *corev1.Pod, m
 }
 
 func (m *migdriver) gpuIsAllocated(crd *nascrd.NodeAllocationState, uuid string) bool {
-	for _, request := range crd.Spec.ClaimRequests {
-		switch request.Type() {
+	for _, allocated := range crd.Spec.AllocatedClaims {
+		switch allocated.Type() {
 		case nascrd.GpuDeviceType:
-			for _, device := range request.Gpu.Devices {
+			for _, device := range allocated.Gpu.Devices {
 				if device.UUID == uuid {
 					return true
 				}
@@ -277,15 +277,15 @@ func (m *migdriver) gpuClaimInfo(crd *nascrd.NodeAllocationState, cas []*control
 
 	for _, ca := range cas {
 		claimUID := string(ca.Claim.UID)
-		if _, exists := crd.Spec.ClaimRequests[claimUID]; !exists {
+		if _, exists := crd.Spec.AllocatedClaims[claimUID]; !exists {
 			continue
 		}
 
-		request := crd.Spec.ClaimRequests[claimUID]
+		allocated := crd.Spec.AllocatedClaims[claimUID]
 
-		switch request.Type() {
+		switch allocated.Type() {
 		case nascrd.GpuDeviceType:
-			for _, device := range request.Gpu.Devices {
+			for _, device := range allocated.Gpu.Devices {
 				info[device.UUID] = ClaimInfo{
 					UID:  claimUID,
 					Name: ca.Claim.Name,

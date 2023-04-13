@@ -105,53 +105,53 @@ func (d *driver) NodePrepareResource(ctx context.Context, req *drapbv1.NodePrepa
 
 	klog.Infof("NodePrepareResource is called: request: %+v", req)
 
-	isAllocated, allocated, err := d.IsAllocated(req.ClaimUid)
+	isPrepared, prepared, err := d.IsPrepared(req.ClaimUid)
 	if err != nil {
-		return nil, fmt.Errorf("error checking if claim is already allocated: %v", err)
+		return nil, fmt.Errorf("error checking if claim is already prepared: %v", err)
 	}
 
-	if isAllocated {
-		klog.Infof("Returning cached devices for claim '%v': %s", req.ClaimUid, allocated)
-		return &drapbv1.NodePrepareResourceResponse{CdiDevices: allocated}, nil
+	if isPrepared {
+		klog.Infof("Returning cached devices for claim '%v': %s", req.ClaimUid, prepared)
+		return &drapbv1.NodePrepareResourceResponse{CdiDevices: prepared}, nil
 	}
 
-	allocated, err = d.Allocate(req.ClaimUid)
+	prepared, err = d.Prepare(req.ClaimUid)
 	if err != nil {
-		return nil, fmt.Errorf("error allocating devices for claim %v: %v", req.ClaimUid, err)
+		return nil, fmt.Errorf("error preparing devices for claim %v: %v", req.ClaimUid, err)
 	}
 
-	klog.Infof("Returning newly allocated devices for claim '%v': %s", req.ClaimUid, allocated)
-	return &drapbv1.NodePrepareResourceResponse{CdiDevices: allocated}, nil
+	klog.Infof("Returning newly prepared devices for claim '%v': %s", req.ClaimUid, prepared)
+	return &drapbv1.NodePrepareResourceResponse{CdiDevices: prepared}, nil
 }
 
 func (d *driver) NodeUnprepareResource(ctx context.Context, req *drapbv1.NodeUnprepareResourceRequest) (*drapbv1.NodeUnprepareResourceResponse, error) {
-	// We don't deallocate as part of NodeUnprepareResource, we do it
+	// We don't upprepare as part of NodeUnprepareResource, we do it
 	// asynchronously when the claims themselves are deleted and the
-	// ClaimRequest has been removed.
+	// AllocatedClaim has been removed.
 	return &drapbv1.NodeUnprepareResourceResponse{}, nil
 }
 
-func (d *driver) IsAllocated(claimUid string) (bool, []string, error) {
+func (d *driver) IsPrepared(claimUid string) (bool, []string, error) {
 	err := d.nasclient.Get()
 	if err != nil {
 		return false, nil, err
 	}
-	if _, exists := d.nascrd.Spec.ClaimAllocations[claimUid]; exists {
+	if _, exists := d.nascrd.Spec.PreparedClaims[claimUid]; exists {
 		return true, d.state.cdi.GetClaimDevices(claimUid), nil
 	}
 	return false, nil, nil
 }
 
-func (d *driver) Allocate(claimUid string) ([]string, error) {
+func (d *driver) Prepare(claimUid string) ([]string, error) {
 	var err error
-	var allocated []string
+	var prepared []string
 	err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		err = d.nasclient.Get()
 		if err != nil {
 			return err
 		}
 
-		allocated, err = d.state.Allocate(claimUid, d.nascrd.Spec.ClaimRequests[claimUid])
+		prepared, err = d.state.Prepare(claimUid, d.nascrd.Spec.AllocatedClaims[claimUid])
 		if err != nil {
 			return err
 		}
@@ -166,17 +166,17 @@ func (d *driver) Allocate(claimUid string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	return allocated, nil
+	return prepared, nil
 }
 
-func (d *driver) Free(claimUid string) error {
+func (d *driver) Unprepare(claimUid string) error {
 	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		err := d.nasclient.Get()
 		if err != nil {
 			return err
 		}
 
-		err = d.state.Free(claimUid)
+		err = d.state.Unprepare(claimUid)
 		if err != nil {
 			return err
 		}
@@ -323,18 +323,18 @@ func (d *driver) cleanupStaleState(nas *nascrd.NodeAllocationState) error {
 
 func (d *driver) cleanupClaimAllocations(nas *nascrd.NodeAllocationState, wg *sync.WaitGroup) chan error {
 	errors := make(chan error)
-	for claimUID := range nas.Spec.ClaimAllocations {
-		if _, exists := nas.Spec.ClaimRequests[claimUID]; !exists {
+	for claimUID := range nas.Spec.PreparedClaims {
+		if _, exists := nas.Spec.AllocatedClaims[claimUID]; !exists {
 			wg.Add(1)
 			go func(claimUID string) {
 				defer wg.Done()
-				klog.Infof("Attempting to free resources for claim %v", claimUID)
-				err := d.Free(claimUID)
+				klog.Infof("Attempting to unprepare resources for claim %v", claimUID)
+				err := d.Unprepare(claimUID)
 				if err != nil {
-					errors <- fmt.Errorf("error freeing resources for claim %v: %v", claimUID, err)
+					errors <- fmt.Errorf("error unpreparing resources for claim %v: %v", claimUID, err)
 					return
 				}
-				klog.Infof("Successfully freed resources for claim %v", claimUID)
+				klog.Infof("Successfully unprepared resources for claim %v", claimUID)
 			}(claimUID)
 		}
 	}
@@ -343,14 +343,14 @@ func (d *driver) cleanupClaimAllocations(nas *nascrd.NodeAllocationState, wg *sy
 
 func (d *driver) cleanupCDIFiles(nas *nascrd.NodeAllocationState, wg *sync.WaitGroup) chan error {
 	// TODO: implement loop to remove CDI files from the CDI path for claimUIDs
-	// that have been removed from the ClaimRequests map.
+	// that have been removed from the AllocatedClaims map.
 	errors := make(chan error)
 	return errors
 }
 
 func (d *driver) cleanupMpsControlDaemonArtifacts(nas *nascrd.NodeAllocationState, wg *sync.WaitGroup) chan error {
 	// TODO: implement loop to remove mpsControlDaemon folders from the mps
-	// path for claimUIDs that have been removed from the ClaimRequests map.
+	// path for claimUIDs that have been removed from the AllocatedClaims map.
 	errors := make(chan error)
 	return errors
 }

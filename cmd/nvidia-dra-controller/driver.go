@@ -126,11 +126,11 @@ func (d driver) Allocate(ctx context.Context, claim *resourcev1.ResourceClaim, c
 		return nil, fmt.Errorf("error retrieving node specific Gpu CRD: %v", err)
 	}
 
-	if crd.Spec.ClaimRequests == nil {
-		crd.Spec.ClaimRequests = make(map[string]nascrd.RequestedDevices)
+	if crd.Spec.AllocatedClaims == nil {
+		crd.Spec.AllocatedClaims = make(map[string]nascrd.AllocatedDevices)
 	}
 
-	if _, exists := crd.Spec.ClaimRequests[string(claim.UID)]; exists {
+	if _, exists := crd.Spec.AllocatedClaims[string(claim.UID)]; exists {
 		return buildAllocationResult(selectedNode, true), nil
 	}
 
@@ -152,13 +152,13 @@ func (d driver) Allocate(ctx context.Context, claim *resourcev1.ResourceClaim, c
 		return nil, fmt.Errorf("unable to allocate devices on node '%v': %v", selectedNode, err)
 	}
 
-	requested := crd.Spec.ClaimRequests[string(claim.UID)]
-	requested.ClaimInfo = &nascrd.ClaimInfo{
+	allocated := crd.Spec.AllocatedClaims[string(claim.UID)]
+	allocated.ClaimInfo = &nascrd.ClaimInfo{
 		Namespace: claim.Namespace,
 		Name:      claim.Name,
 		UID:       string(claim.UID),
 	}
-	crd.Spec.ClaimRequests[string(claim.UID)] = requested
+	crd.Spec.AllocatedClaims[string(claim.UID)] = allocated
 
 	err = client.Update(&crd.Spec)
 	if err != nil {
@@ -191,28 +191,28 @@ func (d driver) Deallocate(ctx context.Context, claim *resourcev1.ResourceClaim)
 		return fmt.Errorf("error retrieving node specific Gpu CRD: %v", err)
 	}
 
-	if crd.Spec.ClaimRequests == nil {
+	if crd.Spec.AllocatedClaims == nil {
 		return nil
 	}
 
-	if _, exists := crd.Spec.ClaimRequests[string(claim.UID)]; !exists {
+	if _, exists := crd.Spec.AllocatedClaims[string(claim.UID)]; !exists {
 		return nil
 	}
 
-	devices := crd.Spec.ClaimRequests[string(claim.UID)]
+	devices := crd.Spec.AllocatedClaims[string(claim.UID)]
 	switch devices.Type() {
 	case nascrd.GpuDeviceType:
 		err = d.gpu.Deallocate(crd, claim)
 	case nascrd.MigDeviceType:
 		err = d.mig.Deallocate(crd, claim)
 	default:
-		err = fmt.Errorf("unknown RequestedDevices.Type(): %v", devices.Type())
+		err = fmt.Errorf("unknown AllocatedDevices.Type(): %v", devices.Type())
 	}
 	if err != nil {
 		return fmt.Errorf("unable to deallocate devices '%v': %v", devices, err)
 	}
 
-	delete(crd.Spec.ClaimRequests, string(claim.UID))
+	delete(crd.Spec.AllocatedClaims, string(claim.UID))
 
 	err = client.Update(&crd.Spec)
 	if err != nil {
@@ -263,8 +263,8 @@ func (d driver) unsuitableNode(ctx context.Context, pod *corev1.Pod, allcas []*c
 		return nil
 	}
 
-	if crd.Spec.ClaimRequests == nil {
-		crd.Spec.ClaimRequests = make(map[string]nascrd.RequestedDevices)
+	if crd.Spec.AllocatedClaims == nil {
+		crd.Spec.AllocatedClaims = make(map[string]nascrd.AllocatedDevices)
 	}
 
 	perKindCas := make(map[string][]*controller.ClaimAllocation)
