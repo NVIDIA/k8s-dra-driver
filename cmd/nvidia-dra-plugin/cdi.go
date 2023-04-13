@@ -136,7 +136,7 @@ func (cdi *CDIHandler) CreateCommonSpecFile() error {
 	return cdi.registry.SpecDB().WriteSpec(spec, specName)
 }
 
-func (cdi *CDIHandler) CreateClaimSpecFile(claimUid string, devices *AllocatedDevices) error {
+func (cdi *CDIHandler) CreateClaimSpecFile(claimUid string, devices *PreparedDevices) error {
 	ret := cdi.nvml.Init()
 	if ret != nvml.SUCCESS {
 		return ret
