@@ -14,20 +14,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# A reference to the current directory where this script is located
 CURRENT_DIR="$(cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd)"
 
 set -ex
 set -o pipefail
 
-source "${CURRENT_DIR}/scripts/common.sh"
+source "${CURRENT_DIR}/common.sh"
 
-kubectl label node "${KIND_CLUSTER_NAME}-worker" --overwrite nvidia.com/dra.kubelet-plugin=true
-kubectl label node "${KIND_CLUSTER_NAME}-control-plane" --overwrite nvidia.com/dra.controller=true
-
-helm upgrade -i --create-namespace --namespace nvidia-dra-driver nvidia ../deployments/helm/k8s-dra-driver
-
-set +x
-printf '\033[0;32m'
-echo "Driver installation complete:"
-kubectl get pod -n nvidia-dra-driver
-printf '\033[0m'
+kind delete cluster \
+	--name "${KIND_CLUSTER_NAME}"

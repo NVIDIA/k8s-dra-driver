@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# A reference to the current directory where this script is located
 CURRENT_DIR="$(cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd)"
 
 set -ex
@@ -21,13 +22,16 @@ set -o pipefail
 
 source "${CURRENT_DIR}/scripts/common.sh"
 
-kubectl label node "${KIND_CLUSTER_NAME}-worker" --overwrite nvidia.com/dra.kubelet-plugin=true
-kubectl label node "${KIND_CLUSTER_NAME}-control-plane" --overwrite nvidia.com/dra.controller=true
+# Build the example driver image
+${SCRIPTS_DIR}/build-driver-image.sh
 
-helm upgrade -i --create-namespace --namespace nvidia-dra-driver nvidia ../deployments/helm/k8s-dra-driver
+# If a cluster is already running, load the image onto its nodes
+EXISTING_CLUSTER="$(kind get clusters | grep -w "${KIND_CLUSTER_NAME}" || true)"
+if [ "${EXISTING_CLUSTER}" != "" ]; then
+	${SCRIPTS_DIR}/load-driver-image-into-kind.sh
+fi
 
 set +x
 printf '\033[0;32m'
-echo "Driver installation complete:"
-kubectl get pod -n nvidia-dra-driver
+echo "Driver build complete: ${DRIVER_IMAGE}"
 printf '\033[0m'

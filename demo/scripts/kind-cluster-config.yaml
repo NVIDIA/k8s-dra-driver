@@ -1,0 +1,49 @@
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+featureGates:
+  DynamicResourceAllocation: true
+containerdConfigPatches:
+# Enable CDI as described in
+# https://github.com/container-orchestrated-devices/container-device-interface#containerd-configuration
+- |-
+  [plugins."io.containerd.grpc.v1.cri"]
+    enable_cdi = true
+nodes:
+- role: control-plane
+  kubeadmConfigPatches:
+  - |
+    kind: ClusterConfiguration
+    apiServer:
+        extraArgs:
+          runtime-config: "resource.k8s.io/v1alpha2=true"
+    scheduler:
+        extraArgs:
+          v: "1"
+    controllerManager:
+        extraArgs:
+          v: "1"
+  - |
+    kind: InitConfiguration
+    nodeRegistration:
+      kubeletExtraArgs:
+        v: "1"
+- role: worker
+  kubeadmConfigPatches:
+  - |
+    kind: JoinConfiguration
+    nodeRegistration:
+      kubeletExtraArgs:
+        v: "1"
+  extraMounts:
+  # We inject all NVIDIA GPUs using the nvidia-container-runtime.
+  # This requires `accept-nvidia-visible-devices-as-volume-mounts = true` be set
+  # in `/etc/nvidia-container-runtime/config.toml`
+  - hostPath: /dev/null
+    containerPath: /var/run/nvidia-container-devices/all
+  # The generated CDI specification assumes that `nvidia-ctk` is available on a
+  # node -- specifically for the `nvidia-ctk hook` subcommand. As a workaround,
+  # we mount it from the host.
+  # TODO: Remove this once we have a more stable solution to make `nvidia-ctk`
+  # on the kind nodes.
+  - hostPath: /usr/bin/nvidia-ctk
+    containerPath: /usr/bin/nvidia-ctk
