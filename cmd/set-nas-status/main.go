@@ -44,9 +44,11 @@ func newApp() *cli.App {
 		status string
 
 		kubeClientConfig flags.KubeClientConfig
-		loggingConfig    flags.LoggingConfig
+		loggingConfig    *flags.LoggingConfig
 		nasConfig        flags.NasConfig
 	)
+
+	loggingConfig = flags.NewLoggingConfig()
 
 	flags := []cli.Flag{
 		&cli.StringFlag{
@@ -67,6 +69,7 @@ func newApp() *cli.App {
 			EnvVars: []string{"STATUS"},
 		},
 	}
+
 	flags = append(flags, kubeClientConfig.Flags()...)
 	flags = append(flags, loggingConfig.Flags()...)
 	flags = append(flags, nasConfig.Flags()...)
