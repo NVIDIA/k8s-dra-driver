@@ -18,8 +18,13 @@ TR       ?= tr
 DIST_DIR ?= $(CURDIR)/dist
 
 include $(CURDIR)/common.mk
+include $(CURDIR)/versions.mk
 
 .NOTPARALLEL:
+
+ifeq ($(IMAGE_NAME),)
+IMAGE_NAME = $(REGISTRY)/$(DRIVER_NAME)
+endif
 
 BUILDIMAGE_TAG ?= golang$(GOLANG_VERSION)
 BUILDIMAGE ?= $(IMAGE_NAME)-build:$(BUILDIMAGE_TAG)

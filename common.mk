@@ -12,15 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-GOLANG_VERSION ?= 1.19.2
-CUDA_VERSION ?= 11.8.0
-
-DRIVER_NAME := k8s-dra-driver
-MODULE := github.com/NVIDIA/$(DRIVER_NAME)
-
-VERSION  ?= v0.1.0
-vVERSION := v$(VERSION:v%=%)
-
 VENDOR := nvidia.com
 
 API_BASE := api/$(VENDOR)/resource
@@ -36,8 +27,3 @@ PLURAL_EXCEPTIONS  = DeviceClassParameters:DeviceClassParameters
 PLURAL_EXCEPTIONS += GpuClaimParameters:GpuClaimParameters
 PLURAL_EXCEPTIONS += MigDeviceClaimParameters:MigDeviceClaimParameters
 PLURAL_EXCEPTIONS += ComputeInstanceParameters:ComputeInstanceParameters
-
-ifeq ($(IMAGE_NAME),)
-REGISTRY ?= nvcr.io/nvidia/cloud-native
-IMAGE_NAME = $(REGISTRY)/k8s-dra-driver
-endif
