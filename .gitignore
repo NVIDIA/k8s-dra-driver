@@ -1,3 +1,6 @@
 .cache/
-vendor/
+.bash_history
+/set-nas-status
+/nvidia-dra-controller
+/nvidia-dra-plugin
 [._]*.sw[a-p]
