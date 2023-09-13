@@ -144,7 +144,7 @@ func (m *MpsManager) NewMpsControlDaemon(claim *nascrd.ClaimInfo, devices *Prepa
 
 func (m *MpsManager) IsControlDaemonStarted(claim *nascrd.ClaimInfo) (bool, error) {
 	name := fmt.Sprintf(MpsControlDaemonNameFmt, claim.UID)
-	_, err := m.config.clientset.core.AppsV1().Deployments(m.config.nascrd.Namespace).Get(context.TODO(), name, metav1.GetOptions{})
+	_, err := m.config.clientset.Core.AppsV1().Deployments(m.config.nascrd.Namespace).Get(context.TODO(), name, metav1.GetOptions{})
 	if errors.IsNotFound(err) {
 		return false, nil
 	}
@@ -156,7 +156,7 @@ func (m *MpsManager) IsControlDaemonStarted(claim *nascrd.ClaimInfo) (bool, erro
 
 func (m *MpsManager) IsControlDaemonStopped(claim *nascrd.ClaimInfo) (bool, error) {
 	name := fmt.Sprintf(MpsControlDaemonNameFmt, claim.UID)
-	_, err := m.config.clientset.core.AppsV1().Deployments(m.config.nascrd.Namespace).Get(context.TODO(), name, metav1.GetOptions{})
+	_, err := m.config.clientset.Core.AppsV1().Deployments(m.config.nascrd.Namespace).Get(context.TODO(), name, metav1.GetOptions{})
 	if errors.IsNotFound(err) {
 		return true, nil
 	}
@@ -264,7 +264,7 @@ func (m *MpsControlDaemon) Start() error {
 		}
 	}
 
-	_, err = m.manager.config.clientset.core.AppsV1().Deployments(m.namespace).Create(context.TODO(), &deployment, metav1.CreateOptions{})
+	_, err = m.manager.config.clientset.Core.AppsV1().Deployments(m.namespace).Create(context.TODO(), &deployment, metav1.CreateOptions{})
 	if errors.IsAlreadyExists(err) {
 		return nil
 	}
@@ -290,7 +290,7 @@ func (m *MpsControlDaemon) AssertReady() error {
 			return true
 		},
 		func() error {
-			deployment, err := m.manager.config.clientset.core.AppsV1().Deployments(m.namespace).Get(
+			deployment, err := m.manager.config.clientset.Core.AppsV1().Deployments(m.namespace).Get(
 				context.TODO(),
 				m.name,
 				metav1.GetOptions{},
@@ -305,7 +305,7 @@ func (m *MpsControlDaemon) AssertReady() error {
 
 			selector := deployment.Spec.Selector.MatchLabels
 
-			pods, err := m.manager.config.clientset.core.CoreV1().Pods(m.namespace).List(
+			pods, err := m.manager.config.clientset.Core.CoreV1().Pods(m.namespace).List(
 				context.TODO(),
 				metav1.ListOptions{
 					LabelSelector: labels.Set(selector).AsSelector().String(),
@@ -367,7 +367,7 @@ func (m *MpsControlDaemon) Stop() error {
 		PropagationPolicy: &deletePolicy,
 	}
 
-	err = m.manager.config.clientset.core.AppsV1().Deployments(m.namespace).Delete(context.TODO(), m.name, deleteOptions)
+	err = m.manager.config.clientset.Core.AppsV1().Deployments(m.namespace).Delete(context.TODO(), m.name, deleteOptions)
 	if err != nil && !errors.IsNotFound(err) {
 		return fmt.Errorf("failed to delete deployment: %v", err)
 	}

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2022-2023, NVIDIA CORPORATION.  All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,6 +38,7 @@ const (
 
 type driver struct {
 	sync.Mutex
+	// TODO: Rename to nascr
 	nascrd    *nascrd.NodeAllocationState
 	nasclient *nasclient.Client
 	state     *DeviceState
@@ -45,7 +46,7 @@ type driver struct {
 
 func NewDriver(config *Config) (*driver, error) {
 	var d *driver
-	client := nasclient.New(config.nascrd, config.clientset.nvidia.NasV1alpha1())
+	client := nasclient.New(config.nascrd, config.clientset.Nvidia.NasV1alpha1())
 	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		err := client.GetOrCreate()
 		if err != nil {

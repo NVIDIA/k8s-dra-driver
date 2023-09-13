@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2022-2023, NVIDIA CORPORATION.  All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -51,7 +51,7 @@ type CDIHandler struct {
 
 func NewCDIHandler(config *Config) (*CDIHandler, error) {
 	registry := cdiapi.GetRegistry(
-		cdiapi.WithSpecDirs(*config.flags.cdiRoot),
+		cdiapi.WithSpecDirs(config.flags.cdiRoot),
 	)
 
 	err := registry.Refresh()
