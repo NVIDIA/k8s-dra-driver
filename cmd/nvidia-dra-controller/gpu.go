@@ -162,7 +162,7 @@ func (g *gpudriver) allocate(crd *nascrd.NodeAllocationState, pod *corev1.Pod, g
 func selectorMatchesGpu(selector *gpucrd.GpuSelector, gpu *nascrd.AllocatableGpu) bool {
 	checkedMigEnabled := false
 	if selector == nil {
-		return gpu.MigEnabled == false
+		return !gpu.MigEnabled
 	}
 	matches := selector.Matches(func(p *gpucrd.GpuSelectorProperties) bool {
 		if p.Index != nil {
@@ -194,7 +194,7 @@ func selectorMatchesGpu(selector *gpucrd.GpuSelector, gpu *nascrd.AllocatableGpu
 		return false
 	})
 	if matches && !checkedMigEnabled {
-		return gpu.MigEnabled == false
+		return !gpu.MigEnabled
 	}
 	return matches
 }
