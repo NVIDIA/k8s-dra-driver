@@ -136,7 +136,7 @@ func (cdi *CDIHandler) CreateCommonSpecFile() error {
 	return cdi.registry.SpecDB().WriteSpec(spec, specName)
 }
 
-func (cdi *CDIHandler) CreateClaimSpecFile(claimUid string, devices *PreparedDevices) error {
+func (cdi *CDIHandler) CreateClaimSpecFile(claimUID string, devices *PreparedDevices) error {
 	ret := cdi.nvml.Init()
 	if ret != nvml.SUCCESS {
 		return ret
@@ -206,7 +206,7 @@ func (cdi *CDIHandler) CreateClaimSpecFile(claimUid string, devices *PreparedDev
 		Kind: cdiKind,
 		Devices: []cdispec.Device{
 			{
-				Name:           claimUid,
+				Name:           claimUID,
 				ContainerEdits: *claimEdits.ContainerEdits,
 			},
 		},
@@ -218,7 +218,7 @@ func (cdi *CDIHandler) CreateClaimSpecFile(claimUid string, devices *PreparedDev
 	}
 	spec.Version = minVersion
 
-	specName, err := cdiapi.GenerateNameForTransientSpec(spec, claimUid)
+	specName, err := cdiapi.GenerateNameForTransientSpec(spec, claimUID)
 	if err != nil {
 		return fmt.Errorf("failed to generate Spec name: %w", err)
 	}
@@ -226,12 +226,12 @@ func (cdi *CDIHandler) CreateClaimSpecFile(claimUid string, devices *PreparedDev
 	return cdi.registry.SpecDB().WriteSpec(spec, specName)
 }
 
-func (cdi *CDIHandler) DeleteClaimSpecFile(claimUid string) error {
+func (cdi *CDIHandler) DeleteClaimSpecFile(claimUID string) error {
 	spec := &cdispec.Spec{
 		Kind: cdiKind,
 	}
 
-	specName, err := cdiapi.GenerateNameForTransientSpec(spec, claimUid)
+	specName, err := cdiapi.GenerateNameForTransientSpec(spec, claimUID)
 	if err != nil {
 		return fmt.Errorf("failed to generate Spec name: %w", err)
 	}
@@ -239,10 +239,10 @@ func (cdi *CDIHandler) DeleteClaimSpecFile(claimUid string) error {
 	return cdi.registry.SpecDB().RemoveSpec(specName)
 }
 
-func (cdi *CDIHandler) GetClaimDevices(claimUid string) []string {
+func (cdi *CDIHandler) GetClaimDevices(claimUID string) []string {
 	devices := []string{
 		cdiapi.QualifiedName(cdiVendor, cdiClass, cdiCommonDeviceName),
-		cdiapi.QualifiedName(cdiVendor, cdiClass, claimUid),
+		cdiapi.QualifiedName(cdiVendor, cdiClass, claimUID),
 	}
 	return devices
 }

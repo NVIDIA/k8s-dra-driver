@@ -132,18 +132,18 @@ func (d *driver) NodeUnprepareResource(ctx context.Context, req *drapbv1.NodeUnp
 	return &drapbv1.NodeUnprepareResourceResponse{}, nil
 }
 
-func (d *driver) IsPrepared(claimUid string) (bool, []string, error) {
+func (d *driver) IsPrepared(claimUID string) (bool, []string, error) {
 	err := d.nasclient.Get()
 	if err != nil {
 		return false, nil, err
 	}
-	if _, exists := d.nascrd.Spec.PreparedClaims[claimUid]; exists {
-		return true, d.state.cdi.GetClaimDevices(claimUid), nil
+	if _, exists := d.nascrd.Spec.PreparedClaims[claimUID]; exists {
+		return true, d.state.cdi.GetClaimDevices(claimUID), nil
 	}
 	return false, nil, nil
 }
 
-func (d *driver) Prepare(claimUid string) ([]string, error) {
+func (d *driver) Prepare(claimUID string) ([]string, error) {
 	var err error
 	var prepared []string
 	err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
@@ -152,7 +152,7 @@ func (d *driver) Prepare(claimUid string) ([]string, error) {
 			return err
 		}
 
-		prepared, err = d.state.Prepare(claimUid, d.nascrd.Spec.AllocatedClaims[claimUid])
+		prepared, err = d.state.Prepare(claimUID, d.nascrd.Spec.AllocatedClaims[claimUID])
 		if err != nil {
 			return err
 		}
@@ -170,14 +170,14 @@ func (d *driver) Prepare(claimUid string) ([]string, error) {
 	return prepared, nil
 }
 
-func (d *driver) Unprepare(claimUid string) error {
+func (d *driver) Unprepare(claimUID string) error {
 	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		err := d.nasclient.Get()
 		if err != nil {
 			return err
 		}
 
-		err = d.state.Unprepare(claimUid)
+		err = d.state.Unprepare(claimUID)
 		if err != nil {
 			return err
 		}
