@@ -334,7 +334,7 @@ func (m *MpsControlDaemon) AssertReady() error {
 
 func (m *MpsControlDaemon) GetCDIContainerEdits() *cdiapi.ContainerEdits {
 	return &cdiapi.ContainerEdits{
-		&cdispec.ContainerEdits{
+		ContainerEdits: &cdispec.ContainerEdits{
 			Env: []string{
 				fmt.Sprintf("CUDA_MPS_PIPE_DIRECTORY=%s", "/tmp/nvidia-mps"),
 			},
