@@ -14,10 +14,8 @@
 ARG GOLANG_VERSION=x.x.x
 FROM golang:${GOLANG_VERSION}
 
-RUN go install github.com/gordonklaus/ineffassign@latest && \
-    go install github.com/client9/misspell/cmd/misspell@latest
-
 RUN go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.52.0
+
 RUN go install github.com/matryer/moq@latest
 RUN go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.9.2
 RUN go install k8s.io/code-generator/cmd/client-gen@v0.26.1

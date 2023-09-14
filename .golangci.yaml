@@ -1,0 +1,20 @@
+# please keep this alphabetized
+linters:
+  enable:
+    - asciicheck
+    - contextcheck
+    - forcetypeassert
+    - gocritic
+    - godot
+    - gofmt
+    - goimports
+    - misspell
+    - stylecheck
+
+run:
+  tests: true
+  timeout: 1m
+
+linters-settings:
+  goimports:
+    local-prefixes: "github.com/NVIDIA/k8s-dra-driver"
