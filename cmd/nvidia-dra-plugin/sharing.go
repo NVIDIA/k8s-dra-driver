@@ -169,7 +169,7 @@ func (m *MpsManager) IsControlDaemonStopped(claim *nascrd.ClaimInfo) (bool, erro
 func (m *MpsControlDaemon) Start() error {
 	isStarted, err := m.manager.IsControlDaemonStarted(m.claim)
 	if err != nil {
-		fmt.Errorf("error checking if control daemon already started")
+		return fmt.Errorf("error checking if control daemon already started: %v", err)
 	}
 
 	if isStarted {
