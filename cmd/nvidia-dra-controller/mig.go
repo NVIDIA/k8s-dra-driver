@@ -258,20 +258,6 @@ func (m *migdriver) allocate(crd *nascrd.NodeAllocationState, pod *corev1.Pod, m
 	return iterate(0, map[*controller.ClaimAllocation]MigDevicePlacement{})
 }
 
-func (m *migdriver) gpuIsAllocated(crd *nascrd.NodeAllocationState, uuid string) bool {
-	for _, allocated := range crd.Spec.AllocatedClaims {
-		switch allocated.Type() {
-		case nascrd.GpuDeviceType:
-			for _, device := range allocated.Gpu.Devices {
-				if device.UUID == uuid {
-					return true
-				}
-			}
-		}
-	}
-	return false
-}
-
 func (m *migdriver) gpuClaimInfo(crd *nascrd.NodeAllocationState, cas []*controller.ClaimAllocation) map[string]ClaimInfo {
 	info := make(map[string]ClaimInfo)
 
