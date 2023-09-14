@@ -100,7 +100,9 @@ func (cdi *CDIHandler) CreateCommonSpecFile() error {
 	if ret != nvml.SUCCESS {
 		return ret
 	}
-	defer cdi.nvml.Shutdown()
+	defer func() {
+		_ = cdi.nvml.Shutdown()
+	}()
 
 	commonEdits, err := cdi.nvcdi.GetCommonEdits()
 	if err != nil {
@@ -141,7 +143,9 @@ func (cdi *CDIHandler) CreateClaimSpecFile(claimUID string, devices *PreparedDev
 	if ret != nvml.SUCCESS {
 		return ret
 	}
-	defer cdi.nvml.Shutdown()
+	defer func() {
+		_ = cdi.nvml.Shutdown()
+	}()
 
 	claimEdits := cdiapi.ContainerEdits{}
 
