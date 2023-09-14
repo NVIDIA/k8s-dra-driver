@@ -137,8 +137,7 @@ func StartPlugin(ctx context.Context, config *Config) error {
 		return fmt.Errorf("path for cdi file generation is not a directory: '%v'", config.flags.cdiRoot)
 	}
 
-	// TODO: Pass context here
-	driver, err := NewDriver(config)
+	driver, err := NewDriver(ctx, config)
 	if err != nil {
 		return err
 	}
@@ -159,8 +158,7 @@ func StartPlugin(ctx context.Context, config *Config) error {
 
 	dp.Stop()
 
-	// TODO: Pass context here
-	err = driver.Shutdown()
+	err = driver.Shutdown(ctx)
 	if err != nil {
 		klog.Errorf("Unable to cleanly shutdown driver: %v", err)
 	}
