@@ -79,10 +79,10 @@ type MpsControlDaemonTemplateData struct {
 	NodeName                          string
 	MpsControlDaemonNamespace         string
 	MpsControlDaemonName              string
-	CUDA_VISIBLE_DEVICES              string
-	CUDA_DEVICE_MAX_CONNECTIONS       string
-	CUDA_MPS_ACTIVE_THREAD_PERCENTAGE string
-	CUDA_MPS_PINNED_DEVICE_MEM_LIMIT  string
+	CUDA_VISIBLE_DEVICES              string //nolint:stylecheck
+	CUDA_DEVICE_MAX_CONNECTIONS       string //nolint:stylecheck
+	CUDA_MPS_ACTIVE_THREAD_PERCENTAGE string //nolint:stylecheck
+	CUDA_MPS_PINNED_DEVICE_MEM_LIMIT  string //nolint:stylecheck
 	NvidiaDriverRoot                  string
 	MpsShmDirectory                   string
 	MpsPipeDirectory                  string
