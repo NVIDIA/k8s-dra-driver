@@ -161,15 +161,15 @@ func (m MigProfile) HasAttribute(attr string) bool {
 }
 
 // String returns the string representation of a MigProfile.
-func (p MigProfile) String() string {
+func (m MigProfile) String() string {
 	var suffix string
-	if len(p.Attributes()) > 0 {
-		suffix = "+" + strings.Join(p.Attributes(), ",")
+	if len(m.Attributes()) > 0 {
+		suffix = "+" + strings.Join(m.Attributes(), ",")
 	}
-	if p.C == p.G {
-		return fmt.Sprintf("%dg.%dgb%s", p.G, p.GB, suffix)
+	if m.C == m.G {
+		return fmt.Sprintf("%dg.%dgb%s", m.G, m.GB, suffix)
 	}
-	return fmt.Sprintf("%dc.%dg.%dgb%s", p.C, p.G, p.GB, suffix)
+	return fmt.Sprintf("%dc.%dg.%dgb%s", m.C, m.G, m.GB, suffix)
 }
 
 // Equals checks if two MigProfiles are identical or not.

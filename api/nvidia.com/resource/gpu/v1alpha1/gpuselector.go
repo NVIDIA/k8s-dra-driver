@@ -75,8 +75,8 @@ type GpuSelectorProperties struct {
 // Matches evaluates a GpuSelector to see if it matches the boolean expression it represents
 // Each individual Properties object is passed to the caller via a callback to
 // compare it in isolation before combining the results.
-func (g GpuSelector) Matches(compare func(*GpuSelectorProperties) bool) bool {
-	return g.convert().Matches(compare)
+func (s GpuSelector) Matches(compare func(*GpuSelectorProperties) bool) bool {
+	return s.convert().Matches(compare)
 }
 
 // convert converts a GpuSelector into a generic Selector.
