@@ -112,10 +112,10 @@ func (g *gpudriver) allocate(crd *nascrd.NodeAllocationState, pod *corev1.Pod, g
 	available := make(map[string]*nascrd.AllocatableGpu)
 
 	for _, device := range crd.Spec.AllocatableDevices {
-		switch device.Type() {
-		case nascrd.GpuDeviceType:
-			available[device.Gpu.UUID] = device.Gpu
+		if device.Type() != nascrd.GpuDeviceType {
+			continue
 		}
+		available[device.Gpu.UUID] = device.Gpu
 	}
 
 	for _, allocated := range crd.Spec.AllocatedClaims {

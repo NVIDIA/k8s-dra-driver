@@ -121,44 +121,44 @@ func (m *migdriver) available(crd *nascrd.NodeAllocationState) MigDevicePlacemen
 	placements := make(MigDevicePlacements)
 
 	for _, device := range crd.Spec.AllocatableDevices {
-		switch device.Type() {
-		case nascrd.GpuDeviceType:
-			if !device.Gpu.MigEnabled {
-				continue
-			}
-			parents[device.Gpu.ProductName] = append(parents[device.Gpu.ProductName], device.Gpu.UUID)
+		if device.Type() != nascrd.GpuDeviceType {
+			continue
 		}
+		if !device.Gpu.MigEnabled {
+			continue
+		}
+		parents[device.Gpu.ProductName] = append(parents[device.Gpu.ProductName], device.Gpu.UUID)
 	}
 
 	for _, device := range crd.Spec.AllocatableDevices {
-		switch device.Type() {
-		case nascrd.MigDeviceType:
-			var pps []MigDevicePlacement
-			for _, parentUUID := range parents[device.Mig.ParentProductName] {
-				var mps []MigDevicePlacement
-				for _, p := range device.Mig.Placements {
-					mp := MigDevicePlacement{
-						ParentUUID: parentUUID,
-						Placement:  p,
-					}
-					mps = append(mps, mp)
-				}
-				pps = append(pps, mps...)
-			}
-			placements[device.Mig.Profile] = pps
+		if device.Type() != nascrd.MigDeviceType {
+			continue
 		}
+		var pps []MigDevicePlacement
+		for _, parentUUID := range parents[device.Mig.ParentProductName] {
+			var mps []MigDevicePlacement
+			for _, p := range device.Mig.Placements {
+				mp := MigDevicePlacement{
+					ParentUUID: parentUUID,
+					Placement:  p,
+				}
+				mps = append(mps, mp)
+			}
+			pps = append(pps, mps...)
+		}
+		placements[device.Mig.Profile] = pps
 	}
 
 	for _, allocated := range crd.Spec.AllocatedClaims {
-		switch allocated.Type() {
-		case nascrd.MigDeviceType:
-			for _, device := range allocated.Mig.Devices {
-				p := MigDevicePlacement{
-					ParentUUID: device.ParentUUID,
-					Placement:  device.Placement,
-				}
-				placements.removeOverlapping(&p)
+		if allocated.Type() != nascrd.MigDeviceType {
+			continue
+		}
+		for _, device := range allocated.Mig.Devices {
+			p := MigDevicePlacement{
+				ParentUUID: device.ParentUUID,
+				Placement:  device.Placement,
 			}
+			placements.removeOverlapping(&p)
 		}
 	}
 
@@ -269,13 +269,13 @@ func (m *migdriver) gpuClaimInfo(crd *nascrd.NodeAllocationState, cas []*control
 
 		allocated := crd.Spec.AllocatedClaims[claimUID]
 
-		switch allocated.Type() {
-		case nascrd.GpuDeviceType:
-			for _, device := range allocated.Gpu.Devices {
-				info[device.UUID] = ClaimInfo{
-					UID:  claimUID,
-					Name: ca.Claim.Name,
-				}
+		if allocated.Type() != nascrd.GpuDeviceType {
+			continue
+		}
+		for _, device := range allocated.Gpu.Devices {
+			info[device.UUID] = ClaimInfo{
+				UID:  claimUID,
+				Name: ca.Claim.Name,
 			}
 		}
 	}

@@ -143,7 +143,7 @@ func MustParseMigProfile(profile string) *MigProfile {
 // Attributes returns the list of attributes associated with a MigProfile.
 func (m MigProfile) Attributes() []string {
 	var attr []string
-	switch m.GIProfileID {
+	switch m.GIProfileID { //nolint:gocritic // We are likely to add additional profile IDs here
 	case nvml.GPU_INSTANCE_PROFILE_1_SLICE_REV1:
 		attr = append(attr, AttributeMediaExtensions)
 	}
