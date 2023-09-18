@@ -79,7 +79,7 @@ func (g GpuSelector) Matches(compare func(*GpuSelectorProperties) bool) bool {
 	return g.convert().Matches(compare)
 }
 
-// convert converts a GpuSelector into a generic Selector
+// convert converts a GpuSelector into a generic Selector.
 func (s GpuSelector) convert() selector.Selector[GpuSelectorProperties] {
 	ns := selector.Selector[GpuSelectorProperties]{
 		Properties: s.GpuSelectorProperties,
@@ -93,7 +93,7 @@ func (s GpuSelector) convert() selector.Selector[GpuSelectorProperties] {
 	return ns
 }
 
-// convert converts a GpuSelector1 into a generic Selector
+// convert converts a GpuSelector1 into a generic Selector.
 func (s GpuSelector1) convert() selector.Selector[GpuSelectorProperties] {
 	ns := selector.Selector[GpuSelectorProperties]{
 		Properties: s.GpuSelectorProperties,
@@ -107,7 +107,7 @@ func (s GpuSelector1) convert() selector.Selector[GpuSelectorProperties] {
 	return ns
 }
 
-// convert converts a GpuSelector2 into a generic Selector
+// convert converts a GpuSelector2 into a generic Selector.
 func (s GpuSelector2) convert() selector.Selector[GpuSelectorProperties] {
 	ns := selector.Selector[GpuSelectorProperties]{
 		Properties: s.GpuSelectorProperties,
@@ -121,7 +121,7 @@ func (s GpuSelector2) convert() selector.Selector[GpuSelectorProperties] {
 	return ns
 }
 
-// convert converts a GpuSelector3 into a generic Selector
+// convert converts a GpuSelector3 into a generic Selector.
 func (s GpuSelector3) convert() selector.Selector[GpuSelectorProperties] {
 	ns := selector.Selector[GpuSelectorProperties]{
 		Properties: s.GpuSelectorProperties,

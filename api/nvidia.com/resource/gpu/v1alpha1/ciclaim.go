@@ -20,7 +20,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// ComputeInstanceClaimParametersSpec is the spec for the ComputeInstanceClaimParameters CRD
+// ComputeInstanceClaimParametersSpec is the spec for the ComputeInstanceClaimParameters CRD.
 type ComputeInstanceClaimParametersSpec struct {
 	Profile                      string `json:"profile,omitempty"`
 	MigDeviceClaimParametersName string `json:"migDeviceClaimName,omitempty"`
@@ -31,7 +31,7 @@ type ComputeInstanceClaimParametersSpec struct {
 // +k8s:openapi-gen=true
 // +kubebuilder:resource:scope=Namespaced
 
-// ComputeInstanceClaimParameters holds the set of parameters provided when creating a resource claim for a Compute Instance
+// ComputeInstanceClaimParameters holds the set of parameters provided when creating a resource claim for a Compute Instance.
 type ComputeInstanceClaimParameters struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -41,7 +41,7 @@ type ComputeInstanceClaimParameters struct {
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// ComputeInstanceClaimParametersList represents the "plural" of a ComputeInstanceClaimParameters CRD object
+// ComputeInstanceClaimParametersList represents the "plural" of a ComputeInstanceClaimParameters CRD object.
 type ComputeInstanceClaimParametersList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

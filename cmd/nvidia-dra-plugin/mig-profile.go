@@ -140,7 +140,7 @@ func MustParseMigProfile(profile string) *MigProfile {
 	return p
 }
 
-// Attributes returns the list of attributes associated with a MigProfile
+// Attributes returns the list of attributes associated with a MigProfile.
 func (m MigProfile) Attributes() []string {
 	var attr []string
 	switch m.GIProfileID {
@@ -172,7 +172,7 @@ func (p MigProfile) String() string {
 	return fmt.Sprintf("%dc.%dg.%dgb%s", p.C, p.G, p.GB, suffix)
 }
 
-// Equals checks if two MigProfiles are identical or not
+// Equals checks if two MigProfiles are identical or not.
 func (m MigProfile) Equals(other *MigProfile) bool {
 	return m == *other
 }
