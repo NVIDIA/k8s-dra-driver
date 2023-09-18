@@ -17,8 +17,9 @@
 package v1alpha1
 
 import (
-	nascrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	nascrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1"
 )
 
 // GpuClaimParametersSpec is the spec for the GpuClaimParameters CRD.
