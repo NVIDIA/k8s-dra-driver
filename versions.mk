@@ -1,5 +1,3 @@
-#!/usr/bin/env bash
-
 # Copyright (c) NVIDIA CORPORATION.  All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,20 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-CURRENT_DIR="$(cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd)"
+DRIVER_NAME := k8s-dra-driver
+MODULE := github.com/NVIDIA/$(DRIVER_NAME)
 
-set -ex
-set -o pipefail
+REGISTRY ?= nvcr.io/nvidia/cloud-native
 
-source "${CURRENT_DIR}/scripts/common.sh"
+VERSION  ?= v0.1.0
+# vVERSION represents the version with a guaranteed v-prefix
+vVERSION := v$(VERSION:v%=%)
 
-kubectl label node "${KIND_CLUSTER_NAME}-worker" --overwrite nvidia.com/dra.kubelet-plugin=true
-kubectl label node "${KIND_CLUSTER_NAME}-control-plane" --overwrite nvidia.com/dra.controller=true
+GOLANG_VERSION ?= 1.19.2
+CUDA_VERSION ?= 11.8.0
 
-helm upgrade -i --create-namespace --namespace nvidia-dra-driver nvidia ../deployments/helm/k8s-dra-driver
-
-set +x
-printf '\033[0;32m'
-echo "Driver installation complete:"
-kubectl get pod -n nvidia-dra-driver
-printf '\033[0m'
+GIT_COMMIT ?= $(shell git describe --match="" --dirty --long --always --abbrev=40 2> /dev/null || echo "")

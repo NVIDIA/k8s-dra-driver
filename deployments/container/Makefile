@@ -22,6 +22,12 @@ MKDIR    ?= mkdir
 
 ##### Global variables #####
 include $(CURDIR)/common.mk
+include $(CURDIR)/versions.mk
+
+ifeq ($(IMAGE_NAME),)
+REGISTRY ?= nvcr.io/nvidia/cloud-native
+IMAGE_NAME = $(REGISTRY)/k8s-dra-driver
+endif
 
 IMAGE_VERSION := $(VERSION)
 
@@ -77,10 +83,20 @@ $(BUILD_TARGETS): build-%:
 		--build-arg CUDA_VERSION="$(CUDA_VERSION)" \
 		--build-arg GOLANG_VERSION="$(GOLANG_VERSION)" \
 		--build-arg VERSION="$(VERSION)" \
-		--build-arg CVE_UPDATES="$(CVE_UPDATES)" \
 		-f $(DOCKERFILE) \
 		$(CURDIR)
 
 build-ubuntu%: DOCKERFILE_SUFFIX := ubuntu
 
 build-ubi8: DOCKERFILE_SUFFIX := ubi8
+
+# Handle the default build target
+.PHONY: build
+build: $(DEFAULT_PUSH_TARGET)
+$(DEFAULT_PUSH_TARGET): DIST = $(DEFAULT_PUSH_TARGET)
+# For the default distribution we also retag the image.
+# Note: This needs to be updated for multi-arch images.
+ifeq ($(IMAGE_TAG),$(VERSION)-$(DIST))
+$(DEFAULT_PUSH_TARGET): build-$(DEFAULT_PUSH_TARGET)
+	$(DOCKER) tag $(IMAGE) $(subst :$(IMAGE_TAG),:$(VERSION),$(IMAGE))
+endif

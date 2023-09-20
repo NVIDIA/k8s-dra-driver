@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# A reference to the current directory where this script is located
 CURRENT_DIR="$(cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd)"
 
 set -ex
@@ -21,13 +22,21 @@ set -o pipefail
 
 source "${CURRENT_DIR}/scripts/common.sh"
 
-kubectl label node "${KIND_CLUSTER_NAME}-worker" --overwrite nvidia.com/dra.kubelet-plugin=true
-kubectl label node "${KIND_CLUSTER_NAME}-control-plane" --overwrite nvidia.com/dra.controller=true
+# Build the kind image and create a test cluster
+${SCRIPTS_DIR}/build-kind-image.sh
+${SCRIPTS_DIR}/create-kind-cluster.sh
 
-helm upgrade -i --create-namespace --namespace nvidia-dra-driver nvidia ../deployments/helm/k8s-dra-driver
+# TODO: At present the DRA driver assumes that the driver exists at /run/nvidia/driver and not at /
+# We create a symlink as a workaround
+docker exec ${KIND_CLUSTER_NAME}-worker bash -c "mkdir -p /run/nvidia; ln -s / /run/nvidia/driver"
+
+# If a driver image already exists load it into the cluster
+EXISTING_IMAGE_ID="$(docker images --filter "reference=${DRIVER_IMAGE}" -q)"
+if [ "${EXISTING_IMAGE_ID}" != "" ]; then
+	${SCRIPTS_DIR}/load-driver-image-into-kind.sh
+fi
 
 set +x
 printf '\033[0;32m'
-echo "Driver installation complete:"
-kubectl get pod -n nvidia-dra-driver
+echo "Cluster creation complete: ${KIND_CLUSTER_NAME}"
 printf '\033[0m'

@@ -10,210 +10,60 @@ A document and demo of the DRA support for GPUs provided by this repo can be fou
 |:----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|:----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|
 | [<img width="300" alt="Dynamic Resource Allocation (DRA) for GPUs in Kubernetes" src="https://drive.google.com/uc?export=download&id=12EwdvHHI92FucRO2tuIqLR33OC8MwCQK">](https://docs.google.com/document/d/1BNWqgx_SmZDi-va_V31v3DnuVwYnF2EmN7D-O_fB6Oo) | [<img width="300" alt="Demo of Dynamic Resource Allocation (DRA) for GPUs in Kubernetes" src="https://drive.google.com/uc?export=download&id=1UzB-EBEVwUTRF7R0YXbGe9hvTjuKaBlm">](https://drive.google.com/file/d/1iLg2FEAEilb1dcI27TnB19VYtbcvgKhS/view?usp=sharing "Demo of Dynamic Resource Allocation (DRA) for GPUs in Kubernetes") |
 
-### Prerequisites:
-1. A `go` installation of `v1.19+`
-1. A working kubernetes cluster based off kubernetes `v1.26+`
-1. At least one node in the cluster with a working NVIDIA driver and GPU
-1. A CDI-enabled container runtime (e.g. cri-o `v1.23.2+` or containerd `v1.7+`)
-1. A working docker installation (to build the container images)
+## Demo
 
-### Example deployment
+This section describes using `kind` to demo the functionality of the NVIDIA GPU DRA Driver.
 
-The following example has been tested on a DGX-A100 node running DGX OS 4.99.11 with [`nvidia-mig-parted`](https://github.com/NVIDIA/mig-parted) installed.
-All of the steps except for step 6 (and `gpu-test4.yaml` from the `demo` folder) should be relevant to any machine setup though.
+First since we'll launch kind with GPU support, ensure that the following prerequisites are met:
+1. `kind` is installed. See the official documentation [here](https://kind.sigs.k8s.io/docs/user/quick-start/#installation).
+1. Ensure that the NVIDIA Container Toolkit is installed on your system. This
+   can be done by following the instructions
+   [here](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html).
+1. Configure the NVIDIA Container Runtime as the **default** Docker runtime:
+   ```bash
+   sudo nvidia-ctk runtime configure --runtime=docker --set-as-default
+   ```
+1. Restart Docker to apply the changes:
+   ```bash
+   sudo systemctl restart docker
+   ```
+1. Set the `accept-nvidia-visible-devices-as-volume-mounts` option to `true` in
+   the `/etc/nvidia-container-runtime/config.toml` file to configure the NVIDIA
+   Container Runtime to use volume mounts to select devices to inject into a
+   container.
 
-The steps involved are:
-1. Setup the environment
-1. Intall a CDI-enabled containerd and run it
-1. Deploy a single-node kubernetes cluster from source
-1. Deploy calico as the CNI plugin to use
-1. Copy the kubeconfig from this newly created cluster into ~/.kube/config so it will be configured by default
-1. Run `nvidia-mig-parted` to pre-configure 4 GPUs on the node into MIG mode and 4 as full GPUs
-1. Ensure your NVIDIA driver installation is rooted at `/run/nvidia/driver`
-1. Deploy the DRA resource driver and all accompanying CRDs from this repo
-1. Point you where to run a set of demo scripts against this resource driver from the `demo` directory
-
-#### Setup the environment
-First create a directory to house the various code repos we will use:
-```console
-mkdir dra-test-env
-```
-
-Then `cd` into this directory and clone all of the code repos we will be using throughout this example:
-```console
-cd dra-test-env
-git clone https://github.com/kubernetes/kubernetes.git
-git clone https://github.com/containerd/containerd.git
-git clone https://gitlab.com/nvidia/cloud-native/k8s-dra-driver.git
-```
-
-Build `kubernetes`:
-```console
-cd kubernetes
-git fetch --tags
-git checkout v1.26.0
-make
-cd -
-```
-
-Build `containerd`:
-```console
-sudo apt install libbtrfs-dev -y
-
-cd containerd
-git fetch --tags
-git checkout v1.7.0
-make
-cd -
-```
-
-#### Install a CDI-enabled `containerd` and run it
-
-First install the standard `containerd.io` package from `apt`
-```console
-sudo apt update
-sudo apt install containerd.io
-```
-
-Then `cd` into your checked out `containerd` repo (where you previously built
-the source for `v1.7.0`) and install this over the binaries from the
-`containerd.io` package you just installed.
-```console
-cd containerd
-sudo PREFIX=/usr make install
-cd -
-```
-
-**NOTE:** We do it this way to get all of the systemd setup in place using the
-packages, but then replace the binaries with the versions that we need.
-
-Next, configure `containerd` to become CDI "aware"
-```console
-$ sudo bash -c "containerd config default > /etc/containerd/config.toml"
-```
-```console
-$ cat /etc/containerd/config.toml
-...
-[plugins]
-  [plugins."io.containerd.grpc.v1.cri"]
-    cdi_spec_dirs = ["/etc/cdi", "/var/run/cdi"]
-...
-    enable_cdi = true
-...
+We start by first cloning this repository and `cd`ing into its `demo`
+subdirectory. All of the scripts and example Pod specs used in this demo are
+contained here, so take a moment to browse through the various files and see
+what's available:
 
 ```
-
-Finally, restart `containerd`:
-```console
-sudo systemctl restart containerd
-```
-
-#### Deploy a single-node kubernetes cluster from source
-
-A script exists in the `demo` folder of this repo to run a single-node kubernetes cluster with DRA enabled.
-
-It assumes three things:
-1. You have a `kubernetes` repo checked out at the same level as this `k8s-dra-driver`repo.
-1. The `kubernetes` repo is checked out to a versiion `v1.26+`
-1. You have already run `make` from this repo.
-
-The first step is to get `etcd` installed and running from the `kubernetes`
-repo:
-```console
-cd kubernetes
-./hack/install-etcd.sh
-cd -
-```
-
-**NOTE:** This only needs to be done **once**, and not everytime you tear down
-and bring up the kubernetes cluster as described below.
-
-With this in place, you can now open a new terminal window, `cd` to the `demo` directory of this repo, and run the following script:
-```console
+git clone https://github.com/NVIDIA/k8s-dra-driver.git
 cd k8s-dra-driver/demo
-sudo ./run-k8s.sh 
 ```
 
-This script will take care of all steps to:
-1. Deploy the single-node kubernetes cluster from source
-1. Deploy calico as the CNI plugin to use
-
-Once the cluster is up and running, you can open another terminal and copy the
-`kubeconfig` of the cluster into your home directory so that it will be used by
-default when running `kubectl`:
-```console
-cp /var/run/kubernetes/admin.kubeconfig ~/.kube/config
+### Setting up the infrastructure
+First, create a `kind` cluster to run the demo:
+```bash
+./create-cluster.sh
 ```
 
-Alternatively, you can export the KUBECONFIG environment variable to point to
-this `kubeconfig` file, but you must remember to do this in every new terminal
-you open, so it's often easier / less error prone to just copy it to
-`~/.kube/config`:
-```console
-export KUBECONFIG=/var/run/kubernetes/admin.kubeconfig
+
+From here we will build the image for the example resource driver:
+```bash
+./build-dra-driver.sh
 ```
 
-Once you have your `kubeconfig` set up you can verify that everything is
-running as expected as below:
-```console
-$ kubectl get pod -A
-NAMESPACE     NAME                                       READY   STATUS    RESTARTS   AGE
-kube-system   calico-kube-controllers-7cb8bd8f74-wnrqx   1/1     Running   0          28s
-kube-system   calico-node-p9sgm                          1/1     Running   0          28s
-kube-system   coredns-6d97d5ddb-9f5m7                    1/1     Running   0          38s
+This also makes the built images available to the `kind` cluster.
 
+We now install the NVIDIA GPU DRA driver:
 ```
-
-#### Run `nvidia-mig-parted` to pre-configure 4 GPUs on the node into MIG mode and 4 as full GPUs
-This step is only relevant if you are running on a DGX-A100 node with `nvidia-mig-parted` installed.
-It can be safely skipped (or modified) for other machine setups.
-
-To configure the GPUs as described, simply run the following script:
-```console
-cd k8s-dra-driver/demo
-sudo ./configure.mig.sh
-cd -
-```
-
-To then verify the configuration run:
-```console
-nvidia-smi --query-gpu=index,name,uuid,mig.mode.current --format=csv
-```
-
-#### Ensure your NVIDIA driver installation is rooted at `/run/nvidia/driver`
-For deployments running a driver container this is a `noop`.
-The driver container should already mount the driver installation at `/run/nvidia/driver`.
-
-For deployments running with a host-installed driver, the following is sufficient to meet this requirement:
-```console
-mkdir -p /run/nvidia
-sudo ln -s / /run/nvidia/driver
-```
-
-**NOTE:** This is only currently necessary due to a limitation of how our CDI
-generation library works. This restriction will be removed very soon.
-
-### Build and deploy the DRA resource driver for GPUs
-A set of convenience scripts are provided to build the DRA driver components
-into container images and deploy them to the cluster.
-
-Simply run the following command to build them:
-```console
-cd k8s-dra-driver
-sudo ./build-devel.sh
-cd -
-```
-
-And run the following to deploy them:
-```console
-cd k8s-dra-driver/demo
 ./install-dra-driver.sh
-cd -
 ```
 
-You can then verify they are up and running as follows:
-```console
-$ kubectl get pod -n nvidia-dra-driver
+This should show two pods running in the `nvidia-dra-driver` namespace:
+```
+$ kubectl get pods -n nvidia-dra-driver
 NAMESPACE           NAME                                       READY   STATUS    RESTARTS   AGE
 nvidia-dra-driver   nvidia-dra-controller-6bdf8f88cc-psb4r     1/1     Running   0          34s
 nvidia-dra-driver   nvidia-dra-plugin-lt7qh                    1/1     Running   0          32s
@@ -257,3 +107,52 @@ $ kubectl logs -n gpu-test3 -l app=pod
 GPU 0: A100-SXM4-40GB (UUID: GPU-4404041a-04cf-1ccf-9e70-f139a9b1e23c)
 GPU 0: A100-SXM4-40GB (UUID: GPU-4404041a-04cf-1ccf-9e70-f139a9b1e23c)
 ```
+
+### Cleaning up the environment
+
+Running
+```
+$ ./delete-cluster.sh
+```
+will remove the cluster created in the preceding steps.
+
+<!--
+TODO: This README should be extended with additional content including:
+
+## Information for "real" deployment including prerequesites
+
+This may include the following content from the original scripts:
+```
+set -e
+
+export VERSION=v0.1.0
+
+REGISTRY=nvcr.io/nvidia/cloud-native
+IMAGE=k8s-dra-driver
+PLATFORM=ubi8
+
+sudo true
+make -f deployments/container/Makefile build-${PLATFORM}
+docker tag ${REGISTRY}/${IMAGE}:${VERSION}-${PLATFORM} ${REGISTRY}/${IMAGE}:${VERSION}
+docker save ${REGISTRY}/${IMAGE}:${VERSION} > image.tgz
+sudo ctr -n k8s.io image import image.tgz
+```
+
+## Information on advanced usage such as MIG.
+
+This includes setting configuring MIG on the host using mig-parted. Some of the demo scripts included
+in ./demo/ require this.
+
+```
+cat <<EOF | sudo -E nvidia-mig-parted apply -f -
+version: v1
+mig-configs:
+half-half:
+   - devices: [0,1,2,3]
+      mig-enabled: false
+   - devices: [4,5,6,7]
+      mig-enabled: true
+      mig-devices: {}
+EOF
+```
+-->
