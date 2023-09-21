@@ -30,6 +30,7 @@ build-dev-image:
   extends:
     - .requires-build-image
   stage: go-checks
+  allow_failure: true
 
 fmt:
   extends:
@@ -48,14 +49,12 @@ lint:
     - .go-check
   script:
     - make lint
-  allow_failure: true
 
 ineffassign:
   extends:
     - .go-check
   script:
     - make ineffassign
-  allow_failure: true
 
 misspell:
   extends:
