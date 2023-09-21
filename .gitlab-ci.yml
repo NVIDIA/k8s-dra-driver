@@ -32,35 +32,11 @@ build-dev-image:
   stage: go-checks
   allow_failure: true
 
-fmt:
+check:
   extends:
     - .go-check
   script:
-    - make assert-fmt
-
-vet:
-  extends:
-    - .go-check
-  script:
-    - make vet
-
-lint:
-  extends:
-    - .go-check
-  script:
-    - make lint
-
-ineffassign:
-  extends:
-    - .go-check
-  script:
-    - make ineffassign
-
-misspell:
-  extends:
-    - .go-check
-  script:
-    - make misspell
+    - make check
 
 go-build:
   extends:
