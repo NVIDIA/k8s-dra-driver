@@ -218,7 +218,7 @@ func StartPlugin(config *Config) error {
 	} else if err != nil {
 		return err
 	} else if !info.IsDir() {
-		return fmt.Errorf("path for cdi file generation is not a directory: '%v'")
+		return fmt.Errorf("path for cdi file generation is not a directory: '%v'", *config.flags.cdiRoot)
 	}
 
 	driver, err := NewDriver(config)

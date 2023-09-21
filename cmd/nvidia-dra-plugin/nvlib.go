@@ -135,12 +135,12 @@ func getMigProfileInfos(gpuInfo *GpuInfo) (map[string]*MigProfileInfo, error) {
 
 	device, ret := nvmllib.DeviceGetHandleByUUID(gpuInfo.uuid + string(rune(0)))
 	if ret != nvml.SUCCESS {
-		return nil, fmt.Errorf("error getting handle for device %d: %v", gpuInfo.uuid, ret)
+		return nil, fmt.Errorf("error getting handle for device %v: %v", gpuInfo.uuid, ret)
 	}
 
 	memory, ret := device.GetMemoryInfo()
 	if ret != nvml.SUCCESS {
-		return nil, fmt.Errorf("error getting memory info for device %d: %v", gpuInfo.uuid, ret)
+		return nil, fmt.Errorf("error getting memory info for device %v: %v", gpuInfo.uuid, ret)
 	}
 
 	migProfiles := make(map[string]*MigProfileInfo)
@@ -199,7 +199,7 @@ func getMigProfiles(gpuInfo *GpuInfo) (map[int]*MigProfile, error) {
 
 	memory, ret := device.GetMemoryInfo()
 	if ret != nvml.SUCCESS {
-		return nil, fmt.Errorf("error getting memory info for device %d: %v", gpuInfo.uuid, ret)
+		return nil, fmt.Errorf("error getting memory info for device %v: %v", gpuInfo.uuid, ret)
 	}
 
 	migProfiles := make(map[int]*MigProfile)
