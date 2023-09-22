@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2022-2023, NVIDIA CORPORATION.  All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -52,7 +52,7 @@ func NewDriver(config *Config) *driver {
 	return &driver{
 		lock:      NewPerNodeMutex(),
 		namespace: config.namespace,
-		clientset: config.clientset.nvidia,
+		clientset: config.clientSets.Nvidia,
 		gpu:       NewGpuDriver(),
 		mig:       NewMigDriver(),
 	}
