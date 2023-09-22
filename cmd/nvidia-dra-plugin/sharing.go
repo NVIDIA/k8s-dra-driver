@@ -38,9 +38,10 @@ import (
 	"k8s.io/klog/v2"
 	"k8s.io/mount-utils"
 
-	nascrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1"
 	cdiapi "github.com/container-orchestrated-devices/container-device-interface/pkg/cdi"
 	cdispec "github.com/container-orchestrated-devices/container-device-interface/specs-go"
+
+	nascrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1"
 )
 
 const (
@@ -78,10 +79,10 @@ type MpsControlDaemonTemplateData struct {
 	NodeName                          string
 	MpsControlDaemonNamespace         string
 	MpsControlDaemonName              string
-	CUDA_VISIBLE_DEVICES              string
-	CUDA_DEVICE_MAX_CONNECTIONS       string
-	CUDA_MPS_ACTIVE_THREAD_PERCENTAGE string
-	CUDA_MPS_PINNED_DEVICE_MEM_LIMIT  string
+	CUDA_VISIBLE_DEVICES              string //nolint:stylecheck
+	CUDA_DEVICE_MAX_CONNECTIONS       string //nolint:stylecheck
+	CUDA_MPS_ACTIVE_THREAD_PERCENTAGE string //nolint:stylecheck
+	CUDA_MPS_PINNED_DEVICE_MEM_LIMIT  string //nolint:stylecheck
 	NvidiaDriverRoot                  string
 	MpsShmDirectory                   string
 	MpsPipeDirectory                  string
@@ -142,9 +143,9 @@ func (m *MpsManager) NewMpsControlDaemon(claim *nascrd.ClaimInfo, devices *Prepa
 	}
 }
 
-func (m *MpsManager) IsControlDaemonStarted(claim *nascrd.ClaimInfo) (bool, error) {
+func (m *MpsManager) IsControlDaemonStarted(ctx context.Context, claim *nascrd.ClaimInfo) (bool, error) {
 	name := fmt.Sprintf(MpsControlDaemonNameFmt, claim.UID)
-	_, err := m.config.clientset.Core.AppsV1().Deployments(m.config.nascrd.Namespace).Get(context.TODO(), name, metav1.GetOptions{})
+	_, err := m.config.clientset.Core.AppsV1().Deployments(m.config.nascrd.Namespace).Get(ctx, name, metav1.GetOptions{})
 	if errors.IsNotFound(err) {
 		return false, nil
 	}
@@ -154,9 +155,9 @@ func (m *MpsManager) IsControlDaemonStarted(claim *nascrd.ClaimInfo) (bool, erro
 	return true, nil
 }
 
-func (m *MpsManager) IsControlDaemonStopped(claim *nascrd.ClaimInfo) (bool, error) {
+func (m *MpsManager) IsControlDaemonStopped(ctx context.Context, claim *nascrd.ClaimInfo) (bool, error) {
 	name := fmt.Sprintf(MpsControlDaemonNameFmt, claim.UID)
-	_, err := m.config.clientset.Core.AppsV1().Deployments(m.config.nascrd.Namespace).Get(context.TODO(), name, metav1.GetOptions{})
+	_, err := m.config.clientset.Core.AppsV1().Deployments(m.config.nascrd.Namespace).Get(ctx, name, metav1.GetOptions{})
 	if errors.IsNotFound(err) {
 		return true, nil
 	}
@@ -166,10 +167,10 @@ func (m *MpsManager) IsControlDaemonStopped(claim *nascrd.ClaimInfo) (bool, erro
 	return false, nil
 }
 
-func (m *MpsControlDaemon) Start() error {
-	isStarted, err := m.manager.IsControlDaemonStarted(m.claim)
+func (m *MpsControlDaemon) Start(ctx context.Context) error {
+	isStarted, err := m.manager.IsControlDaemonStarted(ctx, m.claim)
 	if err != nil {
-		fmt.Errorf("error checking if control daemon already started")
+		return fmt.Errorf("error checking if control daemon already started: %v", err)
 	}
 
 	if isStarted {
@@ -264,7 +265,7 @@ func (m *MpsControlDaemon) Start() error {
 		}
 	}
 
-	_, err = m.manager.config.clientset.Core.AppsV1().Deployments(m.namespace).Create(context.TODO(), &deployment, metav1.CreateOptions{})
+	_, err = m.manager.config.clientset.Core.AppsV1().Deployments(m.namespace).Create(ctx, &deployment, metav1.CreateOptions{})
 	if errors.IsAlreadyExists(err) {
 		return nil
 	}
@@ -275,7 +276,7 @@ func (m *MpsControlDaemon) Start() error {
 	return nil
 }
 
-func (m *MpsControlDaemon) AssertReady() error {
+func (m *MpsControlDaemon) AssertReady(ctx context.Context) error {
 	backoff := wait.Backoff{
 		Duration: time.Second,
 		Factor:   2,
@@ -291,7 +292,7 @@ func (m *MpsControlDaemon) AssertReady() error {
 		},
 		func() error {
 			deployment, err := m.manager.config.clientset.Core.AppsV1().Deployments(m.namespace).Get(
-				context.TODO(),
+				ctx,
 				m.name,
 				metav1.GetOptions{},
 			)
@@ -306,7 +307,7 @@ func (m *MpsControlDaemon) AssertReady() error {
 			selector := deployment.Spec.Selector.MatchLabels
 
 			pods, err := m.manager.config.clientset.Core.CoreV1().Pods(m.namespace).List(
-				context.TODO(),
+				ctx,
 				metav1.ListOptions{
 					LabelSelector: labels.Set(selector).AsSelector().String(),
 				},
@@ -334,7 +335,7 @@ func (m *MpsControlDaemon) AssertReady() error {
 
 func (m *MpsControlDaemon) GetCDIContainerEdits() *cdiapi.ContainerEdits {
 	return &cdiapi.ContainerEdits{
-		&cdispec.ContainerEdits{
+		ContainerEdits: &cdispec.ContainerEdits{
 			Env: []string{
 				fmt.Sprintf("CUDA_MPS_PIPE_DIRECTORY=%s", "/tmp/nvidia-mps"),
 			},
@@ -354,7 +355,7 @@ func (m *MpsControlDaemon) GetCDIContainerEdits() *cdiapi.ContainerEdits {
 	}
 }
 
-func (m *MpsControlDaemon) Stop() error {
+func (m *MpsControlDaemon) Stop(ctx context.Context) error {
 	_, err := os.Stat(m.rootDir)
 	if os.IsNotExist(err) {
 		return nil
@@ -367,7 +368,7 @@ func (m *MpsControlDaemon) Stop() error {
 		PropagationPolicy: &deletePolicy,
 	}
 
-	err = m.manager.config.clientset.Core.AppsV1().Deployments(m.namespace).Delete(context.TODO(), m.name, deleteOptions)
+	err = m.manager.config.clientset.Core.AppsV1().Deployments(m.namespace).Delete(ctx, m.name, deleteOptions)
 	if err != nil && !errors.IsNotFound(err) {
 		return fmt.Errorf("failed to delete deployment: %v", err)
 	}

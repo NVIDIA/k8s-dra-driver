@@ -24,13 +24,13 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 )
 
-// These constants represent the different Sharing strategies
+// These constants represent the different Sharing strategies.
 const (
 	TimeSlicingStrategy GpuSharingStrategy = "TimeSlicing"
 	MpsStrategy         GpuSharingStrategy = "MPS"
 )
 
-// These constants represent the different TimeSlicing configurations
+// These constants represent the different TimeSlicing configurations.
 const (
 	DefaultTimeSlice TimeSliceDuration = "Default"
 	ShortTimeSlice   TimeSliceDuration = "Short"
@@ -38,7 +38,7 @@ const (
 	LongTimeSlice    TimeSliceDuration = "Long"
 )
 
-// Sharing provides methods to check if a given sharing strategy is selected and grab its configuration
+// Sharing provides methods to check if a given sharing strategy is selected and grab its configuration.
 // +k8s:deepcopy-gen=false
 type Sharing interface {
 	IsTimeSlicing() bool
@@ -47,22 +47,22 @@ type Sharing interface {
 	GetMpsConfig() (*MpsConfig, error)
 }
 
-// GpuSharingStrategy encodes the valid Sharing strategies as a string
+// GpuSharingStrategy encodes the valid Sharing strategies as a string.
 // +kubebuilder:validation:Enum=TimeSlicing;MPS
 type GpuSharingStrategy string
 
-// MigDeviceSharingStrategy encodes the valid Sharing strategies as a string
+// MigDeviceSharingStrategy encodes the valid Sharing strategies as a string.
 // +kubebuilder:validation:Enum=MPS
 type MigDeviceSharingStrategy string
 
-// TimeSliceDuration encodes the valid timeslice duration as a string
+// TimeSliceDuration encodes the valid timeslice duration as a string.
 // +kubebuilder:validation:Enum=Default;Short;Medium;Long
 type TimeSliceDuration string
 
-// MpsPinnedDeviceMemoryLimit holds the string representation of the limits across multiple devices
+// MpsPinnedDeviceMemoryLimit holds the string representation of the limits across multiple devices.
 type MpsPinnedDeviceMemoryLimit map[string]resource.Quantity
 
-// GpuSharing holds the current sharing strategy for GPUs and its settings
+// GpuSharing holds the current sharing strategy for GPUs and its settings.
 // +kubebuilder:validation:MaxProperties=2
 type GpuSharing struct {
 	// +kubebuilder:default=TimeSlicing
@@ -72,7 +72,7 @@ type GpuSharing struct {
 	MpsConfig         *MpsConfig         `json:"mpsConfig,omitempty"`
 }
 
-// MigDeviceSharing holds the current sharing strategy for MIG Devices and its settings
+// MigDeviceSharing holds the current sharing strategy for MIG Devices and its settings.
 // +kubebuilder:validation:MaxProperties=2
 type MigDeviceSharing struct {
 	// +kubebuilder:default=TimeSlicing
@@ -81,7 +81,7 @@ type MigDeviceSharing struct {
 	MpsConfig *MpsConfig         `json:"mpsConfig,omitempty"`
 }
 
-// TimeSlicingSettings provides the settings for CUDA time-slicing.
+// TimeSlicingSettings provides the settings for CUDA time-slicing..
 type TimeSlicingConfig struct {
 	// +kubebuilder:default=Default
 	TimeSlice *TimeSliceDuration `json:"timeSlice,omitempty"`
@@ -94,7 +94,7 @@ type MpsConfig struct {
 	PinnedDeviceMemoryLimit MpsPinnedDeviceMemoryLimit `json:"pinnedDeviceMemoryLimit,omitempty"`
 }
 
-// IsTimeSlicing checks if the TimeSlicing strategy is applied
+// IsTimeSlicing checks if the TimeSlicing strategy is applied.
 func (s *GpuSharing) IsTimeSlicing() bool {
 	if s == nil {
 		// TimeSlicing is the default strategy
@@ -103,7 +103,7 @@ func (s *GpuSharing) IsTimeSlicing() bool {
 	return s.Strategy == TimeSlicingStrategy
 }
 
-// IsMps checks if the MPS strategy is applied
+// IsMps checks if the MPS strategy is applied.
 func (s *GpuSharing) IsMps() bool {
 	if s == nil {
 		return false
@@ -111,12 +111,12 @@ func (s *GpuSharing) IsMps() bool {
 	return s.Strategy == MpsStrategy
 }
 
-// IsTimeSlicing checks if the TimeSlicing strategy is applied
+// IsTimeSlicing checks if the TimeSlicing strategy is applied.
 func (s *MigDeviceSharing) IsTimeSlicing() bool {
 	return false
 }
 
-// IsMps checks if the MPS strategy is applied
+// IsMps checks if the MPS strategy is applied.
 func (s *MigDeviceSharing) IsMps() bool {
 	if s == nil {
 		return false
@@ -124,7 +124,7 @@ func (s *MigDeviceSharing) IsMps() bool {
 	return s.Strategy == MpsStrategy
 }
 
-// GetTimeSlicingConfig returns the timeslicing config that applies to the given strategy
+// GetTimeSlicingConfig returns the timeslicing config that applies to the given strategy.
 func (s *GpuSharing) GetTimeSlicingConfig() (*TimeSlicingConfig, error) {
 	if s == nil {
 		// TimeSlicing is the default strategy
@@ -137,12 +137,12 @@ func (s *GpuSharing) GetTimeSlicingConfig() (*TimeSlicingConfig, error) {
 	return s.TimeSlicingConfig, nil
 }
 
-// GetTimeSlicingConfig returns the timeslicing config that applies to the given strategy
+// GetTimeSlicingConfig returns the timeslicing config that applies to the given strategy.
 func (s *MigDeviceSharing) GetTimeSlicingConfig() (*TimeSlicingConfig, error) {
 	return nil, nil
 }
 
-// GetMpsConfig returns the MPS config that applies to the given strategy
+// GetMpsConfig returns the MPS config that applies to the given strategy.
 func (s *GpuSharing) GetMpsConfig() (*MpsConfig, error) {
 	if s == nil {
 		return nil, fmt.Errorf("no sharing set to get config from")
@@ -156,7 +156,7 @@ func (s *GpuSharing) GetMpsConfig() (*MpsConfig, error) {
 	return s.MpsConfig, nil
 }
 
-// GetMpsConfig returns the MPS config that applies to the given strategy
+// GetMpsConfig returns the MPS config that applies to the given strategy.
 func (s *MigDeviceSharing) GetMpsConfig() (*MpsConfig, error) {
 	if s == nil {
 		return nil, fmt.Errorf("no sharing set to get config from")
@@ -167,7 +167,7 @@ func (s *MigDeviceSharing) GetMpsConfig() (*MpsConfig, error) {
 	return s.MpsConfig, nil
 }
 
-// Int returns the integer representations of a timeslice duration
+// Int returns the integer representations of a timeslice duration.
 func (c TimeSliceDuration) Int() int {
 	switch c {
 	case DefaultTimeSlice:
@@ -182,7 +182,7 @@ func (c TimeSliceDuration) Int() int {
 	return -1
 }
 
-// String formats MpsPinnedDeviceMemoryLimit for passing as an envvar
+// String formats MpsPinnedDeviceMemoryLimit for passing as an envvar.
 func (m MpsPinnedDeviceMemoryLimit) String() (string, error) {
 	var limits []string
 	for k, v := range m {

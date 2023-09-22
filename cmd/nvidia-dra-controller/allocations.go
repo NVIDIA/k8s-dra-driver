@@ -37,17 +37,14 @@ func (p *PerNodeAllocatedClaims) Exists(claimUID, node string) bool {
 	p.RLock()
 	defer p.RUnlock()
 
-	_, exists := p.allocations[claimUID]
+	claimAllocation, exists := p.allocations[claimUID]
 	if !exists {
 		return false
 	}
 
-	_, exists = p.allocations[claimUID][node]
-	if !exists {
-		return false
-	}
+	_, exists = claimAllocation[node]
 
-	return true
+	return exists
 }
 
 func (p *PerNodeAllocatedClaims) Get(claimUID, node string) nascrd.AllocatedDevices {

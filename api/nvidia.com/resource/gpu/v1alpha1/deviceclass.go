@@ -20,7 +20,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// DeviceClassParametersSpec is the spec for the DeviceClassParametersSpec CRD
+// DeviceClassParametersSpec is the spec for the DeviceClassParametersSpec CRD.
 type DeviceClassParametersSpec struct {
 	Shareable *bool `json:"sharable,omitempty"`
 }
@@ -31,7 +31,7 @@ type DeviceClassParametersSpec struct {
 // +k8s:openapi-gen=true
 // +kubebuilder:resource:scope=Cluster
 
-// DeviceClassParameters holds the set of parameters provided when creating a resource class for this driver
+// DeviceClassParameters holds the set of parameters provided when creating a resource class for this driver.
 type DeviceClassParameters struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -41,7 +41,7 @@ type DeviceClassParameters struct {
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// DeviceClassParametersList represents the "plural" of a DeviceClassParameters CRD object
+// DeviceClassParametersList represents the "plural" of a DeviceClassParameters CRD object.
 type DeviceClassParametersList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

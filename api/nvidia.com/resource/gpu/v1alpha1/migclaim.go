@@ -17,11 +17,12 @@
 package v1alpha1
 
 import (
-	nascrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	nascrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1"
 )
 
-// MigDeviceClaimParametersSpec is the spec for the MigDeviceClaimParameters CRD
+// MigDeviceClaimParametersSpec is the spec for the MigDeviceClaimParameters CRD.
 type MigDeviceClaimParametersSpec struct {
 	Profile                string                   `json:"profile,omitempty"`
 	Sharing                *nascrd.MigDeviceSharing `json:"sharing,omitempty"`
@@ -33,7 +34,7 @@ type MigDeviceClaimParametersSpec struct {
 // +k8s:openapi-gen=true
 // +kubebuilder:resource:scope=Namespaced
 
-// MigDeviceClaimParameters holds the set of parameters provided when creating a resource claim for a MIG device
+// MigDeviceClaimParameters holds the set of parameters provided when creating a resource claim for a MIG device.
 type MigDeviceClaimParameters struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -43,7 +44,7 @@ type MigDeviceClaimParameters struct {
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// MigDeviceClaimParametersList represents the "plural" of a MigDeviceClaimParameters CRD object
+// MigDeviceClaimParametersList represents the "plural" of a MigDeviceClaimParameters CRD object.
 type MigDeviceClaimParametersList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

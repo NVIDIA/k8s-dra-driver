@@ -17,11 +17,13 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"sync"
 
-	nascrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1"
 	"gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvml"
+
+	nascrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1"
 )
 
 type AllocatableDevices map[string]*AllocatableDeviceInfo
@@ -121,7 +123,7 @@ type DeviceState struct {
 	config      *Config
 }
 
-func NewDeviceState(config *Config) (*DeviceState, error) {
+func NewDeviceState(ctx context.Context, config *Config) (*DeviceState, error) {
 	nvidiaDriverRoot := "/run/nvidia/driver"
 
 	allocatable, err := enumerateAllPossibleDevices()
@@ -151,7 +153,7 @@ func NewDeviceState(config *Config) (*DeviceState, error) {
 		config:      config,
 	}
 
-	err = state.syncPreparedDevicesFromCRDSpec(&config.nascrd.Spec)
+	err = state.syncPreparedDevicesFromCRDSpec(ctx, &config.nascrd.Spec)
 	if err != nil {
 		return nil, fmt.Errorf("unable to sync prepared devices from CRD: %v", err)
 	}
@@ -159,12 +161,12 @@ func NewDeviceState(config *Config) (*DeviceState, error) {
 	return state, nil
 }
 
-func (s *DeviceState) Prepare(claimUid string, allocated nascrd.AllocatedDevices) ([]string, error) {
+func (s *DeviceState) Prepare(ctx context.Context, claimUID string, allocated nascrd.AllocatedDevices) ([]string, error) {
 	s.Lock()
 	defer s.Unlock()
 
-	if s.prepared[claimUid] != nil {
-		return s.cdi.GetClaimDevices(claimUid), nil
+	if s.prepared[claimUID] != nil {
+		return s.cdi.GetClaimDevices(claimUID), nil
 	}
 
 	prepared := &PreparedDevices{}
@@ -172,69 +174,69 @@ func (s *DeviceState) Prepare(claimUid string, allocated nascrd.AllocatedDevices
 	var err error
 	switch allocated.Type() {
 	case nascrd.GpuDeviceType:
-		prepared.Gpu, err = s.prepareGpus(claimUid, allocated.Gpu)
+		prepared.Gpu, err = s.prepareGpus(claimUID, allocated.Gpu)
 		if err != nil {
 			return nil, fmt.Errorf("GPU allocation failed: %v", err)
 		}
-		err = s.setupSharing(allocated.Gpu.Sharing, allocated.ClaimInfo, prepared)
+		err = s.setupSharing(ctx, allocated.Gpu.Sharing, allocated.ClaimInfo, prepared)
 		if err != nil {
 			return nil, fmt.Errorf("error setting up sharing: %v", err)
 		}
 	case nascrd.MigDeviceType:
-		prepared.Mig, err = s.prepareMigDevices(claimUid, allocated.Mig)
+		prepared.Mig, err = s.prepareMigDevices(claimUID, allocated.Mig)
 		if err != nil {
 			return nil, fmt.Errorf("MIG device allocation failed: %v", err)
 		}
-		err = s.setupSharing(allocated.Mig.Sharing, allocated.ClaimInfo, prepared)
+		err = s.setupSharing(ctx, allocated.Mig.Sharing, allocated.ClaimInfo, prepared)
 		if err != nil {
 			return nil, fmt.Errorf("error setting up sharing: %v", err)
 		}
 	}
 
-	err = s.cdi.CreateClaimSpecFile(claimUid, prepared)
+	err = s.cdi.CreateClaimSpecFile(claimUID, prepared)
 	if err != nil {
 		return nil, fmt.Errorf("unable to create CDI spec file for claim: %v", err)
 	}
 
-	s.prepared[claimUid] = prepared
+	s.prepared[claimUID] = prepared
 
-	return s.cdi.GetClaimDevices(claimUid), nil
+	return s.cdi.GetClaimDevices(claimUID), nil
 }
 
-func (s *DeviceState) Unprepare(claimUid string) error {
+func (s *DeviceState) Unprepare(ctx context.Context, claimUID string) error {
 	s.Lock()
 	defer s.Unlock()
 
-	if s.prepared[claimUid] == nil {
+	if s.prepared[claimUID] == nil {
 		return nil
 	}
 
-	if s.prepared[claimUid].MpsControlDaemon != nil {
-		err := s.prepared[claimUid].MpsControlDaemon.Stop()
+	if s.prepared[claimUID].MpsControlDaemon != nil {
+		err := s.prepared[claimUID].MpsControlDaemon.Stop(ctx)
 		if err != nil {
 			return fmt.Errorf("error stopping MPS control daemon: %v", err)
 		}
 	}
 
-	switch s.prepared[claimUid].Type() {
+	switch s.prepared[claimUID].Type() {
 	case nascrd.GpuDeviceType:
-		err := s.unprepareGpus(claimUid, s.prepared[claimUid])
+		err := s.unprepareGpus(claimUID, s.prepared[claimUID])
 		if err != nil {
 			return fmt.Errorf("unprepare failed: %v", err)
 		}
 	case nascrd.MigDeviceType:
-		err := s.unprepareMigDevices(claimUid, s.prepared[claimUid])
+		err := s.unprepareMigDevices(claimUID, s.prepared[claimUID])
 		if err != nil {
 			return fmt.Errorf("unprepare failed: %v", err)
 		}
 	}
 
-	err := s.cdi.DeleteClaimSpecFile(claimUid)
+	err := s.cdi.DeleteClaimSpecFile(claimUID)
 	if err != nil {
 		return fmt.Errorf("unable to delete CDI spec file for claim: %v", err)
 	}
 
-	delete(s.prepared, claimUid)
+	delete(s.prepared, claimUID)
 
 	return nil
 }
@@ -249,7 +251,7 @@ func (s *DeviceState) GetUpdatedSpec(inspec *nascrd.NodeAllocationStateSpec) *na
 	return outspec
 }
 
-func (s *DeviceState) prepareGpus(claimUid string, allocated *nascrd.AllocatedGpus) (*PreparedGpus, error) {
+func (s *DeviceState) prepareGpus(claimUID string, allocated *nascrd.AllocatedGpus) (*PreparedGpus, error) {
 	prepared := &PreparedGpus{}
 
 	for _, device := range allocated.Devices {
@@ -265,7 +267,7 @@ func (s *DeviceState) prepareGpus(claimUid string, allocated *nascrd.AllocatedGp
 	return prepared, nil
 }
 
-func (s *DeviceState) prepareMigDevices(claimUid string, allocated *nascrd.AllocatedMigDevices) (*PreparedMigDevices, error) {
+func (s *DeviceState) prepareMigDevices(claimUID string, allocated *nascrd.AllocatedMigDevices) (*PreparedMigDevices, error) {
 	prepared := &PreparedMigDevices{}
 
 	for _, device := range allocated.Devices {
@@ -299,7 +301,7 @@ func (s *DeviceState) prepareMigDevices(claimUid string, allocated *nascrd.Alloc
 	return prepared, nil
 }
 
-func (s *DeviceState) unprepareGpus(claimUid string, devices *PreparedDevices) error {
+func (s *DeviceState) unprepareGpus(claimUID string, devices *PreparedDevices) error {
 	err := s.tsManager.SetTimeSlice(devices, nil)
 	if err != nil {
 		return fmt.Errorf("error setting timeslice for devices: %v", err)
@@ -307,7 +309,7 @@ func (s *DeviceState) unprepareGpus(claimUid string, devices *PreparedDevices) e
 	return nil
 }
 
-func (s *DeviceState) unprepareMigDevices(claimUid string, devices *PreparedDevices) error {
+func (s *DeviceState) unprepareMigDevices(claimUID string, devices *PreparedDevices) error {
 	for _, device := range devices.Mig.Devices {
 		err := deleteMigDevice(device)
 		if err != nil {
@@ -317,7 +319,7 @@ func (s *DeviceState) unprepareMigDevices(claimUid string, devices *PreparedDevi
 	return nil
 }
 
-func (s *DeviceState) setupSharing(sharing nascrd.Sharing, claim *nascrd.ClaimInfo, devices *PreparedDevices) error {
+func (s *DeviceState) setupSharing(ctx context.Context, sharing nascrd.Sharing, claim *nascrd.ClaimInfo, devices *PreparedDevices) error {
 	if sharing.IsTimeSlicing() {
 		config, err := sharing.GetTimeSlicingConfig()
 		if err != nil {
@@ -335,11 +337,11 @@ func (s *DeviceState) setupSharing(sharing nascrd.Sharing, claim *nascrd.ClaimIn
 			return fmt.Errorf("error getting MPS configuration: %v", err)
 		}
 		mpsControlDaemon := s.mpsManager.NewMpsControlDaemon(claim, devices, config)
-		err = mpsControlDaemon.Start()
+		err = mpsControlDaemon.Start(ctx)
 		if err != nil {
 			return fmt.Errorf("error starting MPS control daemon: %v", err)
 		}
-		err = mpsControlDaemon.AssertReady()
+		err = mpsControlDaemon.AssertReady(ctx)
 		if err != nil {
 			return fmt.Errorf("MPS control daemon is not yet ready: %v", err)
 		}
@@ -413,7 +415,7 @@ func (s *DeviceState) syncAllocatableDevicesToCRDSpec(spec *nascrd.NodeAllocatio
 	spec.AllocatableDevices = allocatable
 }
 
-func (s *DeviceState) syncPreparedDevicesFromCRDSpec(spec *nascrd.NodeAllocationStateSpec) error {
+func (s *DeviceState) syncPreparedDevicesFromCRDSpec(ctx context.Context, spec *nascrd.NodeAllocationStateSpec) error {
 	gpus := s.allocatable
 	migs := make(map[string]map[string]*MigDeviceInfo)
 
@@ -440,7 +442,7 @@ func (s *DeviceState) syncPreparedDevicesFromCRDSpec(spec *nascrd.NodeAllocation
 			for _, d := range devices.Gpu.Devices {
 				prepared[claim].Gpu.Devices = append(prepared[claim].Gpu.Devices, gpus[d.UUID].GpuInfo)
 			}
-			err := s.setupSharing(allocated.Gpu.Sharing, allocated.ClaimInfo, prepared[claim])
+			err := s.setupSharing(ctx, allocated.Gpu.Sharing, allocated.ClaimInfo, prepared[claim])
 			if err != nil {
 				return fmt.Errorf("error setting up sharing: %v", err)
 			}
@@ -469,7 +471,7 @@ func (s *DeviceState) syncPreparedDevicesFromCRDSpec(spec *nascrd.NodeAllocation
 				}
 				prepared[claim].Mig.Devices = append(prepared[claim].Mig.Devices, migInfo)
 			}
-			err := s.setupSharing(allocated.Mig.Sharing, allocated.ClaimInfo, prepared[claim])
+			err := s.setupSharing(ctx, allocated.Mig.Sharing, allocated.ClaimInfo, prepared[claim])
 			if err != nil {
 				return fmt.Errorf("error setting up sharing: %v", err)
 			}

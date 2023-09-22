@@ -39,20 +39,20 @@ func New(nas *nascrd.NodeAllocationState, client nasclient.NasV1alpha1Interface)
 	}
 }
 
-func (c *Client) GetOrCreate() error {
-	err := c.Get()
+func (c *Client) GetOrCreate(ctx context.Context) error {
+	err := c.Get(ctx)
 	if err == nil {
 		return nil
 	}
 	if errors.IsNotFound(err) {
-		return c.Create()
+		return c.Create(ctx)
 	}
 	return err
 }
 
-func (c *Client) Create() error {
+func (c *Client) Create(ctx context.Context) error {
 	crd := c.nas.DeepCopy()
-	crd, err := c.client.NodeAllocationStates(c.nas.Namespace).Create(context.TODO(), crd, metav1.CreateOptions{})
+	crd, err := c.client.NodeAllocationStates(c.nas.Namespace).Create(ctx, crd, metav1.CreateOptions{})
 	if err != nil {
 		return err
 	}
@@ -60,20 +60,20 @@ func (c *Client) Create() error {
 	return nil
 }
 
-func (c *Client) Delete() error {
+func (c *Client) Delete(ctx context.Context) error {
 	deletePolicy := metav1.DeletePropagationForeground
 	deleteOptions := metav1.DeleteOptions{PropagationPolicy: &deletePolicy}
-	err := c.client.NodeAllocationStates(c.nas.Namespace).Delete(context.TODO(), c.nas.Name, deleteOptions)
+	err := c.client.NodeAllocationStates(c.nas.Namespace).Delete(ctx, c.nas.Name, deleteOptions)
 	if err != nil && !errors.IsNotFound(err) {
 		return err
 	}
 	return nil
 }
 
-func (c *Client) Update(spec *nascrd.NodeAllocationStateSpec) error {
+func (c *Client) Update(ctx context.Context, spec *nascrd.NodeAllocationStateSpec) error {
 	crd := c.nas.DeepCopy()
 	crd.Spec = *spec
-	crd, err := c.client.NodeAllocationStates(c.nas.Namespace).Update(context.TODO(), crd, metav1.UpdateOptions{})
+	crd, err := c.client.NodeAllocationStates(c.nas.Namespace).Update(ctx, crd, metav1.UpdateOptions{})
 	if err != nil {
 		return err
 	}
@@ -81,10 +81,10 @@ func (c *Client) Update(spec *nascrd.NodeAllocationStateSpec) error {
 	return nil
 }
 
-func (c *Client) UpdateStatus(status string) error {
+func (c *Client) UpdateStatus(ctx context.Context, status string) error {
 	crd := c.nas.DeepCopy()
 	crd.Status = status
-	crd, err := c.client.NodeAllocationStates(c.nas.Namespace).Update(context.TODO(), crd, metav1.UpdateOptions{})
+	crd, err := c.client.NodeAllocationStates(c.nas.Namespace).Update(ctx, crd, metav1.UpdateOptions{})
 	if err != nil {
 		return err
 	}
@@ -92,8 +92,8 @@ func (c *Client) UpdateStatus(status string) error {
 	return nil
 }
 
-func (c *Client) Get() error {
-	crd, err := c.client.NodeAllocationStates(c.nas.Namespace).Get(context.TODO(), c.nas.Name, metav1.GetOptions{})
+func (c *Client) Get(ctx context.Context) error {
+	crd, err := c.client.NodeAllocationStates(c.nas.Namespace).Get(ctx, c.nas.Name, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -101,16 +101,16 @@ func (c *Client) Get() error {
 	return nil
 }
 
-func (c *Client) List(options metav1.ListOptions) (*nascrd.NodeAllocationStateList, error) {
-	watcher, err := c.client.NodeAllocationStates(c.nas.Namespace).List(context.TODO(), options)
+func (c *Client) List(ctx context.Context, options metav1.ListOptions) (*nascrd.NodeAllocationStateList, error) {
+	watcher, err := c.client.NodeAllocationStates(c.nas.Namespace).List(ctx, options)
 	if err != nil {
 		return nil, err
 	}
 	return watcher, nil
 }
 
-func (c *Client) Watch(options metav1.ListOptions) (watch.Interface, error) {
-	watcher, err := c.client.NodeAllocationStates(c.nas.Namespace).Watch(context.TODO(), options)
+func (c *Client) Watch(ctx context.Context, options metav1.ListOptions) (watch.Interface, error) {
+	watcher, err := c.client.NodeAllocationStates(c.nas.Namespace).Watch(ctx, options)
 	if err != nil {
 		return nil, err
 	}

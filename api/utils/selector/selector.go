@@ -38,39 +38,39 @@ type Selector[T any] struct {
 // +k8s:deepcopy-gen=false
 type SelectorList[T any] []Selector[T]
 
-// IntProperty defines an int type that methods can hang off of
+// IntProperty defines an int type that methods can hang off of.
 type IntProperty int
 
-// StringProperty defines a string type that methods can hang off of
+// StringProperty defines a string type that methods can hang off of.
 type StringProperty string
 
-// BoolProperty defines a bool type that methods can hang off of
+// BoolProperty defines a bool type that methods can hang off of.
 type BoolProperty bool
 
-// GlobProperty defines a string type that can contain glob for matching against
+// GlobProperty defines a string type that can contain glob for matching against.
 type GlobProperty string
 
-// QuantityComparatorOperator defines the operators for use with a QuantityComparator
+// QuantityComparatorOperator defines the operators for use with a QuantityComparator.
 // +kubebuilder:validation:Enum=Equals;LessThan;LessThanOrEqualTo;GreaterThan;GreaterThanOrEqualTo
 type QuantityComparatorOperator string
 
-// VersionComparatorOperator defines the operators for use with a VersionComparator
+// VersionComparatorOperator defines the operators for use with a VersionComparator.
 // +kubebuilder:validation:Enum=Equals;LessThan;LessThanOrEqualTo;GreaterThan;GreaterThanOrEqualTo
 type VersionComparatorOperator string
 
-// QuantityComparator compares a quantity SelectorCondition using a specific operator
+// QuantityComparator compares a quantity SelectorCondition using a specific operator.
 type QuantityComparator struct {
 	Value    resource.Quantity          `json:"value,omitempty"`
 	Operator QuantityComparatorOperator `json:"operator,omitempty"`
 }
 
-// VersionComparator compares a version SelectorCondition using a specific operator
+// VersionComparator compares a version SelectorCondition using a specific operator.
 type VersionComparator struct {
 	Value    string                    `json:"value,omitempty"`
 	Operator VersionComparatorOperator `json:"operator,omitempty"`
 }
 
-// Matches evaluates a Selector to see if it matches the boolean expression it represents
+// Matches evaluates a Selector to see if it matches the boolean expression it represents.
 // Each individual Properties object is passed to the caller via a callback to
 // compare it in isolation before combining the results.
 func (s Selector[T]) Matches(compare func(*T) bool) bool {
@@ -86,8 +86,8 @@ func (s Selector[T]) Matches(compare func(*T) bool) bool {
 	return false
 }
 
-// And runs an 'and' operation between each element in SelectorList Each
-// individual Properties object is passed to the caller via a callback to
+// And runs an 'and' operation between each element in SelectorList.
+// Each individual Properties object is passed to the caller via a callback to
 // compare it in isolation before combining the results.
 func (l SelectorList[T]) And(compare func(*T) bool) bool {
 	and := true
@@ -97,8 +97,8 @@ func (l SelectorList[T]) And(compare func(*T) bool) bool {
 	return and
 }
 
-// Or runs an 'or' operation between each element in SelectorList Each
-// individual Properties object is passed to the caller via a callback to
+// Or runs an 'or' operation between each element in SelectorList.
+// Each individual Properties object is passed to the caller via a callback to
 // compare it in isolation before combining the results.
 func (l SelectorList[T]) Or(compare func(*T) bool) bool {
 	or := false
@@ -108,22 +108,22 @@ func (l SelectorList[T]) Or(compare func(*T) bool) bool {
 	return or
 }
 
-// Matches checks if the provided int matches the IntProperty
+// Matches checks if the provided int matches the IntProperty.
 func (p IntProperty) Matches(i int) bool {
 	return int(p) == i
 }
 
-// Matches checks if the provided string matches the StringProperty
+// Matches checks if the provided string matches the StringProperty.
 func (p StringProperty) Matches(s string) bool {
 	return string(p) == s
 }
 
-// Matches checks if the provided bool matches the BoolProperty
+// Matches checks if the provided bool matches the BoolProperty.
 func (p BoolProperty) Matches(b bool) bool {
 	return bool(p) == b
 }
 
-// Matches checks if the provided string matches the GlobProperty
+// Matches checks if the provided string matches the GlobProperty.
 func (g GlobProperty) Matches(s string) bool {
 	lowerg := strings.ToLower(string(g))
 	lowers := strings.ToLower(s)
@@ -131,19 +131,19 @@ func (g GlobProperty) Matches(s string) bool {
 	return result
 }
 
-// Matches checks if 'version' matches the semantics of the QuantityComparator
+// Matches checks if 'version' matches the semantics of the QuantityComparator.
 func (c *QuantityComparator) Matches(quantity *resource.Quantity) bool {
 	compare := quantity.Cmp(c.Value)
 	return checkCompareValue(compare, string(c.Operator))
 }
 
-// Matches checks if a 'version' matches the semantics of the VersionComparator
+// Matches checks if a 'version' matches the semantics of the VersionComparator.
 func (c *VersionComparator) Matches(version string) bool {
 	compare := semver.Compare(vVersion(version), vVersion(c.Value))
 	return checkCompareValue(compare, string(c.Operator))
 }
 
-// vVersion prepends a 'v' to the version string if one is missing
+// vVersion prepends a 'v' to the version string if one is missing.
 func vVersion(version string) string {
 	vversion := version
 	if vversion[0] != 'v' {
@@ -153,7 +153,7 @@ func vVersion(version string) string {
 }
 
 // checkCompareValue will check the result of a standard comparison operation
-// against the string representation of the operation to see if they match
+// against the string representation of the operation to see if they match.
 func checkCompareValue(value int, operator string) bool {
 	switch operator {
 	case "Equals":

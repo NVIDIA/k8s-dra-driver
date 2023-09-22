@@ -22,13 +22,14 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	nascrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1"
 	"github.com/NVIDIA/nvidia-container-toolkit/pkg/nvcdi"
 	"github.com/NVIDIA/nvidia-container-toolkit/pkg/nvcdi/transform"
 	cdiapi "github.com/container-orchestrated-devices/container-device-interface/pkg/cdi"
 	cdispec "github.com/container-orchestrated-devices/container-device-interface/specs-go"
 	nvdevice "gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvlib/device"
 	"gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvml"
+
+	nascrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1"
 )
 
 const (
@@ -100,7 +101,9 @@ func (cdi *CDIHandler) CreateCommonSpecFile() error {
 	if ret != nvml.SUCCESS {
 		return ret
 	}
-	defer cdi.nvml.Shutdown()
+	defer func() {
+		_ = cdi.nvml.Shutdown()
+	}()
 
 	commonEdits, err := cdi.nvcdi.GetCommonEdits()
 	if err != nil {
@@ -136,12 +139,14 @@ func (cdi *CDIHandler) CreateCommonSpecFile() error {
 	return cdi.registry.SpecDB().WriteSpec(spec, specName)
 }
 
-func (cdi *CDIHandler) CreateClaimSpecFile(claimUid string, devices *PreparedDevices) error {
+func (cdi *CDIHandler) CreateClaimSpecFile(claimUID string, devices *PreparedDevices) error {
 	ret := cdi.nvml.Init()
 	if ret != nvml.SUCCESS {
 		return ret
 	}
-	defer cdi.nvml.Shutdown()
+	defer func() {
+		_ = cdi.nvml.Shutdown()
+	}()
 
 	claimEdits := cdiapi.ContainerEdits{}
 
@@ -206,7 +211,7 @@ func (cdi *CDIHandler) CreateClaimSpecFile(claimUid string, devices *PreparedDev
 		Kind: cdiKind,
 		Devices: []cdispec.Device{
 			{
-				Name:           claimUid,
+				Name:           claimUID,
 				ContainerEdits: *claimEdits.ContainerEdits,
 			},
 		},
@@ -218,7 +223,7 @@ func (cdi *CDIHandler) CreateClaimSpecFile(claimUid string, devices *PreparedDev
 	}
 	spec.Version = minVersion
 
-	specName, err := cdiapi.GenerateNameForTransientSpec(spec, claimUid)
+	specName, err := cdiapi.GenerateNameForTransientSpec(spec, claimUID)
 	if err != nil {
 		return fmt.Errorf("failed to generate Spec name: %w", err)
 	}
@@ -226,12 +231,12 @@ func (cdi *CDIHandler) CreateClaimSpecFile(claimUid string, devices *PreparedDev
 	return cdi.registry.SpecDB().WriteSpec(spec, specName)
 }
 
-func (cdi *CDIHandler) DeleteClaimSpecFile(claimUid string) error {
+func (cdi *CDIHandler) DeleteClaimSpecFile(claimUID string) error {
 	spec := &cdispec.Spec{
 		Kind: cdiKind,
 	}
 
-	specName, err := cdiapi.GenerateNameForTransientSpec(spec, claimUid)
+	specName, err := cdiapi.GenerateNameForTransientSpec(spec, claimUID)
 	if err != nil {
 		return fmt.Errorf("failed to generate Spec name: %w", err)
 	}
@@ -239,10 +244,10 @@ func (cdi *CDIHandler) DeleteClaimSpecFile(claimUid string) error {
 	return cdi.registry.SpecDB().RemoveSpec(specName)
 }
 
-func (cdi *CDIHandler) GetClaimDevices(claimUid string) []string {
+func (cdi *CDIHandler) GetClaimDevices(claimUID string) []string {
 	devices := []string{
 		cdiapi.QualifiedName(cdiVendor, cdiClass, cdiCommonDeviceName),
-		cdiapi.QualifiedName(cdiVendor, cdiClass, claimUid),
+		cdiapi.QualifiedName(cdiVendor, cdiClass, claimUID),
 	}
 	return devices
 }
