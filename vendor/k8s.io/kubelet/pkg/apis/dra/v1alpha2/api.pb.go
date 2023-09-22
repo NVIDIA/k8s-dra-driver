@@ -51,7 +51,7 @@ type NodePrepareResourceRequest struct {
 	Namespace string `protobuf:"bytes,1,opt,name=namespace,proto3" json:"namespace,omitempty"`
 	// The UID of the Resource claim (ResourceClaim.meta.UUID).
 	// This field is REQUIRED.
-	ClaimUid string `protobuf:"bytes,2,opt,name=claim_uid,json=claimUID,proto3" json:"claim_uid,omitempty"`
+	ClaimUid string `protobuf:"bytes,2,opt,name=claim_uid,json=claimUid,proto3" json:"claim_uid,omitempty"`
 	// The name of the Resource claim (ResourceClaim.meta.Name)
 	// This field is REQUIRED.
 	ClaimName string `protobuf:"bytes,3,opt,name=claim_name,json=claimName,proto3" json:"claim_name,omitempty"`
@@ -176,7 +176,7 @@ type NodeUnprepareResourceRequest struct {
 	Namespace string `protobuf:"bytes,1,opt,name=namespace,proto3" json:"namespace,omitempty"`
 	// The UID of the Resource claim (ResourceClaim.meta.UUID).
 	// This field is REQUIRED.
-	ClaimUid string `protobuf:"bytes,2,opt,name=claim_uid,json=claimUID,proto3" json:"claim_uid,omitempty"`
+	ClaimUid string `protobuf:"bytes,2,opt,name=claim_uid,json=claimUid,proto3" json:"claim_uid,omitempty"`
 	// The name of the Resource claim (ResourceClaim.meta.Name)
 	// This field is REQUIRED.
 	ClaimName string `protobuf:"bytes,3,opt,name=claim_name,json=claimName,proto3" json:"claim_name,omitempty"`
