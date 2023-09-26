@@ -92,7 +92,10 @@ func (m *migdriver) UnsuitableNode(crd *nascrd.NodeAllocationState, pod *corev1.
 
 	for _, ca := range migcas {
 		claimUID := string(ca.Claim.UID)
-		claimParams := ca.ClaimParameters.(*gpucrd.MigDeviceClaimParametersSpec)
+		claimParams, ok := ca.ClaimParameters.(*gpucrd.MigDeviceClaimParametersSpec)
+		if !ok {
+			return fmt.Errorf("invalid claim parameters type: %T", ca.ClaimParameters)
+		}
 
 		devices := []nascrd.AllocatedMigDevice{
 			{
@@ -183,6 +186,7 @@ func (m *migdriver) allocate(crd *nascrd.NodeAllocationState, pod *corev1.Pod, m
 			continue
 		}
 
+		//nolint:forcetypeassert  // TODO: What is the correct behaviour if the type assertion fails?
 		claimParams := ca.ClaimParameters.(*gpucrd.MigDeviceClaimParametersSpec)
 		if _, exists := available[claimParams.Profile]; !exists {
 			possiblePlacements[ca] = nil
