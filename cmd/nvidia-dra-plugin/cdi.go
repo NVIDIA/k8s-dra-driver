@@ -25,6 +25,7 @@ import (
 	"github.com/NVIDIA/nvidia-container-toolkit/pkg/nvcdi"
 	"github.com/NVIDIA/nvidia-container-toolkit/pkg/nvcdi/transform"
 	cdiapi "github.com/container-orchestrated-devices/container-device-interface/pkg/cdi"
+	cdiparser "github.com/container-orchestrated-devices/container-device-interface/pkg/parser"
 	cdispec "github.com/container-orchestrated-devices/container-device-interface/specs-go"
 	nvdevice "gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvlib/device"
 	"gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvml"
@@ -71,13 +72,16 @@ func NewCDIHandler(config *Config) (*CDIHandler, error) {
 	nvdevicelib := nvdevice.New(
 		nvdevice.WithNvml(nvmllib),
 	)
-	nvcdilib := nvcdi.New(
+	nvcdilib, err := nvcdi.New(
 		nvcdi.WithDeviceLib(nvdevicelib),
 		nvcdi.WithDriverRoot(driverRoot),
 		nvcdi.WithLogger(logger),
 		nvcdi.WithNvmlLib(nvmllib),
 		nvcdi.WithMode(mode),
 	)
+	if err != nil {
+		return nil, fmt.Errorf("unable to create CDI library: %v", err)
+	}
 
 	handler := &CDIHandler{
 		logger:           logger,
@@ -246,8 +250,8 @@ func (cdi *CDIHandler) DeleteClaimSpecFile(claimUID string) error {
 
 func (cdi *CDIHandler) GetClaimDevices(claimUID string) []string {
 	devices := []string{
-		cdiapi.QualifiedName(cdiVendor, cdiClass, cdiCommonDeviceName),
-		cdiapi.QualifiedName(cdiVendor, cdiClass, claimUID),
+		cdiparser.QualifiedName(cdiVendor, cdiClass, cdiCommonDeviceName),
+		cdiparser.QualifiedName(cdiVendor, cdiClass, claimUID),
 	}
 	return devices
 }
