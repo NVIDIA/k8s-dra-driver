@@ -30,14 +30,14 @@ replace (
 
 require (
 	github.com/NVIDIA/go-nvml v0.12.0-1
-	github.com/NVIDIA/nvidia-container-toolkit v1.13.0-rc.2
-	github.com/container-orchestrated-devices/container-device-interface v0.5.4
+	github.com/NVIDIA/nvidia-container-toolkit v1.14.1
+	github.com/container-orchestrated-devices/container-device-interface v0.6.1
 	github.com/prometheus/client_golang v1.14.0
-	github.com/sirupsen/logrus v1.9.0
+	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/pflag v1.0.5
 	github.com/urfave/cli/v2 v2.25.7
-	gitlab.com/nvidia/cloud-native/go-nvlib v0.0.0-20230327171225-18ad7cd513cf
-	golang.org/x/mod v0.8.0
+	gitlab.com/nvidia/cloud-native/go-nvlib v0.0.0-20230818092907-09424fdc8884
+	golang.org/x/mod v0.12.0
 	k8s.io/api v0.27.0-beta.0
 	k8s.io/apimachinery v0.27.0-beta.0
 	k8s.io/client-go v0.27.0-beta.0
@@ -79,8 +79,8 @@ require (
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
-	github.com/opencontainers/runc v1.1.4 // indirect
-	github.com/opencontainers/runtime-spec v1.0.3-0.20220825212826-86290f6a00fb // indirect
+	github.com/opencontainers/runc v1.1.9 // indirect
+	github.com/opencontainers/runtime-spec v1.1.0 // indirect
 	github.com/opencontainers/runtime-tools v0.9.1-0.20221107090550-2e043c6bd626 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/client_model v0.3.0 // indirect
@@ -95,7 +95,7 @@ require (
 	go.uber.org/zap v1.21.0 // indirect
 	golang.org/x/net v0.8.0 // indirect
 	golang.org/x/oauth2 v0.0.0-20221014153046-6fdb5e3db783 // indirect
-	golang.org/x/sys v0.6.0 // indirect
+	golang.org/x/sys v0.12.0 // indirect
 	golang.org/x/term v0.6.0 // indirect
 	golang.org/x/text v0.8.0 // indirect
 	golang.org/x/time v0.1.0 // indirect

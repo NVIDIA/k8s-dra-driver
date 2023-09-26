@@ -17,29 +17,47 @@
 package discover
 
 import (
+	"github.com/NVIDIA/nvidia-container-toolkit/internal/logger"
 	"github.com/NVIDIA/nvidia-container-toolkit/internal/lookup"
-	"github.com/sirupsen/logrus"
 )
 
 type ipcMounts mounts
 
 // NewIPCDiscoverer creats a discoverer for NVIDIA IPC sockets.
-func NewIPCDiscoverer(logger *logrus.Logger, driverRoot string) (Discover, error) {
-	d := newMounts(
+func NewIPCDiscoverer(logger logger.Interface, driverRoot string) (Discover, error) {
+	sockets := newMounts(
 		logger,
 		lookup.NewFileLocator(
 			lookup.WithLogger(logger),
 			lookup.WithRoot(driverRoot),
+			lookup.WithSearchPaths("/run", "/var/run"),
+			lookup.WithCount(1),
 		),
 		driverRoot,
 		[]string{
-			"/var/run/nvidia-persistenced/socket",
-			"/var/run/nvidia-fabricmanager/socket",
+			"/nvidia-persistenced/socket",
+			"/nvidia-fabricmanager/socket",
+		},
+	)
+
+	mps := newMounts(
+		logger,
+		lookup.NewFileLocator(
+			lookup.WithLogger(logger),
+			lookup.WithRoot(driverRoot),
+			lookup.WithCount(1),
+		),
+		driverRoot,
+		[]string{
 			"/tmp/nvidia-mps",
 		},
 	)
 
-	return (*ipcMounts)(d), nil
+	d := Merge(
+		(*ipcMounts)(sockets),
+		(*ipcMounts)(mps),
+	)
+	return d, nil
 }
 
 // Mounts returns the discovered mounts with "noexec" added to the mount options.
