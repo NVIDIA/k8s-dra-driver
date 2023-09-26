@@ -26,31 +26,48 @@ import (
 	"gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvml"
 )
 
-func tryNvmlShutdown(nvmllib nvml.Interface) {
-	ret := nvmllib.Shutdown()
+type deviceLib struct {
+	nvdev.Interface
+	nvmllib nvml.Interface
+}
+
+func newDeviceLib() deviceLib {
+	nvmllib := nvml.New()
+	return deviceLib{
+		Interface: nvdev.New(nvdev.WithNvml(nvmllib)),
+		nvmllib:   nvmllib,
+	}
+}
+
+func (l deviceLib) Init() error {
+	ret := l.nvmllib.Init()
+	if ret != nvml.SUCCESS {
+		return fmt.Errorf("error initializing NVML: %v", ret)
+	}
+	return nil
+}
+
+func (l deviceLib) alwaysShutdown() {
+	ret := l.nvmllib.Shutdown()
 	if ret != nvml.SUCCESS {
 		klog.Warningf("error shutting down NVML: %v", ret)
 	}
 }
 
-func enumerateAllPossibleDevices() (AllocatableDevices, error) {
-	nvmllib := nvml.New()
-	nvdevlib := nvdev.New(nvdev.WithNvml(nvmllib))
-
-	ret := nvmllib.Init()
-	if ret != nvml.SUCCESS {
-		return nil, fmt.Errorf("error initializing NVML: %v", ret)
+func (l deviceLib) enumerateAllPossibleDevices() (AllocatableDevices, error) {
+	if err := l.Init(); err != nil {
+		return nil, err
 	}
-	defer tryNvmlShutdown(nvmllib)
+	defer l.alwaysShutdown()
 
 	alldevices := make(AllocatableDevices)
-	err := nvdevlib.VisitDevices(func(i int, d nvdev.Device) error {
-		gpuInfo, err := getGpuInfo(i, d)
+	err := l.VisitDevices(func(i int, d nvdev.Device) error {
+		gpuInfo, err := l.getGpuInfo(i, d)
 		if err != nil {
 			return fmt.Errorf("error getting info for GPU %d: %v", i, err)
 		}
 
-		migProfileInfos, err := getMigProfileInfos(gpuInfo)
+		migProfileInfos, err := l.getMigProfileInfos(gpuInfo)
 		if err != nil {
 			return fmt.Errorf("error getting MIG profile info for GPU %v: %v", i, err)
 		}
@@ -71,7 +88,7 @@ func enumerateAllPossibleDevices() (AllocatableDevices, error) {
 	return alldevices, nil
 }
 
-func getGpuInfo(index int, device nvdev.Device) (*GpuInfo, error) {
+func (l deviceLib) getGpuInfo(index int, device nvdev.Device) (*GpuInfo, error) {
 	minor, ret := device.GetMinorNumber()
 	if ret != nvml.SUCCESS {
 		return nil, fmt.Errorf("error getting minor number for device %d: %v", index, ret)
@@ -120,20 +137,17 @@ func getGpuInfo(index int, device nvdev.Device) (*GpuInfo, error) {
 	return gpuInfo, nil
 }
 
-func getMigProfileInfos(gpuInfo *GpuInfo) (map[string]*MigProfileInfo, error) {
+func (l deviceLib) getMigProfileInfos(gpuInfo *GpuInfo) (map[string]*MigProfileInfo, error) {
 	if !gpuInfo.migEnabled {
 		return nil, nil
 	}
 
-	nvmllib := nvml.New()
-
-	ret := nvmllib.Init()
-	if ret != nvml.SUCCESS {
-		return nil, fmt.Errorf("error initializing NVML: %v", ret)
+	if err := l.Init(); err != nil {
+		return nil, err
 	}
-	defer tryNvmlShutdown(nvmllib)
+	defer l.alwaysShutdown()
 
-	device, ret := nvmllib.DeviceGetHandleByUUID(gpuInfo.uuid + string(rune(0)))
+	device, ret := l.nvmllib.DeviceGetHandleByUUID(gpuInfo.uuid + string(rune(0)))
 	if ret != nvml.SUCCESS {
 		return nil, fmt.Errorf("error getting handle for device %v: %v", gpuInfo.uuid, ret)
 	}
@@ -183,16 +197,13 @@ func getMigProfileInfos(gpuInfo *GpuInfo) (map[string]*MigProfileInfo, error) {
 	return migProfiles, nil
 }
 
-func getMigProfiles(gpuInfo *GpuInfo) (map[int]*MigProfile, error) {
-	nvmllib := nvml.New()
-
-	ret := nvmllib.Init()
-	if ret != nvml.SUCCESS {
-		return nil, fmt.Errorf("error initializing NVML: %v", ret)
+func (l deviceLib) getMigProfiles(gpuInfo *GpuInfo) (map[int]*MigProfile, error) {
+	if err := l.Init(); err != nil {
+		return nil, err
 	}
-	defer tryNvmlShutdown(nvmllib)
+	defer l.alwaysShutdown()
 
-	device, ret := nvmllib.DeviceGetHandleByUUID(gpuInfo.uuid + string(rune(0)))
+	device, ret := l.nvmllib.DeviceGetHandleByUUID(gpuInfo.uuid + string(rune(0)))
 	if ret != nvml.SUCCESS {
 		return nil, fmt.Errorf("error getting GPU device handle: %v", ret)
 	}
@@ -220,25 +231,22 @@ func getMigProfiles(gpuInfo *GpuInfo) (map[int]*MigProfile, error) {
 	return migProfiles, nil
 }
 
-func getMigDevices(gpuInfo *GpuInfo) (map[string]*MigDeviceInfo, error) {
+func (l deviceLib) getMigDevices(gpuInfo *GpuInfo) (map[string]*MigDeviceInfo, error) {
 	if !gpuInfo.migEnabled {
 		return nil, nil
 	}
 
-	nvmllib := nvml.New()
-
-	ret := nvmllib.Init()
-	if ret != nvml.SUCCESS {
-		return nil, fmt.Errorf("error initializing NVML: %v", ret)
+	if err := l.Init(); err != nil {
+		return nil, err
 	}
-	defer tryNvmlShutdown(nvmllib)
+	defer l.alwaysShutdown()
 
-	device, ret := nvmllib.DeviceGetHandleByUUID(gpuInfo.uuid + string(rune(0)))
+	device, ret := l.nvmllib.DeviceGetHandleByUUID(gpuInfo.uuid + string(rune(0)))
 	if ret != nvml.SUCCESS {
 		return nil, fmt.Errorf("error getting GPU device handle: %v", ret)
 	}
 
-	migProfiles, err := getMigProfiles(gpuInfo)
+	migProfiles, err := l.getMigProfiles(gpuInfo)
 	if err != nil {
 		return nil, fmt.Errorf("error getting GPU instance profile infos for '%v': %v", gpuInfo.uuid, err)
 	}
@@ -293,16 +301,13 @@ func getMigDevices(gpuInfo *GpuInfo) (map[string]*MigDeviceInfo, error) {
 	return migInfos, nil
 }
 
-func createMigDevice(gpu *GpuInfo, profile *MigProfile, placement *nvml.GpuInstancePlacement) (*MigDeviceInfo, error) {
-	nvmllib := nvml.New()
-
-	ret := nvmllib.Init()
-	if ret != nvml.SUCCESS {
-		return nil, fmt.Errorf("error initializing NVML: %v", ret)
+func (l deviceLib) createMigDevice(gpu *GpuInfo, profile *MigProfile, placement *nvml.GpuInstancePlacement) (*MigDeviceInfo, error) {
+	if err := l.Init(); err != nil {
+		return nil, err
 	}
-	defer tryNvmlShutdown(nvmllib)
+	defer l.alwaysShutdown()
 
-	device, ret := nvmllib.DeviceGetHandleByUUID(gpu.uuid + string(rune(0)))
+	device, ret := l.nvmllib.DeviceGetHandleByUUID(gpu.uuid + string(rune(0)))
 	if ret != nvml.SUCCESS {
 		return nil, fmt.Errorf("error getting GPU device handle: %v", ret)
 	}
@@ -374,16 +379,13 @@ func createMigDevice(gpu *GpuInfo, profile *MigProfile, placement *nvml.GpuInsta
 	return migInfo, nil
 }
 
-func deleteMigDevice(mig *MigDeviceInfo) error {
-	nvmllib := nvml.New()
-
-	ret := nvmllib.Init()
-	if ret != nvml.SUCCESS {
-		return fmt.Errorf("error initializing NVML: %v", ret)
+func (l deviceLib) deleteMigDevice(mig *MigDeviceInfo) error {
+	if err := l.Init(); err != nil {
+		return err
 	}
-	defer tryNvmlShutdown(nvmllib)
+	defer l.alwaysShutdown()
 
-	parent, ret := nvmllib.DeviceGetHandleByUUID(mig.parent.uuid + string(rune(0)))
+	parent, ret := l.nvmllib.DeviceGetHandleByUUID(mig.parent.uuid + string(rune(0)))
 	if ret != nvml.SUCCESS {
 		return fmt.Errorf("error getting device from UUID '%v': %v", mig.parent.uuid, ret)
 	}
