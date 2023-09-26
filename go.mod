@@ -1,6 +1,6 @@
 module github.com/NVIDIA/k8s-dra-driver
 
-go 1.19
+go 1.20
 
 replace (
 	k8s.io/api => k8s.io/api v0.27.0-beta.0
