@@ -19,10 +19,12 @@ package main
 import (
 	"fmt"
 	"io"
+	"path/filepath"
 
 	"github.com/sirupsen/logrus"
 
 	"github.com/NVIDIA/nvidia-container-toolkit/pkg/nvcdi"
+	"github.com/NVIDIA/nvidia-container-toolkit/pkg/nvcdi/spec"
 	"github.com/NVIDIA/nvidia-container-toolkit/pkg/nvcdi/transform"
 	cdiapi "github.com/container-orchestrated-devices/container-device-interface/pkg/cdi"
 	cdiparser "github.com/container-orchestrated-devices/container-device-interface/pkg/parser"
@@ -39,6 +41,8 @@ const (
 	cdiKind   = cdiVendor + "/" + cdiClass
 
 	cdiCommonDeviceName = "common"
+
+	cdiRoot = "/var/run/cdi"
 )
 
 type CDIHandler struct {
@@ -109,38 +113,37 @@ func (cdi *CDIHandler) CreateCommonSpecFile() error {
 		_ = cdi.nvml.Shutdown()
 	}()
 
-	commonEdits, err := cdi.nvcdi.GetCommonEdits()
+	edits, err := cdi.nvcdi.GetCommonEdits()
 	if err != nil {
 		return fmt.Errorf("failed to get common CDI spec edits: %v", err)
 	}
 
-	spec := &cdispec.Spec{
-		Kind: cdiKind,
-		Devices: []cdispec.Device{
-			{
-				Name:           cdiCommonDeviceName,
-				ContainerEdits: *commonEdits.ContainerEdits,
+	spec, err := spec.New(
+		spec.WithVendor(cdiVendor),
+		spec.WithClass(cdiClass),
+		spec.WithDeviceSpecs(
+			[]cdispec.Device{
+				{
+					Name:           cdiCommonDeviceName,
+					ContainerEdits: *edits.ContainerEdits,
+				},
 			},
-		},
-	}
-
-	minVersion, err := cdiapi.MinimumRequiredVersion(spec)
+		),
+	)
 	if err != nil {
-		return fmt.Errorf("failed to get minimum required CDI spec version: %v", err)
+		return fmt.Errorf("failed to create CDI spec: %w", err)
 	}
-	spec.Version = minVersion
-
-	err = transform.NewRootTransformer(cdi.driverRoot, cdi.targetDriverRoot).Transform(spec)
+	err = transform.NewRootTransformer(cdi.driverRoot, cdi.targetDriverRoot).Transform(spec.Raw())
 	if err != nil {
 		return fmt.Errorf("failed to transform driver root in CDI spec: %v", err)
 	}
 
-	specName, err := cdiapi.GenerateNameForTransientSpec(spec, cdiCommonDeviceName)
+	specName, err := cdiapi.GenerateNameForTransientSpec(spec.Raw(), cdiCommonDeviceName)
 	if err != nil {
 		return fmt.Errorf("failed to generate Spec name: %w", err)
 	}
 
-	return cdi.registry.SpecDB().WriteSpec(spec, specName)
+	return spec.Save(filepath.Join(cdiRoot, specName+".json"))
 }
 
 func (cdi *CDIHandler) CreateClaimSpecFile(claimUID string, devices *PreparedDevices) error {
@@ -211,28 +214,32 @@ func (cdi *CDIHandler) CreateClaimSpecFile(claimUID string, devices *PreparedDev
 		claimEdits.Append(devices.MpsControlDaemon.GetCDIContainerEdits())
 	}
 
-	spec := &cdispec.Spec{
-		Kind: cdiKind,
-		Devices: []cdispec.Device{
-			{
-				Name:           claimUID,
-				ContainerEdits: *claimEdits.ContainerEdits,
+	spec, err := spec.New(
+		spec.WithVendor(cdiVendor),
+		spec.WithClass(cdiClass),
+		spec.WithDeviceSpecs(
+			[]cdispec.Device{
+				{
+					Name:           claimUID,
+					ContainerEdits: *claimEdits.ContainerEdits,
+				},
 			},
-		},
-	}
-
-	minVersion, err := cdiapi.MinimumRequiredVersion(spec)
+		),
+	)
 	if err != nil {
-		return fmt.Errorf("failed to get minimum required CDI spec version: %v", err)
+		return fmt.Errorf("failed to creat CDI spec: %w", err)
 	}
-	spec.Version = minVersion
+	err = transform.NewRootTransformer(cdi.driverRoot, cdi.targetDriverRoot).Transform(spec.Raw())
+	if err != nil {
+		return fmt.Errorf("failed to transform driver root in CDI spec: %v", err)
+	}
 
-	specName, err := cdiapi.GenerateNameForTransientSpec(spec, claimUID)
+	specName, err := cdiapi.GenerateNameForTransientSpec(spec.Raw(), claimUID)
 	if err != nil {
 		return fmt.Errorf("failed to generate Spec name: %w", err)
 	}
 
-	return cdi.registry.SpecDB().WriteSpec(spec, specName)
+	return spec.Save(filepath.Join(cdiRoot, specName+".json"))
 }
 
 func (cdi *CDIHandler) DeleteClaimSpecFile(claimUID string) error {
@@ -245,7 +252,7 @@ func (cdi *CDIHandler) DeleteClaimSpecFile(claimUID string) error {
 		return fmt.Errorf("failed to generate Spec name: %w", err)
 	}
 
-	return cdi.registry.SpecDB().RemoveSpec(specName)
+	return cdi.registry.SpecDB().RemoveSpec(specName + ".json")
 }
 
 func (cdi *CDIHandler) GetClaimDevices(claimUID string) []string {
