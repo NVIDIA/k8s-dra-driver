@@ -42,7 +42,7 @@ const (
 
 	cdiCommonDeviceName = "common"
 
-	cdiRoot = "/var/run/cdi"
+	defaultCDIRoot = "/var/run/cdi"
 )
 
 type CDIHandler struct {
@@ -53,51 +53,66 @@ type CDIHandler struct {
 	registry         cdiapi.Registry
 	driverRoot       string
 	targetDriverRoot string
+
+	cdiRoot string
+	vendor  string
+	class   string
 }
 
-func NewCDIHandler(config *Config) (*CDIHandler, error) {
-	registry := cdiapi.GetRegistry(
-		cdiapi.WithSpecDirs(config.flags.cdiRoot),
-	)
-
-	err := registry.Refresh()
-	if err != nil {
-		return nil, fmt.Errorf("unable to refresh the CDI registry: %v", err)
+func NewCDIHandler(opts ...cdiOption) (*CDIHandler, error) {
+	h := &CDIHandler{}
+	for _, opt := range opts {
+		opt(h)
 	}
 
-	mode := "nvml"
-	driverRoot := "/run/nvidia/driver"
-	targetDriverRoot := "/"
-
-	logger := logrus.New()
-	logger.SetOutput(io.Discard)
-
-	nvmllib := nvml.New()
-	nvdevicelib := nvdevice.New(
-		nvdevice.WithNvml(nvmllib),
-	)
-	nvcdilib, err := nvcdi.New(
-		nvcdi.WithDeviceLib(nvdevicelib),
-		nvcdi.WithDriverRoot(driverRoot),
-		nvcdi.WithLogger(logger),
-		nvcdi.WithNvmlLib(nvmllib),
-		nvcdi.WithMode(mode),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("unable to create CDI library: %v", err)
+	if h.logger == nil {
+		h.logger = logrus.New()
+		h.logger.SetOutput(io.Discard)
+	}
+	if h.nvml == nil {
+		h.nvml = nvml.New()
+	}
+	if h.nvdevice == nil {
+		h.nvdevice = nvdevice.New(nvdevice.WithNvml(h.nvml))
+	}
+	if h.vendor == "" {
+		h.vendor = cdiVendor
+	}
+	if h.class == "" {
+		h.class = cdiClass
+	}
+	if h.nvcdi == nil {
+		nvcdilib, err := nvcdi.New(
+			nvcdi.WithDeviceLib(h.nvdevice),
+			nvcdi.WithDriverRoot(h.driverRoot),
+			nvcdi.WithLogger(h.logger),
+			nvcdi.WithNvmlLib(h.nvml),
+			nvcdi.WithMode("nvml"),
+			nvcdi.WithVendor(h.vendor),
+			nvcdi.WithClass(h.class),
+		)
+		if err != nil {
+			return nil, fmt.Errorf("unable to create CDI library: %v", err)
+		}
+		h.nvcdi = nvcdilib
+	}
+	if h.cdiRoot == "" {
+		h.cdiRoot = defaultCDIRoot
 	}
 
-	handler := &CDIHandler{
-		logger:           logger,
-		nvml:             nvmllib,
-		nvdevice:         nvdevicelib,
-		nvcdi:            nvcdilib,
-		registry:         registry,
-		driverRoot:       driverRoot,
-		targetDriverRoot: targetDriverRoot,
+	if h.registry == nil {
+		// TODO: We should rather construct a cdi.CacheHere directly.
+		registry := cdiapi.GetRegistry(
+			cdiapi.WithSpecDirs(h.cdiRoot),
+		)
+		err := registry.Refresh()
+		if err != nil {
+			return nil, fmt.Errorf("unable to refresh the CDI registry: %v", err)
+		}
+		h.registry = registry
 	}
 
-	return handler, nil
+	return h, nil
 }
 
 func (cdi *CDIHandler) GetDevice(device string) *cdiapi.Device {
@@ -143,7 +158,7 @@ func (cdi *CDIHandler) CreateCommonSpecFile() error {
 		return fmt.Errorf("failed to generate Spec name: %w", err)
 	}
 
-	return spec.Save(filepath.Join(cdiRoot, specName+".json"))
+	return spec.Save(filepath.Join(cdi.cdiRoot, specName+".json"))
 }
 
 func (cdi *CDIHandler) CreateClaimSpecFile(claimUID string, devices *PreparedDevices) error {
@@ -239,7 +254,7 @@ func (cdi *CDIHandler) CreateClaimSpecFile(claimUID string, devices *PreparedDev
 		return fmt.Errorf("failed to generate Spec name: %w", err)
 	}
 
-	return spec.Save(filepath.Join(cdiRoot, specName+".json"))
+	return spec.Save(filepath.Join(cdi.cdiRoot, specName+".json"))
 }
 
 func (cdi *CDIHandler) DeleteClaimSpecFile(claimUID string) error {

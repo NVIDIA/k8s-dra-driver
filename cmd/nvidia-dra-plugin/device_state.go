@@ -131,7 +131,12 @@ func NewDeviceState(ctx context.Context, config *Config) (*DeviceState, error) {
 		return nil, fmt.Errorf("error enumerating all possible devices: %v", err)
 	}
 
-	cdi, err := NewCDIHandler(config)
+	cdi, err := NewCDIHandler(
+		WithDriverRoot(nvidiaDriverRoot),
+		WithTargetDriverRoot("/"),
+		WithCDIRoot(config.flags.cdiRoot),
+		WithVendor(cdiVendor),
+	)
 	if err != nil {
 		return nil, fmt.Errorf("unable to create CDI handler: %v", err)
 	}
