@@ -124,7 +124,6 @@ type DeviceState struct {
 }
 
 func NewDeviceState(ctx context.Context, config *Config) (*DeviceState, error) {
-	nvidiaDriverRoot := "/run/nvidia/driver"
 
 	allocatable, err := enumerateAllPossibleDevices()
 	if err != nil {
@@ -132,8 +131,9 @@ func NewDeviceState(ctx context.Context, config *Config) (*DeviceState, error) {
 	}
 
 	cdi, err := NewCDIHandler(
-		WithDriverRoot(nvidiaDriverRoot),
-		WithTargetDriverRoot("/"),
+		WithDriverRoot(config.flags.containerDriverRoot),
+		WithTargetDriverRoot(config.flags.hostDriverRoot),
+		WithNvidiaCTKPath(config.flags.nvidiaCTKPath),
 		WithCDIRoot(config.flags.cdiRoot),
 		WithVendor(cdiVendor),
 	)
