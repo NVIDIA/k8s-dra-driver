@@ -51,7 +51,7 @@ func enumerateAllPossibleDevices() (AllocatableDevices, error) {
 		}
 
 		migProfileInfos, err := getMigProfileInfos(gpuInfo)
-		if ret != nvml.SUCCESS {
+		if err != nil {
 			return fmt.Errorf("error getting MIG profile info for GPU %v: %v", i, err)
 		}
 
