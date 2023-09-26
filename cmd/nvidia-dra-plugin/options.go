@@ -45,6 +45,13 @@ func WithCDIRoot(cdiRoot string) cdiOption {
 	}
 }
 
+// WithNvidiaCTKPath provides an cdiOption to set the nvidia-ctk path used by the 'cdi' interface.
+func WithNvidiaCTKPath(path string) cdiOption {
+	return func(c *CDIHandler) {
+		c.nvidiaCTKPath = path
+	}
+}
+
 // WithNvml provides an cdiOption to set the NVML library used by the 'cdi' interface.
 func WithNvml(nvml nvml.Interface) cdiOption {
 	return func(c *CDIHandler) {

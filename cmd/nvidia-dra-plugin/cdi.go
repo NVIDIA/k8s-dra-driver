@@ -53,6 +53,7 @@ type CDIHandler struct {
 	registry         cdiapi.Registry
 	driverRoot       string
 	targetDriverRoot string
+	nvidiaCTKPath    string
 
 	cdiRoot string
 	vendor  string
