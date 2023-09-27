@@ -41,13 +41,13 @@ const (
 )
 
 type CDIHandler struct {
-	logger     *logrus.Logger
-	nvml       nvml.Interface
-	nvdevice   nvdevice.Interface
-	nvcdi      nvcdi.Interface
-	registry   cdiapi.Registry
-	driverRoot string
-	targetRoot string
+	logger           *logrus.Logger
+	nvml             nvml.Interface
+	nvdevice         nvdevice.Interface
+	nvcdi            nvcdi.Interface
+	registry         cdiapi.Registry
+	driverRoot       string
+	targetDriverRoot string
 }
 
 func NewCDIHandler(config *Config) (*CDIHandler, error) {
@@ -62,7 +62,7 @@ func NewCDIHandler(config *Config) (*CDIHandler, error) {
 
 	mode := "nvml"
 	driverRoot := "/run/nvidia/driver"
-	targetRoot := "/"
+	targetDriverRoot := "/"
 
 	logger := logrus.New()
 	logger.SetOutput(io.Discard)
@@ -80,13 +80,13 @@ func NewCDIHandler(config *Config) (*CDIHandler, error) {
 	)
 
 	handler := &CDIHandler{
-		logger:     logger,
-		nvml:       nvmllib,
-		nvdevice:   nvdevicelib,
-		nvcdi:      nvcdilib,
-		registry:   registry,
-		driverRoot: driverRoot,
-		targetRoot: targetRoot,
+		logger:           logger,
+		nvml:             nvmllib,
+		nvdevice:         nvdevicelib,
+		nvcdi:            nvcdilib,
+		registry:         registry,
+		driverRoot:       driverRoot,
+		targetDriverRoot: targetDriverRoot,
 	}
 
 	return handler, nil
@@ -126,7 +126,7 @@ func (cdi *CDIHandler) CreateCommonSpecFile() error {
 	}
 	spec.Version = minVersion
 
-	err = transform.NewRootTransformer(cdi.driverRoot, cdi.targetRoot).Transform(spec)
+	err = transform.NewRootTransformer(cdi.driverRoot, cdi.targetDriverRoot).Transform(spec)
 	if err != nil {
 		return fmt.Errorf("failed to transform driver root in CDI spec: %v", err)
 	}

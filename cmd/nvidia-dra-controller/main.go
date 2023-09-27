@@ -110,8 +110,8 @@ func newApp() *cli.App {
 	cliFlags = append(cliFlags, flags.nasConfig.Flags()...)
 
 	app := &cli.App{
-		Name:            "dra-example-controller",
-		Usage:           "dra-example-controller implements a DRA driver controller.",
+		Name:            "nvidia-dra-controller",
+		Usage:           "nvidia-dra-controller implements a DRA driver controller for NVIDIA GPUs.",
 		ArgsUsage:       " ",
 		HideHelpCommand: true,
 		Flags:           cliFlags,

@@ -13,7 +13,7 @@ linters:
 
 run:
   tests: true
-  timeout: 1m
+  timeout: 10m
 
 linters-settings:
   goimports:
