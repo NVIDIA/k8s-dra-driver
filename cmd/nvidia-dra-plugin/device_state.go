@@ -145,11 +145,6 @@ func NewDeviceState(ctx context.Context, config *Config) (*DeviceState, error) {
 		return nil, fmt.Errorf("unable to create CDI handler: %v", err)
 	}
 
-	err = cdi.CreateCommonSpecFile()
-	if err != nil {
-		return nil, fmt.Errorf("unable to create CDI spec file for common edits: %v", err)
-	}
-
 	tsManager := NewTimeSlicingManager(containerDriverRoot)
 	mpsManager := NewMpsManager(config, MpsRoot, containerDriverRoot, MpsControlDaemonTemplatePath)
 
