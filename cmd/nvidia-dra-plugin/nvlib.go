@@ -147,7 +147,7 @@ func (l deviceLib) getMigProfileInfos(gpuInfo *GpuInfo) (map[string]*MigProfileI
 	}
 	defer l.alwaysShutdown()
 
-	device, ret := l.nvmllib.DeviceGetHandleByUUID(gpuInfo.uuid + string(rune(0)))
+	device, ret := l.nvmllib.DeviceGetHandleByUUID(gpuInfo.uuid)
 	if ret != nvml.SUCCESS {
 		return nil, fmt.Errorf("error getting handle for device %v: %v", gpuInfo.uuid, ret)
 	}
@@ -203,7 +203,7 @@ func (l deviceLib) getMigProfiles(gpuInfo *GpuInfo) (map[int]*MigProfile, error)
 	}
 	defer l.alwaysShutdown()
 
-	device, ret := l.nvmllib.DeviceGetHandleByUUID(gpuInfo.uuid + string(rune(0)))
+	device, ret := l.nvmllib.DeviceGetHandleByUUID(gpuInfo.uuid)
 	if ret != nvml.SUCCESS {
 		return nil, fmt.Errorf("error getting GPU device handle: %v", ret)
 	}
@@ -241,7 +241,7 @@ func (l deviceLib) getMigDevices(gpuInfo *GpuInfo) (map[string]*MigDeviceInfo, e
 	}
 	defer l.alwaysShutdown()
 
-	device, ret := l.nvmllib.DeviceGetHandleByUUID(gpuInfo.uuid + string(rune(0)))
+	device, ret := l.nvmllib.DeviceGetHandleByUUID(gpuInfo.uuid)
 	if ret != nvml.SUCCESS {
 		return nil, fmt.Errorf("error getting GPU device handle: %v", ret)
 	}
@@ -307,7 +307,7 @@ func (l deviceLib) createMigDevice(gpu *GpuInfo, profile *MigProfile, placement 
 	}
 	defer l.alwaysShutdown()
 
-	device, ret := l.nvmllib.DeviceGetHandleByUUID(gpu.uuid + string(rune(0)))
+	device, ret := l.nvmllib.DeviceGetHandleByUUID(gpu.uuid)
 	if ret != nvml.SUCCESS {
 		return nil, fmt.Errorf("error getting GPU device handle: %v", ret)
 	}
@@ -385,7 +385,7 @@ func (l deviceLib) deleteMigDevice(mig *MigDeviceInfo) error {
 	}
 	defer l.alwaysShutdown()
 
-	parent, ret := l.nvmllib.DeviceGetHandleByUUID(mig.parent.uuid + string(rune(0)))
+	parent, ret := l.nvmllib.DeviceGetHandleByUUID(mig.parent.uuid)
 	if ret != nvml.SUCCESS {
 		return fmt.Errorf("error getting device from UUID '%v': %v", mig.parent.uuid, ret)
 	}
