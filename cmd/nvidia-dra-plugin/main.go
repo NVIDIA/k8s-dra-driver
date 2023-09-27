@@ -88,9 +88,8 @@ func newApp() *cli.App {
 			EnvVars:     []string{"NVIDIA_DRIVER_ROOT", "HOST_DRIVER_ROOT"},
 		},
 		&cli.StringFlag{
-			Name: "container-driver-root",
-			// TODO: This has to match the mount in the container as defined in the Helm chart.
-			Value:       "/run/nvidia/driver",
+			Name:        "container-driver-root",
+			Value:       "/driver-root",
 			Usage:       "the path where the NVIDIA driver root is mounted in the container; used for generating CDI specifications",
 			Destination: &flags.containerDriverRoot,
 			EnvVars:     []string{"CONTAINER_DRIVER_ROOT"},
