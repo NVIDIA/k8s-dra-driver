@@ -19,12 +19,15 @@ package main
 import (
 	"fmt"
 	"io"
+	"path/filepath"
 
 	"github.com/sirupsen/logrus"
 
 	"github.com/NVIDIA/nvidia-container-toolkit/pkg/nvcdi"
+	"github.com/NVIDIA/nvidia-container-toolkit/pkg/nvcdi/spec"
 	"github.com/NVIDIA/nvidia-container-toolkit/pkg/nvcdi/transform"
 	cdiapi "github.com/container-orchestrated-devices/container-device-interface/pkg/cdi"
+	cdiparser "github.com/container-orchestrated-devices/container-device-interface/pkg/parser"
 	cdispec "github.com/container-orchestrated-devices/container-device-interface/specs-go"
 	nvdevice "gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvlib/device"
 	"gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvml"
@@ -38,6 +41,8 @@ const (
 	cdiKind   = cdiVendor + "/" + cdiClass
 
 	cdiCommonDeviceName = "common"
+
+	defaultCDIRoot = "/var/run/cdi"
 )
 
 type CDIHandler struct {
@@ -48,48 +53,67 @@ type CDIHandler struct {
 	registry         cdiapi.Registry
 	driverRoot       string
 	targetDriverRoot string
+	nvidiaCTKPath    string
+
+	cdiRoot string
+	vendor  string
+	class   string
 }
 
-func NewCDIHandler(config *Config) (*CDIHandler, error) {
-	registry := cdiapi.GetRegistry(
-		cdiapi.WithSpecDirs(config.flags.cdiRoot),
-	)
-
-	err := registry.Refresh()
-	if err != nil {
-		return nil, fmt.Errorf("unable to refresh the CDI registry: %v", err)
+func NewCDIHandler(opts ...cdiOption) (*CDIHandler, error) {
+	h := &CDIHandler{}
+	for _, opt := range opts {
+		opt(h)
 	}
 
-	mode := "nvml"
-	driverRoot := "/run/nvidia/driver"
-	targetDriverRoot := "/"
-
-	logger := logrus.New()
-	logger.SetOutput(io.Discard)
-
-	nvmllib := nvml.New()
-	nvdevicelib := nvdevice.New(
-		nvdevice.WithNvml(nvmllib),
-	)
-	nvcdilib := nvcdi.New(
-		nvcdi.WithDeviceLib(nvdevicelib),
-		nvcdi.WithDriverRoot(driverRoot),
-		nvcdi.WithLogger(logger),
-		nvcdi.WithNvmlLib(nvmllib),
-		nvcdi.WithMode(mode),
-	)
-
-	handler := &CDIHandler{
-		logger:           logger,
-		nvml:             nvmllib,
-		nvdevice:         nvdevicelib,
-		nvcdi:            nvcdilib,
-		registry:         registry,
-		driverRoot:       driverRoot,
-		targetDriverRoot: targetDriverRoot,
+	if h.logger == nil {
+		h.logger = logrus.New()
+		h.logger.SetOutput(io.Discard)
+	}
+	if h.nvml == nil {
+		h.nvml = nvml.New()
+	}
+	if h.nvdevice == nil {
+		h.nvdevice = nvdevice.New(nvdevice.WithNvml(h.nvml))
+	}
+	if h.vendor == "" {
+		h.vendor = cdiVendor
+	}
+	if h.class == "" {
+		h.class = cdiClass
+	}
+	if h.nvcdi == nil {
+		nvcdilib, err := nvcdi.New(
+			nvcdi.WithDeviceLib(h.nvdevice),
+			nvcdi.WithDriverRoot(h.driverRoot),
+			nvcdi.WithLogger(h.logger),
+			nvcdi.WithNvmlLib(h.nvml),
+			nvcdi.WithMode("nvml"),
+			nvcdi.WithVendor(h.vendor),
+			nvcdi.WithClass(h.class),
+		)
+		if err != nil {
+			return nil, fmt.Errorf("unable to create CDI library: %v", err)
+		}
+		h.nvcdi = nvcdilib
+	}
+	if h.cdiRoot == "" {
+		h.cdiRoot = defaultCDIRoot
 	}
 
-	return handler, nil
+	if h.registry == nil {
+		// TODO: We should rather construct a cdi.CacheHere directly.
+		registry := cdiapi.GetRegistry(
+			cdiapi.WithSpecDirs(h.cdiRoot),
+		)
+		err := registry.Refresh()
+		if err != nil {
+			return nil, fmt.Errorf("unable to refresh the CDI registry: %v", err)
+		}
+		h.registry = registry
+	}
+
+	return h, nil
 }
 
 func (cdi *CDIHandler) GetDevice(device string) *cdiapi.Device {
@@ -105,38 +129,37 @@ func (cdi *CDIHandler) CreateCommonSpecFile() error {
 		_ = cdi.nvml.Shutdown()
 	}()
 
-	commonEdits, err := cdi.nvcdi.GetCommonEdits()
+	edits, err := cdi.nvcdi.GetCommonEdits()
 	if err != nil {
 		return fmt.Errorf("failed to get common CDI spec edits: %v", err)
 	}
 
-	spec := &cdispec.Spec{
-		Kind: cdiKind,
-		Devices: []cdispec.Device{
-			{
-				Name:           cdiCommonDeviceName,
-				ContainerEdits: *commonEdits.ContainerEdits,
+	spec, err := spec.New(
+		spec.WithVendor(cdiVendor),
+		spec.WithClass(cdiClass),
+		spec.WithDeviceSpecs(
+			[]cdispec.Device{
+				{
+					Name:           cdiCommonDeviceName,
+					ContainerEdits: *edits.ContainerEdits,
+				},
 			},
-		},
-	}
-
-	minVersion, err := cdiapi.MinimumRequiredVersion(spec)
+		),
+	)
 	if err != nil {
-		return fmt.Errorf("failed to get minimum required CDI spec version: %v", err)
+		return fmt.Errorf("failed to create CDI spec: %w", err)
 	}
-	spec.Version = minVersion
-
-	err = transform.NewRootTransformer(cdi.driverRoot, cdi.targetDriverRoot).Transform(spec)
+	err = transform.NewRootTransformer(cdi.driverRoot, cdi.targetDriverRoot).Transform(spec.Raw())
 	if err != nil {
 		return fmt.Errorf("failed to transform driver root in CDI spec: %v", err)
 	}
 
-	specName, err := cdiapi.GenerateNameForTransientSpec(spec, cdiCommonDeviceName)
+	specName, err := cdiapi.GenerateNameForTransientSpec(spec.Raw(), cdiCommonDeviceName)
 	if err != nil {
 		return fmt.Errorf("failed to generate Spec name: %w", err)
 	}
 
-	return cdi.registry.SpecDB().WriteSpec(spec, specName)
+	return spec.Save(filepath.Join(cdi.cdiRoot, specName+".json"))
 }
 
 func (cdi *CDIHandler) CreateClaimSpecFile(claimUID string, devices *PreparedDevices) error {
@@ -207,28 +230,32 @@ func (cdi *CDIHandler) CreateClaimSpecFile(claimUID string, devices *PreparedDev
 		claimEdits.Append(devices.MpsControlDaemon.GetCDIContainerEdits())
 	}
 
-	spec := &cdispec.Spec{
-		Kind: cdiKind,
-		Devices: []cdispec.Device{
-			{
-				Name:           claimUID,
-				ContainerEdits: *claimEdits.ContainerEdits,
+	spec, err := spec.New(
+		spec.WithVendor(cdiVendor),
+		spec.WithClass(cdiClass),
+		spec.WithDeviceSpecs(
+			[]cdispec.Device{
+				{
+					Name:           claimUID,
+					ContainerEdits: *claimEdits.ContainerEdits,
+				},
 			},
-		},
-	}
-
-	minVersion, err := cdiapi.MinimumRequiredVersion(spec)
+		),
+	)
 	if err != nil {
-		return fmt.Errorf("failed to get minimum required CDI spec version: %v", err)
+		return fmt.Errorf("failed to creat CDI spec: %w", err)
 	}
-	spec.Version = minVersion
+	err = transform.NewRootTransformer(cdi.driverRoot, cdi.targetDriverRoot).Transform(spec.Raw())
+	if err != nil {
+		return fmt.Errorf("failed to transform driver root in CDI spec: %v", err)
+	}
 
-	specName, err := cdiapi.GenerateNameForTransientSpec(spec, claimUID)
+	specName, err := cdiapi.GenerateNameForTransientSpec(spec.Raw(), claimUID)
 	if err != nil {
 		return fmt.Errorf("failed to generate Spec name: %w", err)
 	}
 
-	return cdi.registry.SpecDB().WriteSpec(spec, specName)
+	return spec.Save(filepath.Join(cdi.cdiRoot, specName+".json"))
 }
 
 func (cdi *CDIHandler) DeleteClaimSpecFile(claimUID string) error {
@@ -241,13 +268,13 @@ func (cdi *CDIHandler) DeleteClaimSpecFile(claimUID string) error {
 		return fmt.Errorf("failed to generate Spec name: %w", err)
 	}
 
-	return cdi.registry.SpecDB().RemoveSpec(specName)
+	return cdi.registry.SpecDB().RemoveSpec(specName + ".json")
 }
 
 func (cdi *CDIHandler) GetClaimDevices(claimUID string) []string {
 	devices := []string{
-		cdiapi.QualifiedName(cdiVendor, cdiClass, cdiCommonDeviceName),
-		cdiapi.QualifiedName(cdiVendor, cdiClass, claimUID),
+		cdiparser.QualifiedName(cdiVendor, cdiClass, cdiCommonDeviceName),
+		cdiparser.QualifiedName(cdiVendor, cdiClass, claimUID),
 	}
 	return devices
 }

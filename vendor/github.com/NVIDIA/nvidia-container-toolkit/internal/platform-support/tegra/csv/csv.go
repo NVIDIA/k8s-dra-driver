@@ -25,13 +25,29 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/sirupsen/logrus"
+	"github.com/NVIDIA/nvidia-container-toolkit/internal/logger"
 )
 
 const (
 	// DefaultMountSpecPath is default location of CSV files that define the modifications required to the OCI spec
 	DefaultMountSpecPath = "/etc/nvidia-container-runtime/host-files-for-container.d"
 )
+
+// DefaultFileList returns the list of CSV files that are used by default.
+func DefaultFileList() []string {
+	files := []string{
+		"devices.csv",
+		"drivers.csv",
+		"l4t.csv",
+	}
+
+	var paths []string
+	for _, file := range files {
+		paths = append(paths, filepath.Join(DefaultMountSpecPath, file))
+	}
+
+	return paths
+}
 
 // GetFileList returns the (non-recursive) list of CSV files in the specified
 // folder
@@ -87,12 +103,12 @@ type Parser interface {
 }
 
 type csv struct {
-	logger   *logrus.Logger
+	logger   logger.Interface
 	filename string
 }
 
 // NewCSVFileParser creates a new parser for reading MountSpecs from the specified CSV file
-func NewCSVFileParser(logger *logrus.Logger, filename string) Parser {
+func NewCSVFileParser(logger logger.Interface, filename string) Parser {
 	p := csv{
 		logger:   logger,
 		filename: filename,

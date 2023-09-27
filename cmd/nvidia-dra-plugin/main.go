@@ -46,7 +46,10 @@ type Flags struct {
 	nasConfig        flags.NasConfig
 	loggingConfig    *flags.LoggingConfig
 
-	cdiRoot string
+	cdiRoot             string
+	containerDriverRoot string
+	hostDriverRoot      string
+	nvidiaCTKPath       string
 }
 
 type Config struct {
@@ -75,6 +78,29 @@ func newApp() *cli.App {
 			Value:       "/etc/cdi",
 			Destination: &flags.cdiRoot,
 			EnvVars:     []string{"CDI_ROOT"},
+		},
+		&cli.StringFlag{
+			Name:        "nvidia-driver-root",
+			Aliases:     []string{"host_driver-root"},
+			Value:       "/",
+			Usage:       "the root path for the NVIDIA driver installation on the host (typical values are '/' or '/run/nvidia/driver')",
+			Destination: &flags.hostDriverRoot,
+			EnvVars:     []string{"NVIDIA_DRIVER_ROOT", "HOST_DRIVER_ROOT"},
+		},
+		&cli.StringFlag{
+			Name: "container-driver-root",
+			// TODO: This has to match the mount in the container as defined in the Helm chart.
+			Value:       "/run/nvidia/driver",
+			Usage:       "the path where the NVIDIA driver root is mounted in the container; used for generating CDI specifications",
+			Destination: &flags.containerDriverRoot,
+			EnvVars:     []string{"CONTAINER_DRIVER_ROOT"},
+		},
+		&cli.StringFlag{
+			Name:        "nvidia-ctk-path",
+			Value:       "/usr/bin/nvidia-ctk",
+			Usage:       "the path to use for the nvidia-ctk in the generated CDI specification. Note that this represents the path on the host.",
+			Destination: &flags.nvidiaCTKPath,
+			EnvVars:     []string{"NVIDIA_CTK_PATH"},
 		},
 	}
 	cliFlags = append(cliFlags, flags.kubeClientConfig.Flags()...)
