@@ -40,8 +40,6 @@ const (
 	cdiClass  = "claim"
 	cdiKind   = cdiVendor + "/" + cdiClass
 
-	cdiCommonDeviceName = "common"
-
 	defaultCDIRoot = "/var/run/cdi"
 )
 
@@ -120,48 +118,6 @@ func (cdi *CDIHandler) GetDevice(device string) *cdiapi.Device {
 	return cdi.registry.DeviceDB().GetDevice(device)
 }
 
-func (cdi *CDIHandler) CreateCommonSpecFile() error {
-	ret := cdi.nvml.Init()
-	if ret != nvml.SUCCESS {
-		return ret
-	}
-	defer func() {
-		_ = cdi.nvml.Shutdown()
-	}()
-
-	edits, err := cdi.nvcdi.GetCommonEdits()
-	if err != nil {
-		return fmt.Errorf("failed to get common CDI spec edits: %v", err)
-	}
-
-	spec, err := spec.New(
-		spec.WithVendor(cdiVendor),
-		spec.WithClass(cdiClass),
-		spec.WithDeviceSpecs(
-			[]cdispec.Device{
-				{
-					Name:           cdiCommonDeviceName,
-					ContainerEdits: *edits.ContainerEdits,
-				},
-			},
-		),
-	)
-	if err != nil {
-		return fmt.Errorf("failed to create CDI spec: %w", err)
-	}
-	err = transform.NewRootTransformer(cdi.driverRoot, cdi.targetDriverRoot).Transform(spec.Raw())
-	if err != nil {
-		return fmt.Errorf("failed to transform driver root in CDI spec: %v", err)
-	}
-
-	specName, err := cdiapi.GenerateNameForTransientSpec(spec.Raw(), cdiCommonDeviceName)
-	if err != nil {
-		return fmt.Errorf("failed to generate Spec name: %w", err)
-	}
-
-	return spec.Save(filepath.Join(cdi.cdiRoot, specName+".json"))
-}
-
 func (cdi *CDIHandler) CreateClaimSpecFile(claimUID string, devices *PreparedDevices) error {
 	ret := cdi.nvml.Init()
 	if ret != nvml.SUCCESS {
@@ -226,8 +182,15 @@ func (cdi *CDIHandler) CreateClaimSpecFile(claimUID string, devices *PreparedDev
 		}
 	}
 
+	// We construct the common edits that are independent of any specific device
+	// in the CDI specification associated with a claim.
+	commonEdits, err := cdi.nvcdi.GetCommonEdits()
+	if err != nil {
+		return fmt.Errorf("failed to get common CDI spec edits: %v", err)
+	}
+
 	if devices.MpsControlDaemon != nil {
-		claimEdits.Append(devices.MpsControlDaemon.GetCDIContainerEdits())
+		commonEdits.Append(devices.MpsControlDaemon.GetCDIContainerEdits())
 	}
 
 	spec, err := spec.New(
@@ -241,6 +204,7 @@ func (cdi *CDIHandler) CreateClaimSpecFile(claimUID string, devices *PreparedDev
 				},
 			},
 		),
+		spec.WithEdits(*commonEdits.ContainerEdits),
 	)
 	if err != nil {
 		return fmt.Errorf("failed to creat CDI spec: %w", err)
@@ -273,7 +237,6 @@ func (cdi *CDIHandler) DeleteClaimSpecFile(claimUID string) error {
 
 func (cdi *CDIHandler) GetClaimDevices(claimUID string) []string {
 	devices := []string{
-		cdiparser.QualifiedName(cdiVendor, cdiClass, cdiCommonDeviceName),
 		cdiparser.QualifiedName(cdiVendor, cdiClass, claimUID),
 	}
 	return devices
