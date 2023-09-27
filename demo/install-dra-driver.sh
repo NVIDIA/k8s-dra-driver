@@ -25,7 +25,9 @@ source "${CURRENT_DIR}/scripts/common.sh"
 kubectl label node "${KIND_CLUSTER_NAME}-worker" --overwrite nvidia.com/dra.kubelet-plugin=true
 kubectl label node "${KIND_CLUSTER_NAME}-control-plane" --overwrite nvidia.com/dra.controller=true
 
-helm upgrade -i --create-namespace --namespace nvidia-dra-driver nvidia ../deployments/helm/k8s-dra-driver
+helm upgrade -i --create-namespace --namespace nvidia-dra-driver nvidia ../deployments/helm/k8s-dra-driver \
+    ${NVIDIA_DRIVER_ROOT:+--set nvidiaDriverRoot=${NVIDIA_DRIVER_ROOT}} \
+    --wait
 
 set +x
 printf '\033[0;32m'
