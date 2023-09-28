@@ -71,8 +71,12 @@ spec:
           {{- toYaml .Values.kubeletPlugin.containers.plugin.securityContext | nindent 10 }}
         image: {{ include "k8s-dra-driver.fullimage" . }}
         imagePullPolicy: {{ .Values.image.pullPolicy }}
-        command:
-        - nvidia-dra-plugin
+        command: ["bash", "-c"]
+        args:
+        - |-
+          export PATH="$PATH:/opt/nvidia/bin";
+          export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/driver-root/opt/nvidia/lib64;
+          nvidia-dra-plugin;
         resources:
           {{- toYaml .Values.kubeletPlugin.containers.plugin.resources | nindent 10 }}
         env:
@@ -84,8 +88,6 @@ spec:
           value: /var/run/cdi
         - name: NVIDIA_MIG_CONFIG_DEVICES
           value: all
-        - name: LD_LIBRARY_PATH
-          value: /usr/lib64/:/driver-root/usr/lib/x86_64-linux-gnu
         - name: NODE_NAME
           valueFrom:
             fieldRef:
