@@ -101,3 +101,7 @@ spec:
       - name: 1c-1
         source:
           resourceClaimTemplateName: 1c.2g.10gb
+      tolerations:
+        - key: "nvidia.com/gpu"
+          operator: "Exists"
+          effect: "NoSchedule"

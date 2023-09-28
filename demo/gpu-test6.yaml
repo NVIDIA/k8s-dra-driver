@@ -76,3 +76,7 @@ spec:
         resources:
           claims:
           - name: a100
+      tolerations:
+        - key: "nvidia.com/gpu"
+          operator: "Exists"
+          effect: "NoSchedule"

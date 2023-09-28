@@ -172,3 +172,7 @@ spec:
           claims:
           - name: mig-enabled-gpu
           - name: mig-1g-1
+      tolerations:
+        - key: "nvidia.com/gpu"
+          operator: "Exists"
+          effect: "NoSchedule"

@@ -37,6 +37,10 @@ spec:
   - name: shared-gpu
     source:
       resourceClaimName: shared-gpu
+  tolerations:
+    - key: "nvidia.com/gpu"
+      operator: "Exists"
+      effect: "NoSchedule"
 
 ---
 apiVersion: v1
@@ -59,3 +63,7 @@ spec:
   - name: shared-gpu
     source:
       resourceClaimName: shared-gpu
+  tolerations:
+    - key: "nvidia.com/gpu"
+      operator: "Exists"
+      effect: "NoSchedule"

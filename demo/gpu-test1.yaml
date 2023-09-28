@@ -38,6 +38,10 @@ spec:
   - name: gpu
     source:
       resourceClaimTemplateName: gpu.nvidia.com
+  tolerations:
+    - key: "nvidia.com/gpu"
+      operator: "Exists"
+      effect: "NoSchedule"
 
 ---
 apiVersion: v1
@@ -60,3 +64,7 @@ spec:
   - name: gpu
     source:
       resourceClaimTemplateName: gpu.nvidia.com
+  tolerations:
+    - key: "nvidia.com/gpu"
+      operator: "Exists"
+      effect: "NoSchedule"
