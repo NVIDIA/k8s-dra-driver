@@ -27,10 +27,6 @@ source "${CURRENT_DIR}/scripts/common.sh"
 ${SCRIPTS_DIR}/build-kind-image.sh
 ${SCRIPTS_DIR}/create-kind-cluster.sh
 
-# TODO: At present the DRA driver assumes that the driver exists at /run/nvidia/driver and not at /
-# We create a symlink as a workaround
-docker exec ${KIND_CLUSTER_NAME}-worker bash -c "mkdir -p /run/nvidia; ln -s / /run/nvidia/driver"
-
 # If a driver image already exists load it into the cluster
 EXISTING_IMAGE_ID="$(docker images --filter "reference=${DRIVER_IMAGE}" -q)"
 if [ "${EXISTING_IMAGE_ID}" != "" ]; then

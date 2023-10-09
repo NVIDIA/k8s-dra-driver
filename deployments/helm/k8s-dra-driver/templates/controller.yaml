@@ -40,7 +40,7 @@ spec:
         resources:
           {{- toYaml .Values.controller.containers.controller.resources | nindent 10 }}
         env:
-        - name: POD_NAMESPACE
+        - name: NAMESPACE
           valueFrom:
             fieldRef:
               fieldPath: metadata.namespace
