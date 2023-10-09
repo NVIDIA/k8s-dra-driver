@@ -1,0 +1,13 @@
+version: v1
+mig-configs:
+  all-disabled:
+    - devices: all
+      mig-enabled: false
+
+  half-enabled:
+    - devices: [0, 1, 2, 3]
+      mig-enabled: true
+      mig-devices: {}
+    - devices: [4, 5, 6, 7]
+      mig-enabled: false
+

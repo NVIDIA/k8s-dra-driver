@@ -1,0 +1,41 @@
+---
+apiVersion: gpu.resource.nvidia.com/v1alpha1
+kind: GpuClaimParameters
+metadata:
+  namespace: sharing-demo
+  name: gpu-ts-sharing
+spec:
+  sharing:
+    strategy: TimeSlicing
+
+---
+apiVersion: gpu.resource.nvidia.com/v1alpha1
+kind: GpuClaimParameters
+metadata:
+  namespace: sharing-demo
+  name: gpu-mps-sharing
+spec:
+  sharing:
+    strategy: MPS
+
+---
+apiVersion: gpu.resource.nvidia.com/v1alpha1
+kind: MigDeviceClaimParameters
+metadata:
+  namespace: sharing-demo
+  name: mig-ts-sharing
+spec:
+  profile: "1g.5gb"
+  sharing:
+    strategy: TimeSlicing
+
+---
+apiVersion: gpu.resource.nvidia.com/v1alpha1
+kind: MigDeviceClaimParameters
+metadata:
+  namespace: sharing-demo
+  name: mig-mps-sharing
+spec:
+  profile: "1g.5gb"
+  sharing:
+    strategy: MPS
