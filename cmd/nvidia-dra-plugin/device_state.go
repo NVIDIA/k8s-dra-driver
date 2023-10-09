@@ -468,7 +468,7 @@ func (s *DeviceState) syncPreparedDevicesFromCRDSpec(ctx context.Context, spec *
 						Start: uint32(d.Placement.Start),
 						Size:  uint32(d.Placement.Size),
 					}
-					migInfo, err = l.createMigDevice(gpus[d.ParentUUID].GpuInfo, profile, placement)
+					migInfo, err = s.nvdevlib.createMigDevice(gpus[d.ParentUUID].GpuInfo, profile, placement)
 					if err != nil {
 						return fmt.Errorf("error creating MIG device info for '%v' on GPU '%v': %w", d.Profile, d.ParentUUID, err)
 					}
