@@ -131,12 +131,13 @@ func NewDeviceState(ctx context.Context, config *Config) (*DeviceState, error) {
 		return nil, fmt.Errorf("error enumerating all possible devices: %v", err)
 	}
 
+	hostDriverRoot := config.flags.hostDriverRoot
 	containerDriverRoot := config.flags.containerDriverRoot
 	cdi, err := NewCDIHandler(
 		WithNvml(nvdevlib.nvmllib),
 		WithDeviceLib(nvdevlib),
 		WithDriverRoot(containerDriverRoot),
-		WithTargetDriverRoot(config.flags.hostDriverRoot),
+		WithTargetDriverRoot(hostDriverRoot),
 		WithNvidiaCTKPath(config.flags.nvidiaCTKPath),
 		WithCDIRoot(config.flags.cdiRoot),
 		WithVendor(cdiVendor),
@@ -146,7 +147,7 @@ func NewDeviceState(ctx context.Context, config *Config) (*DeviceState, error) {
 	}
 
 	tsManager := NewTimeSlicingManager(containerDriverRoot)
-	mpsManager := NewMpsManager(config, MpsRoot, containerDriverRoot, MpsControlDaemonTemplatePath)
+	mpsManager := NewMpsManager(config, MpsRoot, hostDriverRoot, containerDriverRoot, MpsControlDaemonTemplatePath)
 
 	state := &DeviceState{
 		cdi:         cdi,

@@ -1,0 +1,51 @@
+---
+apiVersion: resource.k8s.io/v1alpha2
+kind: ResourceClaim
+metadata:
+  namespace: sharing-demo
+  name: gpu-ts-sharing
+spec:
+  resourceClassName: gpu.nvidia.com
+  parametersRef:
+    apiGroup: gpu.resource.nvidia.com
+    kind: GpuClaimParameters
+    name: gpu-ts-sharing
+
+---
+apiVersion: resource.k8s.io/v1alpha2
+kind: ResourceClaim
+metadata:
+  namespace: sharing-demo
+  name: gpu-mps-sharing
+spec:
+  resourceClassName: gpu.nvidia.com
+  parametersRef:
+    apiGroup: gpu.resource.nvidia.com
+    kind: GpuClaimParameters
+    name: gpu-mps-sharing
+
+---
+apiVersion: resource.k8s.io/v1alpha2
+kind: ResourceClaim
+metadata:
+  namespace: sharing-demo
+  name: mig-ts-sharing
+spec:
+  resourceClassName: gpu.nvidia.com
+  parametersRef:
+    apiGroup: gpu.resource.nvidia.com
+    kind: MigDeviceClaimParameters
+    name: mig-ts-sharing
+
+---
+apiVersion: resource.k8s.io/v1alpha2
+kind: ResourceClaim
+metadata:
+  namespace: sharing-demo
+  name: mig-mps-sharing
+spec:
+  resourceClassName: gpu.nvidia.com
+  parametersRef:
+    apiGroup: gpu.resource.nvidia.com
+    kind: MigDeviceClaimParameters
+    name: mig-mps-sharing

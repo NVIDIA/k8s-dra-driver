@@ -51,14 +51,15 @@ const (
 )
 
 type TimeSlicingManager struct {
-	nvidiaDriverRoot string
+	containerDriverRoot string
 }
 
 type MpsManager struct {
-	config           *Config
-	controlFilesRoot string
-	nvidiaDriverRoot string
-	templatePath     string
+	config              *Config
+	controlFilesRoot    string
+	containerDriverRoot string
+	hostDriverRoot      string
+	templatePath        string
 }
 
 type MpsControlDaemon struct {
@@ -89,9 +90,9 @@ type MpsControlDaemonTemplateData struct {
 	MpsLogDirectory                   string
 }
 
-func NewTimeSlicingManager(nvidiaDriverRoot string) *TimeSlicingManager {
+func NewTimeSlicingManager(containerDriverRoot string) *TimeSlicingManager {
 	return &TimeSlicingManager{
-		nvidiaDriverRoot: nvidiaDriverRoot,
+		containerDriverRoot: containerDriverRoot,
 	}
 }
 
@@ -105,12 +106,12 @@ func (t *TimeSlicingManager) SetTimeSlice(devices *PreparedDevices, config *nasc
 		timeSlice = *config.TimeSlice
 	}
 
-	err := setComputeMode(t.nvidiaDriverRoot, devices.UUIDs(), "DEFAULT")
+	err := setComputeMode(t.containerDriverRoot, devices.UUIDs(), "DEFAULT")
 	if err != nil {
 		return fmt.Errorf("error setting compute mode: %v", err)
 	}
 
-	err = setTimeSlice(t.nvidiaDriverRoot, devices.UUIDs(), timeSlice.Int())
+	err = setTimeSlice(t.containerDriverRoot, devices.UUIDs(), timeSlice.Int())
 	if err != nil {
 		return fmt.Errorf("error setting time slice: %v", err)
 	}
@@ -118,12 +119,13 @@ func (t *TimeSlicingManager) SetTimeSlice(devices *PreparedDevices, config *nasc
 	return nil
 }
 
-func NewMpsManager(config *Config, controlFilesRoot, nvidiaDriverRoot, templatePath string) *MpsManager {
+func NewMpsManager(config *Config, controlFilesRoot, hostDriverRoot, containerDriverRoot, templatePath string) *MpsManager {
 	return &MpsManager{
-		controlFilesRoot: controlFilesRoot,
-		nvidiaDriverRoot: nvidiaDriverRoot,
-		templatePath:     templatePath,
-		config:           config,
+		controlFilesRoot:    controlFilesRoot,
+		hostDriverRoot:      hostDriverRoot,
+		containerDriverRoot: containerDriverRoot,
+		templatePath:        templatePath,
+		config:              config,
 	}
 }
 
@@ -187,7 +189,7 @@ func (m *MpsControlDaemon) Start(ctx context.Context) error {
 		CUDA_DEVICE_MAX_CONNECTIONS:       "",
 		CUDA_MPS_ACTIVE_THREAD_PERCENTAGE: "",
 		CUDA_MPS_PINNED_DEVICE_MEM_LIMIT:  "",
-		NvidiaDriverRoot:                  m.manager.nvidiaDriverRoot,
+		NvidiaDriverRoot:                  m.manager.hostDriverRoot,
 		MpsShmDirectory:                   m.shmDir,
 		MpsPipeDirectory:                  m.pipeDir,
 		MpsLogDirectory:                   m.logDir,
@@ -259,7 +261,7 @@ func (m *MpsControlDaemon) Start(ctx context.Context) error {
 	}
 
 	if m.devices.Type() == nascrd.GpuDeviceType {
-		err = setComputeMode(m.manager.nvidiaDriverRoot, m.devices.UUIDs(), "EXCLUSIVE_PROCESS")
+		err = setComputeMode(m.manager.containerDriverRoot, m.devices.UUIDs(), "EXCLUSIVE_PROCESS")
 		if err != nil {
 			return fmt.Errorf("error setting compute mode: %v", err)
 		}
