@@ -51,15 +51,16 @@ const (
 )
 
 type TimeSlicingManager struct {
-	containerDriverRoot string
+	nvdevlib *deviceLib
 }
 
 type MpsManager struct {
-	config              *Config
-	controlFilesRoot    string
-	containerDriverRoot string
-	hostDriverRoot      string
-	templatePath        string
+	config           *Config
+	controlFilesRoot string
+	hostDriverRoot   string
+	templatePath     string
+
+	nvdevlib *deviceLib
 }
 
 type MpsControlDaemon struct {
@@ -90,9 +91,9 @@ type MpsControlDaemonTemplateData struct {
 	MpsLogDirectory                   string
 }
 
-func NewTimeSlicingManager(containerDriverRoot string) *TimeSlicingManager {
+func NewTimeSlicingManager(deviceLib *deviceLib) *TimeSlicingManager {
 	return &TimeSlicingManager{
-		containerDriverRoot: containerDriverRoot,
+		nvdevlib: deviceLib,
 	}
 }
 
@@ -106,12 +107,12 @@ func (t *TimeSlicingManager) SetTimeSlice(devices *PreparedDevices, config *nasc
 		timeSlice = *config.TimeSlice
 	}
 
-	err := setComputeMode(t.containerDriverRoot, devices.UUIDs(), "DEFAULT")
+	err := t.nvdevlib.setComputeMode(devices.UUIDs(), "DEFAULT")
 	if err != nil {
 		return fmt.Errorf("error setting compute mode: %w", err)
 	}
 
-	err = setTimeSlice(t.containerDriverRoot, devices.UUIDs(), timeSlice.Int())
+	err = t.nvdevlib.setTimeSlice(devices.UUIDs(), timeSlice.Int())
 	if err != nil {
 		return fmt.Errorf("error setting time slice: %w", err)
 	}
@@ -119,13 +120,13 @@ func (t *TimeSlicingManager) SetTimeSlice(devices *PreparedDevices, config *nasc
 	return nil
 }
 
-func NewMpsManager(config *Config, controlFilesRoot, hostDriverRoot, containerDriverRoot, templatePath string) *MpsManager {
+func NewMpsManager(config *Config, deviceLib *deviceLib, controlFilesRoot, hostDriverRoot, templatePath string) *MpsManager {
 	return &MpsManager{
-		controlFilesRoot:    controlFilesRoot,
-		hostDriverRoot:      hostDriverRoot,
-		containerDriverRoot: containerDriverRoot,
-		templatePath:        templatePath,
-		config:              config,
+		controlFilesRoot: controlFilesRoot,
+		hostDriverRoot:   hostDriverRoot,
+		templatePath:     templatePath,
+		config:           config,
+		nvdevlib:         deviceLib,
 	}
 }
 
@@ -261,7 +262,7 @@ func (m *MpsControlDaemon) Start(ctx context.Context) error {
 	}
 
 	if m.devices.Type() == nascrd.GpuDeviceType {
-		err = setComputeMode(m.manager.containerDriverRoot, m.devices.UUIDs(), "EXCLUSIVE_PROCESS")
+		err = m.manager.nvdevlib.setComputeMode(m.devices.UUIDs(), "EXCLUSIVE_PROCESS")
 		if err != nil {
 			return fmt.Errorf("error setting compute mode: %w", err)
 		}

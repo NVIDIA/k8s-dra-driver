@@ -468,11 +468,9 @@ func walkMigDevices(d nvml.Device, f func(i int, d nvml.Device) error) error {
 	return nil
 }
 
-func setTimeSlice(nvidiaDriverRoot string, uuids []string, timeSlice int) error {
+func (l deviceLib) setTimeSlice(uuids []string, timeSlice int) error {
 	for _, uuid := range uuids {
 		cmd := exec.Command(
-			"chroot",
-			nvidiaDriverRoot,
 			"nvidia-smi",
 			"compute-policy",
 			"-i", uuid,
@@ -486,11 +484,9 @@ func setTimeSlice(nvidiaDriverRoot string, uuids []string, timeSlice int) error 
 	return nil
 }
 
-func setComputeMode(nvidiaDriverRoot string, uuids []string, mode string) error {
+func (l deviceLib) setComputeMode(uuids []string, mode string) error {
 	for _, uuid := range uuids {
 		cmd := exec.Command(
-			"chroot",
-			nvidiaDriverRoot,
 			"nvidia-smi",
 			"-i", uuid,
 			"-c", mode)
