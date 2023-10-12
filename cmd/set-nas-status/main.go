@@ -101,7 +101,6 @@ func newApp() *cli.App {
 
 			client := nasclient.New(nascr, clientSets.Nvidia.NasV1alpha1())
 			if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
-				// TODO: Should we pass the context here and for UpdateStatus?
 				err := client.GetOrCreate(ctx)
 				if err != nil {
 					return err
