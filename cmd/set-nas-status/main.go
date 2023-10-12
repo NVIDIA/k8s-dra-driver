@@ -28,6 +28,7 @@ import (
 
 	nascrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1"
 	nasclient "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1/client"
+	"github.com/NVIDIA/k8s-dra-driver/internal/info"
 
 	"github.com/NVIDIA/k8s-dra-driver/pkg/flags"
 )
@@ -111,6 +112,7 @@ func newApp() *cli.App {
 			}
 			return nil
 		},
+		Version: info.GetVersionString(),
 	}
 
 	return app

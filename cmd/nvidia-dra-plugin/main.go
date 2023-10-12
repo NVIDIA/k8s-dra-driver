@@ -30,6 +30,7 @@ import (
 
 	nascrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1"
 	gpucrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/v1alpha1"
+	"github.com/NVIDIA/k8s-dra-driver/internal/info"
 	"github.com/NVIDIA/k8s-dra-driver/pkg/flags"
 )
 
@@ -138,6 +139,7 @@ func newApp() *cli.App {
 
 			return StartPlugin(ctx, config)
 		},
+		Version: info.GetVersionString(),
 	}
 
 	return app
