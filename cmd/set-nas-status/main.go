@@ -115,5 +115,11 @@ func newApp() *cli.App {
 		Version: info.GetVersionString(),
 	}
 
+	// We remove the -v alias for the version flag so as to not conflict with the -v flag used for klog.
+	f, ok := cli.VersionFlag.(*cli.BoolFlag)
+	if ok {
+		f.Aliases = nil
+	}
+
 	return app
 }
