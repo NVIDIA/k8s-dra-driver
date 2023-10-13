@@ -122,12 +122,12 @@ func newApp() *cli.App {
 			ctx := c.Context
 			clientSets, err := flags.kubeClientConfig.NewClientSets()
 			if err != nil {
-				return fmt.Errorf("create client: %v", err)
+				return fmt.Errorf("create client: %w", err)
 			}
 
 			nascr, err := flags.nasConfig.NewNodeAllocationState(ctx, clientSets.Core)
 			if err != nil {
-				return fmt.Errorf("create NodeAllocationState CR: %v", err)
+				return fmt.Errorf("create NodeAllocationState CR: %w", err)
 			}
 
 			config := &Config{
@@ -185,7 +185,7 @@ func StartPlugin(ctx context.Context, config *Config) error {
 
 	err = driver.Shutdown(ctx)
 	if err != nil {
-		klog.Errorf("Unable to cleanly shutdown driver: %v", err)
+		klog.Errorf("Unable to cleanly shutdown driver: %w", err)
 	}
 
 	return nil

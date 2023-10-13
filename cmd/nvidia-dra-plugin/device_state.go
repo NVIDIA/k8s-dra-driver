@@ -128,7 +128,7 @@ func NewDeviceState(ctx context.Context, config *Config) (*DeviceState, error) {
 
 	allocatable, err := nvdevlib.enumerateAllPossibleDevices()
 	if err != nil {
-		return nil, fmt.Errorf("error enumerating all possible devices: %v", err)
+		return nil, fmt.Errorf("error enumerating all possible devices: %w", err)
 	}
 
 	hostDriverRoot := config.flags.hostDriverRoot
@@ -143,7 +143,7 @@ func NewDeviceState(ctx context.Context, config *Config) (*DeviceState, error) {
 		WithVendor(cdiVendor),
 	)
 	if err != nil {
-		return nil, fmt.Errorf("unable to create CDI handler: %v", err)
+		return nil, fmt.Errorf("unable to create CDI handler: %w", err)
 	}
 
 	tsManager := NewTimeSlicingManager(containerDriverRoot)
@@ -160,7 +160,7 @@ func NewDeviceState(ctx context.Context, config *Config) (*DeviceState, error) {
 
 	err = state.syncPreparedDevicesFromCRDSpec(ctx, &config.nascrd.Spec)
 	if err != nil {
-		return nil, fmt.Errorf("unable to sync prepared devices from CRD: %v", err)
+		return nil, fmt.Errorf("unable to sync prepared devices from CRD: %w", err)
 	}
 
 	return state, nil
@@ -181,26 +181,26 @@ func (s *DeviceState) Prepare(ctx context.Context, claimUID string, allocated na
 	case nascrd.GpuDeviceType:
 		prepared.Gpu, err = s.prepareGpus(claimUID, allocated.Gpu)
 		if err != nil {
-			return nil, fmt.Errorf("GPU allocation failed: %v", err)
+			return nil, fmt.Errorf("GPU allocation failed: %w", err)
 		}
 		err = s.setupSharing(ctx, allocated.Gpu.Sharing, allocated.ClaimInfo, prepared)
 		if err != nil {
-			return nil, fmt.Errorf("error setting up sharing: %v", err)
+			return nil, fmt.Errorf("error setting up sharing: %w", err)
 		}
 	case nascrd.MigDeviceType:
 		prepared.Mig, err = s.prepareMigDevices(claimUID, allocated.Mig)
 		if err != nil {
-			return nil, fmt.Errorf("MIG device allocation failed: %v", err)
+			return nil, fmt.Errorf("MIG device allocation failed: %w", err)
 		}
 		err = s.setupSharing(ctx, allocated.Mig.Sharing, allocated.ClaimInfo, prepared)
 		if err != nil {
-			return nil, fmt.Errorf("error setting up sharing: %v", err)
+			return nil, fmt.Errorf("error setting up sharing: %w", err)
 		}
 	}
 
 	err = s.cdi.CreateClaimSpecFile(claimUID, prepared)
 	if err != nil {
-		return nil, fmt.Errorf("unable to create CDI spec file for claim: %v", err)
+		return nil, fmt.Errorf("unable to create CDI spec file for claim: %w", err)
 	}
 
 	s.prepared[claimUID] = prepared
@@ -219,7 +219,7 @@ func (s *DeviceState) Unprepare(ctx context.Context, claimUID string) error {
 	if s.prepared[claimUID].MpsControlDaemon != nil {
 		err := s.prepared[claimUID].MpsControlDaemon.Stop(ctx)
 		if err != nil {
-			return fmt.Errorf("error stopping MPS control daemon: %v", err)
+			return fmt.Errorf("error stopping MPS control daemon: %w", err)
 		}
 	}
 
@@ -227,18 +227,18 @@ func (s *DeviceState) Unprepare(ctx context.Context, claimUID string) error {
 	case nascrd.GpuDeviceType:
 		err := s.unprepareGpus(claimUID, s.prepared[claimUID])
 		if err != nil {
-			return fmt.Errorf("unprepare failed: %v", err)
+			return fmt.Errorf("unprepare failed: %w", err)
 		}
 	case nascrd.MigDeviceType:
 		err := s.unprepareMigDevices(claimUID, s.prepared[claimUID])
 		if err != nil {
-			return fmt.Errorf("unprepare failed: %v", err)
+			return fmt.Errorf("unprepare failed: %w", err)
 		}
 	}
 
 	err := s.cdi.DeleteClaimSpecFile(claimUID)
 	if err != nil {
-		return fmt.Errorf("unable to delete CDI spec file for claim: %v", err)
+		return fmt.Errorf("unable to delete CDI spec file for claim: %w", err)
 	}
 
 	delete(s.prepared, claimUID)
@@ -299,7 +299,7 @@ func (s *DeviceState) prepareMigDevices(claimUID string, allocated *nascrd.Alloc
 
 		migInfo, err := l.createMigDevice(parent.GpuInfo, parent.migProfiles[device.Profile].profile, &placement)
 		if err != nil {
-			return nil, fmt.Errorf("error creating MIG device: %v", err)
+			return nil, fmt.Errorf("error creating MIG device: %w", err)
 		}
 
 		prepared.Devices = append(prepared.Devices, migInfo)
@@ -311,7 +311,7 @@ func (s *DeviceState) prepareMigDevices(claimUID string, allocated *nascrd.Alloc
 func (s *DeviceState) unprepareGpus(claimUID string, devices *PreparedDevices) error {
 	err := s.tsManager.SetTimeSlice(devices, nil)
 	if err != nil {
-		return fmt.Errorf("error setting timeslice for devices: %v", err)
+		return fmt.Errorf("error setting timeslice for devices: %w", err)
 	}
 	return nil
 }
@@ -321,7 +321,7 @@ func (s *DeviceState) unprepareMigDevices(claimUID string, devices *PreparedDevi
 	for _, device := range devices.Mig.Devices {
 		err := l.deleteMigDevice(device)
 		if err != nil {
-			return fmt.Errorf("error deleting MIG device for %v: %v", device.uuid, err)
+			return fmt.Errorf("error deleting MIG device for %v: %w", device.uuid, err)
 		}
 	}
 	return nil
@@ -331,27 +331,27 @@ func (s *DeviceState) setupSharing(ctx context.Context, sharing nascrd.Sharing, 
 	if sharing.IsTimeSlicing() {
 		config, err := sharing.GetTimeSlicingConfig()
 		if err != nil {
-			return fmt.Errorf("error getting timeslice for %v: %v", claim.UID, err)
+			return fmt.Errorf("error getting timeslice for %v: %w", claim.UID, err)
 		}
 		err = s.tsManager.SetTimeSlice(devices, config)
 		if err != nil {
-			return fmt.Errorf("error setting timeslice for %v: %v", claim.UID, err)
+			return fmt.Errorf("error setting timeslice for %v: %w", claim.UID, err)
 		}
 	}
 
 	if sharing.IsMps() {
 		config, err := sharing.GetMpsConfig()
 		if err != nil {
-			return fmt.Errorf("error getting MPS configuration: %v", err)
+			return fmt.Errorf("error getting MPS configuration: %w", err)
 		}
 		mpsControlDaemon := s.mpsManager.NewMpsControlDaemon(claim, devices, config)
 		err = mpsControlDaemon.Start(ctx)
 		if err != nil {
-			return fmt.Errorf("error starting MPS control daemon: %v", err)
+			return fmt.Errorf("error starting MPS control daemon: %w", err)
 		}
 		err = mpsControlDaemon.AssertReady(ctx)
 		if err != nil {
-			return fmt.Errorf("MPS control daemon is not yet ready: %v", err)
+			return fmt.Errorf("MPS control daemon is not yet ready: %w", err)
 		}
 		devices.MpsControlDaemon = mpsControlDaemon
 	}
@@ -431,7 +431,7 @@ func (s *DeviceState) syncPreparedDevicesFromCRDSpec(ctx context.Context, spec *
 	for uuid, gpu := range gpus {
 		ms, err := l.getMigDevices(gpu.GpuInfo)
 		if err != nil {
-			return fmt.Errorf("error getting MIG devices for GPU '%v': %v", uuid, err)
+			return fmt.Errorf("error getting MIG devices for GPU '%v': %w", uuid, err)
 		}
 		if len(ms) != 0 {
 			migs[uuid] = ms
@@ -453,7 +453,7 @@ func (s *DeviceState) syncPreparedDevicesFromCRDSpec(ctx context.Context, spec *
 			}
 			err := s.setupSharing(ctx, allocated.Gpu.Sharing, allocated.ClaimInfo, prepared[claim])
 			if err != nil {
-				return fmt.Errorf("error setting up sharing: %v", err)
+				return fmt.Errorf("error setting up sharing: %w", err)
 			}
 		case nascrd.MigDeviceType:
 			prepared[claim].Mig = &PreparedMigDevices{}
@@ -462,7 +462,7 @@ func (s *DeviceState) syncPreparedDevicesFromCRDSpec(ctx context.Context, spec *
 				if migInfo == nil {
 					profile, err := ParseMigProfile(d.Profile)
 					if err != nil {
-						return fmt.Errorf("error parsing MIG profile for '%v': %v", d.Profile, err)
+						return fmt.Errorf("error parsing MIG profile for '%v': %w", d.Profile, err)
 					}
 					placement := &nvml.GpuInstancePlacement{
 						Start: uint32(d.Placement.Start),
@@ -470,7 +470,7 @@ func (s *DeviceState) syncPreparedDevicesFromCRDSpec(ctx context.Context, spec *
 					}
 					migInfo, err = l.createMigDevice(gpus[d.ParentUUID].GpuInfo, profile, placement)
 					if err != nil {
-						return fmt.Errorf("error creating MIG device info for '%v' on GPU '%v': %v", d.Profile, d.ParentUUID, err)
+						return fmt.Errorf("error creating MIG device info for '%v' on GPU '%v': %w", d.Profile, d.ParentUUID, err)
 					}
 				} else {
 					delete(migs[d.ParentUUID], d.UUID)
@@ -482,7 +482,7 @@ func (s *DeviceState) syncPreparedDevicesFromCRDSpec(ctx context.Context, spec *
 			}
 			err := s.setupSharing(ctx, allocated.Mig.Sharing, allocated.ClaimInfo, prepared[claim])
 			if err != nil {
-				return fmt.Errorf("error setting up sharing: %v", err)
+				return fmt.Errorf("error setting up sharing: %w", err)
 			}
 		}
 	}

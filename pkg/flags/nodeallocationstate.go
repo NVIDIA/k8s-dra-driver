@@ -62,7 +62,7 @@ func (n *NasConfig) Flags() []cli.Flag {
 func (n *NasConfig) NewNodeAllocationState(ctx context.Context, core coreclientset.Interface) (*nascrd.NodeAllocationState, error) {
 	node, err := core.CoreV1().Nodes().Get(ctx, n.NodeName, metav1.GetOptions{})
 	if err != nil {
-		return nil, fmt.Errorf("get node object: %v", err)
+		return nil, fmt.Errorf("get node object: %w", err)
 	}
 
 	crdconfig := &nascrd.NodeAllocationStateConfig{
