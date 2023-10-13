@@ -91,12 +91,12 @@ func newApp() *cli.App {
 			ctx := c.Context
 			clientSets, err := kubeClientConfig.NewClientSets()
 			if err != nil {
-				return fmt.Errorf("create client: %v", err)
+				return fmt.Errorf("create client: %w", err)
 			}
 
 			nascr, err := nasConfig.NewNodeAllocationState(ctx, clientSets.Core)
 			if err != nil {
-				return fmt.Errorf("create NodeAllocationState CR: %v", err)
+				return fmt.Errorf("create NodeAllocationState CR: %w", err)
 			}
 
 			client := nasclient.New(nascr, clientSets.Nvidia.NasV1alpha1())

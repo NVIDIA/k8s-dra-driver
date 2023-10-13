@@ -67,13 +67,13 @@ func ParseMigProfile(profile string) (*MigProfile, error) {
 	if len(split) == 2 {
 		attr, err = parseMigProfileAttributes(split[1])
 		if err != nil {
-			return nil, fmt.Errorf("error parsing attributes following '+' in MigProfile string: %v", err)
+			return nil, fmt.Errorf("error parsing attributes following '+' in MigProfile string: %w", err)
 		}
 	}
 
 	c, g, gb, err = parseMigProfileFields(split[0])
 	if err != nil {
-		return nil, fmt.Errorf("error parsing '.' separated fields in MigProfile string: %v", err)
+		return nil, fmt.Errorf("error parsing '.' separated fields in MigProfile string: %w", err)
 	}
 
 	m := &MigProfile{

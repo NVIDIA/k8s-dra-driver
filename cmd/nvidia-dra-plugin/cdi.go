@@ -91,7 +91,7 @@ func NewCDIHandler(opts ...cdiOption) (*CDIHandler, error) {
 			nvcdi.WithClass(h.class),
 		)
 		if err != nil {
-			return nil, fmt.Errorf("unable to create CDI library: %v", err)
+			return nil, fmt.Errorf("unable to create CDI library: %w", err)
 		}
 		h.nvcdi = nvcdilib
 	}
@@ -106,7 +106,7 @@ func NewCDIHandler(opts ...cdiOption) (*CDIHandler, error) {
 		)
 		err := registry.Refresh()
 		if err != nil {
-			return nil, fmt.Errorf("unable to refresh the CDI registry: %v", err)
+			return nil, fmt.Errorf("unable to refresh the CDI registry: %w", err)
 		}
 		h.registry = registry
 	}
@@ -159,7 +159,7 @@ func (cdi *CDIHandler) CreateClaimSpecFile(claimUID string, devices *PreparedDev
 			var nvlibMigDevice nvdevice.MigDevice
 			migs, err := nvlibParentDevice.GetMigDevices()
 			if err != nil {
-				return fmt.Errorf("unable to get MIG devices on GPU '%v': %v", device.parent.uuid, err)
+				return fmt.Errorf("unable to get MIG devices on GPU '%v': %w", device.parent.uuid, err)
 			}
 			for _, mig := range migs {
 				uuid, ret := mig.GetUUID()
@@ -186,7 +186,7 @@ func (cdi *CDIHandler) CreateClaimSpecFile(claimUID string, devices *PreparedDev
 	// in the CDI specification associated with a claim.
 	commonEdits, err := cdi.nvcdi.GetCommonEdits()
 	if err != nil {
-		return fmt.Errorf("failed to get common CDI spec edits: %v", err)
+		return fmt.Errorf("failed to get common CDI spec edits: %w", err)
 	}
 
 	if devices.MpsControlDaemon != nil {
@@ -211,7 +211,7 @@ func (cdi *CDIHandler) CreateClaimSpecFile(claimUID string, devices *PreparedDev
 	}
 	err = transform.NewRootTransformer(cdi.driverRoot, cdi.targetDriverRoot).Transform(spec.Raw())
 	if err != nil {
-		return fmt.Errorf("failed to transform driver root in CDI spec: %v", err)
+		return fmt.Errorf("failed to transform driver root in CDI spec: %w", err)
 	}
 
 	specName, err := cdiapi.GenerateNameForTransientSpec(spec.Raw(), claimUID)

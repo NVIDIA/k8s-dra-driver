@@ -64,12 +64,12 @@ func (l deviceLib) enumerateAllPossibleDevices() (AllocatableDevices, error) {
 	err := l.VisitDevices(func(i int, d nvdev.Device) error {
 		gpuInfo, err := l.getGpuInfo(i, d)
 		if err != nil {
-			return fmt.Errorf("error getting info for GPU %d: %v", i, err)
+			return fmt.Errorf("error getting info for GPU %d: %w", i, err)
 		}
 
 		migProfileInfos, err := l.getMigProfileInfos(gpuInfo)
 		if err != nil {
-			return fmt.Errorf("error getting MIG profile info for GPU %v: %v", i, err)
+			return fmt.Errorf("error getting MIG profile info for GPU %v: %w", i, err)
 		}
 
 		deviceInfo := &AllocatableDeviceInfo{
@@ -82,7 +82,7 @@ func (l deviceLib) enumerateAllPossibleDevices() (AllocatableDevices, error) {
 		return nil
 	})
 	if err != nil {
-		return nil, fmt.Errorf("error visiting devices: %v", err)
+		return nil, fmt.Errorf("error visiting devices: %w", err)
 	}
 
 	return alldevices, nil
@@ -99,7 +99,7 @@ func (l deviceLib) getGpuInfo(index int, device nvdev.Device) (*GpuInfo, error) 
 	}
 	migEnabled, err := device.IsMigEnabled()
 	if err != nil {
-		return nil, fmt.Errorf("error checking if MIG mode enabled for device %d: %v", index, err)
+		return nil, fmt.Errorf("error checking if MIG mode enabled for device %d: %w", index, err)
 	}
 	memory, ret := device.GetMemoryInfo()
 	if ret != nvml.SUCCESS {
@@ -111,15 +111,15 @@ func (l deviceLib) getGpuInfo(index int, device nvdev.Device) (*GpuInfo, error) 
 	}
 	architecture, err := device.GetArchitectureAsString()
 	if err != nil {
-		return nil, fmt.Errorf("error getting architecture for device %d: %v", index, err)
+		return nil, fmt.Errorf("error getting architecture for device %d: %w", index, err)
 	}
 	brand, err := device.GetBrandAsString()
 	if err != nil {
-		return nil, fmt.Errorf("error getting brand for device %d: %v", index, err)
+		return nil, fmt.Errorf("error getting brand for device %d: %w", index, err)
 	}
 	cudaComputeCapability, err := device.GetCudaComputeCapabilityAsString()
 	if err != nil {
-		return nil, fmt.Errorf("error getting CUDA compute capability for device %d: %v", index, err)
+		return nil, fmt.Errorf("error getting CUDA compute capability for device %d: %w", index, err)
 	}
 
 	gpuInfo := &GpuInfo{
@@ -248,7 +248,7 @@ func (l deviceLib) getMigDevices(gpuInfo *GpuInfo) (map[string]*MigDeviceInfo, e
 
 	migProfiles, err := l.getMigProfiles(gpuInfo)
 	if err != nil {
-		return nil, fmt.Errorf("error getting GPU instance profile infos for '%v': %v", gpuInfo.uuid, err)
+		return nil, fmt.Errorf("error getting GPU instance profile infos for '%v': %w", gpuInfo.uuid, err)
 	}
 
 	migInfos := make(map[string]*MigDeviceInfo)
@@ -291,7 +291,7 @@ func (l deviceLib) getMigDevices(gpuInfo *GpuInfo) (map[string]*MigDeviceInfo, e
 		return nil
 	})
 	if err != nil {
-		return nil, fmt.Errorf("error enumerating MIG devices: %v", err)
+		return nil, fmt.Errorf("error enumerating MIG devices: %w", err)
 	}
 
 	if len(migInfos) == 0 {
@@ -362,7 +362,7 @@ func (l deviceLib) createMigDevice(gpu *GpuInfo, profile *MigProfile, placement 
 		return nil
 	})
 	if err != nil {
-		return nil, fmt.Errorf("error processing MIG device for GI and CI just created: %v", err)
+		return nil, fmt.Errorf("error processing MIG device for GI and CI just created: %w", err)
 	}
 	if uuid == "" {
 		return nil, fmt.Errorf("unable to find MIG device for GI and CI just created")
@@ -445,7 +445,7 @@ func setTimeSlice(nvidiaDriverRoot string, uuids []string, timeSlice int) error 
 		output, err := cmd.CombinedOutput()
 		if err != nil {
 			klog.Errorf("\n%v", string(output))
-			return fmt.Errorf("error running nvidia-smi: %v", err)
+			return fmt.Errorf("error running nvidia-smi: %w", err)
 		}
 	}
 	return nil
@@ -462,7 +462,7 @@ func setComputeMode(nvidiaDriverRoot string, uuids []string, mode string) error 
 		output, err := cmd.CombinedOutput()
 		if err != nil {
 			klog.Errorf("\n%v", string(output))
-			return fmt.Errorf("error running nvidia-smi: %v", err)
+			return fmt.Errorf("error running nvidia-smi: %w", err)
 		}
 	}
 	return nil

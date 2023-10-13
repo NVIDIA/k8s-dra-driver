@@ -128,7 +128,7 @@ func newApp() *cli.App {
 
 			clientSets, err := flags.kubeClientConfig.NewClientSets()
 			if err != nil {
-				return fmt.Errorf("create client: %v", err)
+				return fmt.Errorf("create client: %w", err)
 			}
 
 			config := &Config{
@@ -141,13 +141,13 @@ func newApp() *cli.App {
 			if flags.httpEndpoint != "" {
 				err = SetupHTTPEndpoint(config)
 				if err != nil {
-					return fmt.Errorf("create http endpoint: %v", err)
+					return fmt.Errorf("create http endpoint: %w", err)
 				}
 			}
 
 			err = StartController(ctx, config)
 			if err != nil {
-				return fmt.Errorf("start controller: %v", err)
+				return fmt.Errorf("start controller: %w", err)
 			}
 
 			return nil
@@ -198,7 +198,7 @@ func SetupHTTPEndpoint(config *Config) error {
 
 	listener, err := net.Listen("tcp", config.flags.httpEndpoint)
 	if err != nil {
-		return fmt.Errorf("listen on HTTP endpoint: %v", err)
+		return fmt.Errorf("listen on HTTP endpoint: %w", err)
 	}
 
 	go func() {

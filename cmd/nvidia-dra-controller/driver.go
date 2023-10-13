@@ -67,7 +67,7 @@ func (d driver) GetClassParameters(ctx context.Context, class *resourcev1.Resour
 	}
 	dc, err := d.clientset.GpuV1alpha1().DeviceClassParameters().Get(ctx, class.ParametersRef.Name, metav1.GetOptions{})
 	if err != nil {
-		return nil, fmt.Errorf("error getting DeviceClassParameters called '%v': %v", class.ParametersRef.Name, err)
+		return nil, fmt.Errorf("error getting DeviceClassParameters called '%v': %w", class.ParametersRef.Name, err)
 	}
 	return gpucrd.UpdateDeviceClassParametersSpecWithDefaults(&dc.Spec), nil
 }
@@ -83,23 +83,23 @@ func (d driver) GetClaimParameters(ctx context.Context, claim *resourcev1.Resour
 	case gpucrd.GpuClaimParametersKind:
 		gc, err := d.clientset.GpuV1alpha1().GpuClaimParameters(claim.Namespace).Get(ctx, claim.Spec.ParametersRef.Name, metav1.GetOptions{})
 		if err != nil {
-			return nil, fmt.Errorf("error getting GpuClaimParameters called '%v' in namespace '%v': %v", claim.Spec.ParametersRef.Name, claim.Namespace, err)
+			return nil, fmt.Errorf("error getting GpuClaimParameters called '%v' in namespace '%v': %w", claim.Spec.ParametersRef.Name, claim.Namespace, err)
 		}
 		claimParameters := gpucrd.UpdateGpuClaimParametersSpecWithDefaults(&gc.Spec)
 		err = d.gpu.ValidateClaimParameters(claimParameters)
 		if err != nil {
-			return nil, fmt.Errorf("error validating GpuClaimParameters called '%v' in namespace '%v': %v", claim.Spec.ParametersRef.Name, claim.Namespace, err)
+			return nil, fmt.Errorf("error validating GpuClaimParameters called '%v' in namespace '%v': %w", claim.Spec.ParametersRef.Name, claim.Namespace, err)
 		}
 		return claimParameters, nil
 	case gpucrd.MigDeviceClaimParametersKind:
 		mc, err := d.clientset.GpuV1alpha1().MigDeviceClaimParameters(claim.Namespace).Get(ctx, claim.Spec.ParametersRef.Name, metav1.GetOptions{})
 		if err != nil {
-			return nil, fmt.Errorf("error getting MigDeviceClaimParameters called '%v' in namespace '%v': %v", claim.Spec.ParametersRef.Name, claim.Namespace, err)
+			return nil, fmt.Errorf("error getting MigDeviceClaimParameters called '%v' in namespace '%v': %w", claim.Spec.ParametersRef.Name, claim.Namespace, err)
 		}
 		claimParameters := gpucrd.UpdateMigDeviceClaimParametersSpecWithDefaults(&mc.Spec)
 		err = d.mig.ValidateClaimParameters(&mc.Spec)
 		if err != nil {
-			return nil, fmt.Errorf("error validating MigDeviceClaimParameters called '%v' in namespace '%v': %v", claim.Spec.ParametersRef.Name, claim.Namespace, err)
+			return nil, fmt.Errorf("error validating MigDeviceClaimParameters called '%v' in namespace '%v': %w", claim.Spec.ParametersRef.Name, claim.Namespace, err)
 		}
 		return claimParameters, nil
 	}
@@ -123,7 +123,7 @@ func (d driver) Allocate(ctx context.Context, claim *resourcev1.ResourceClaim, c
 	client := nasclient.New(crd, d.clientset.NasV1alpha1())
 	err := client.Get(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("error retrieving node specific Gpu CRD: %v", err)
+		return nil, fmt.Errorf("error retrieving node specific Gpu CRD: %w", err)
 	}
 
 	if crd.Spec.AllocatedClaims == nil {
@@ -152,7 +152,7 @@ func (d driver) Allocate(ctx context.Context, claim *resourcev1.ResourceClaim, c
 		err = fmt.Errorf("unknown ResourceClaim.ParametersRef.Kind: %v", claim.Spec.ParametersRef.Kind)
 	}
 	if err != nil {
-		return nil, fmt.Errorf("unable to allocate devices on node '%v': %v", selectedNode, err)
+		return nil, fmt.Errorf("unable to allocate devices on node '%v': %w", selectedNode, err)
 	}
 
 	allocated := crd.Spec.AllocatedClaims[string(claim.UID)]
@@ -165,7 +165,7 @@ func (d driver) Allocate(ctx context.Context, claim *resourcev1.ResourceClaim, c
 
 	err = client.Update(ctx, &crd.Spec)
 	if err != nil {
-		return nil, fmt.Errorf("error updating NodeAllocationState CRD: %v", err)
+		return nil, fmt.Errorf("error updating NodeAllocationState CRD: %w", err)
 	}
 
 	onSuccess()
@@ -191,7 +191,7 @@ func (d driver) Deallocate(ctx context.Context, claim *resourcev1.ResourceClaim)
 	client := nasclient.New(crd, d.clientset.NasV1alpha1())
 	err := client.Get(ctx)
 	if err != nil {
-		return fmt.Errorf("error retrieving node specific Gpu CRD: %v", err)
+		return fmt.Errorf("error retrieving node specific Gpu CRD: %w", err)
 	}
 
 	if crd.Spec.AllocatedClaims == nil {
@@ -212,14 +212,14 @@ func (d driver) Deallocate(ctx context.Context, claim *resourcev1.ResourceClaim)
 		err = fmt.Errorf("unknown AllocatedDevices.Type(): %v", devices.Type())
 	}
 	if err != nil {
-		return fmt.Errorf("unable to deallocate devices '%v': %v", devices, err)
+		return fmt.Errorf("unable to deallocate devices '%v': %w", devices, err)
 	}
 
 	delete(crd.Spec.AllocatedClaims, string(claim.UID))
 
 	err = client.Update(ctx, &crd.Spec)
 	if err != nil {
-		return fmt.Errorf("error updating NodeAllocationState CRD: %v", err)
+		return fmt.Errorf("error updating NodeAllocationState CRD: %w", err)
 	}
 
 	return nil
@@ -229,7 +229,7 @@ func (d driver) UnsuitableNodes(ctx context.Context, pod *corev1.Pod, cas []*con
 	for _, node := range potentialNodes {
 		err := d.unsuitableNode(ctx, pod, cas, node)
 		if err != nil {
-			return fmt.Errorf("error processing node '%v': %v", node, err)
+			return fmt.Errorf("error processing node '%v': %w", node, err)
 		}
 	}
 
@@ -290,7 +290,7 @@ func (d driver) unsuitableNode(ctx context.Context, pod *corev1.Pod, allcas []*c
 			err = d.mig.UnsuitableNode(crd, pod, perKindCas[kind], allcas, potentialNode)
 		}
 		if err != nil {
-			return fmt.Errorf("error processing '%v': %v", kind, err)
+			return fmt.Errorf("error processing '%v': %w", kind, err)
 		}
 	}
 

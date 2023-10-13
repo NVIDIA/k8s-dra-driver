@@ -108,12 +108,12 @@ func (t *TimeSlicingManager) SetTimeSlice(devices *PreparedDevices, config *nasc
 
 	err := setComputeMode(t.containerDriverRoot, devices.UUIDs(), "DEFAULT")
 	if err != nil {
-		return fmt.Errorf("error setting compute mode: %v", err)
+		return fmt.Errorf("error setting compute mode: %w", err)
 	}
 
 	err = setTimeSlice(t.containerDriverRoot, devices.UUIDs(), timeSlice.Int())
 	if err != nil {
-		return fmt.Errorf("error setting time slice: %v", err)
+		return fmt.Errorf("error setting time slice: %w", err)
 	}
 
 	return nil
@@ -152,7 +152,7 @@ func (m *MpsManager) IsControlDaemonStarted(ctx context.Context, claim *nascrd.C
 		return false, nil
 	}
 	if err != nil {
-		return false, fmt.Errorf("failed to get deployment: %v", err)
+		return false, fmt.Errorf("failed to get deployment: %w", err)
 	}
 	return true, nil
 }
@@ -164,7 +164,7 @@ func (m *MpsManager) IsControlDaemonStopped(ctx context.Context, claim *nascrd.C
 		return true, nil
 	}
 	if err != nil {
-		return false, fmt.Errorf("failed to get deployment: %v", err)
+		return false, fmt.Errorf("failed to get deployment: %w", err)
 	}
 	return false, nil
 }
@@ -172,7 +172,7 @@ func (m *MpsManager) IsControlDaemonStopped(ctx context.Context, claim *nascrd.C
 func (m *MpsControlDaemon) Start(ctx context.Context) error {
 	isStarted, err := m.manager.IsControlDaemonStarted(ctx, m.claim)
 	if err != nil {
-		return fmt.Errorf("error checking if control daemon already started: %v", err)
+		return fmt.Errorf("error checking if control daemon already started: %w", err)
 	}
 
 	if isStarted {
@@ -206,64 +206,64 @@ func (m *MpsControlDaemon) Start(ctx context.Context) error {
 	if m.config != nil && m.config.PinnedDeviceMemoryLimit != nil {
 		limits, err := m.config.PinnedDeviceMemoryLimit.String()
 		if err != nil {
-			return fmt.Errorf("error transforming PinnedDeviceMemoryLimit into string: %v", err)
+			return fmt.Errorf("error transforming PinnedDeviceMemoryLimit into string: %w", err)
 		}
 		templateData.CUDA_MPS_PINNED_DEVICE_MEM_LIMIT = limits
 	}
 
 	tmpl, err := template.ParseFiles(m.manager.templatePath)
 	if err != nil {
-		return fmt.Errorf("failed to parse template file: %v", err)
+		return fmt.Errorf("failed to parse template file: %w", err)
 	}
 
 	var deploymentYaml bytes.Buffer
 	if err := tmpl.Execute(&deploymentYaml, templateData); err != nil {
-		return fmt.Errorf("failed to execute template: %v", err)
+		return fmt.Errorf("failed to execute template: %w", err)
 	}
 
 	var unstructuredObj unstructured.Unstructured
 	err = yaml.Unmarshal(deploymentYaml.Bytes(), &unstructuredObj)
 	if err != nil {
-		return fmt.Errorf("failed to unmarshal yaml: %v", err)
+		return fmt.Errorf("failed to unmarshal yaml: %w", err)
 	}
 
 	var deployment appsv1.Deployment
 	err = runtime.DefaultUnstructuredConverter.FromUnstructured(unstructuredObj.UnstructuredContent(), &deployment)
 	if err != nil {
-		return fmt.Errorf("failed to convert unstructured data to typed object: %v", err)
+		return fmt.Errorf("failed to convert unstructured data to typed object: %w", err)
 	}
 
 	err = os.MkdirAll(m.shmDir, 0755)
 	if err != nil {
-		return fmt.Errorf("error creating directory %v: %v", m.shmDir, err)
+		return fmt.Errorf("error creating directory %v: %w", m.shmDir, err)
 	}
 
 	err = os.MkdirAll(m.pipeDir, 0755)
 	if err != nil {
-		return fmt.Errorf("error creating directory %v: %v", m.pipeDir, err)
+		return fmt.Errorf("error creating directory %v: %w", m.pipeDir, err)
 	}
 
 	err = os.MkdirAll(m.logDir, 0755)
 	if err != nil {
-		return fmt.Errorf("error creating directory %v: %v", m.logDir, err)
+		return fmt.Errorf("error creating directory %v: %w", m.logDir, err)
 	}
 
 	mountExecutable, err := exec.LookPath("mount")
 	if err != nil {
-		return fmt.Errorf("error finding 'mount' executable: %v", err)
+		return fmt.Errorf("error finding 'mount' executable: %w", err)
 	}
 
 	mounter := mount.New(mountExecutable)
 	mountOptions := []string{"rw", "nosuid", "nodev", "noexec", "relatime", "size=65536k"}
 	err = mounter.Mount("shm", m.shmDir, "tmpfs", mountOptions)
 	if err != nil {
-		return fmt.Errorf("error mounting %v as tmpfs: %v", m.shmDir, err)
+		return fmt.Errorf("error mounting %v as tmpfs: %w", m.shmDir, err)
 	}
 
 	if m.devices.Type() == nascrd.GpuDeviceType {
 		err = setComputeMode(m.manager.containerDriverRoot, m.devices.UUIDs(), "EXCLUSIVE_PROCESS")
 		if err != nil {
-			return fmt.Errorf("error setting compute mode: %v", err)
+			return fmt.Errorf("error setting compute mode: %w", err)
 		}
 	}
 
@@ -272,7 +272,7 @@ func (m *MpsControlDaemon) Start(ctx context.Context) error {
 		return nil
 	}
 	if err != nil {
-		return fmt.Errorf("failed to create deployment: %v", err)
+		return fmt.Errorf("failed to create deployment: %w", err)
 	}
 
 	return nil
@@ -299,7 +299,7 @@ func (m *MpsControlDaemon) AssertReady(ctx context.Context) error {
 				metav1.GetOptions{},
 			)
 			if err != nil {
-				return fmt.Errorf("failed to get deployment: %v", err)
+				return fmt.Errorf("failed to get deployment: %w", err)
 			}
 
 			if deployment.Status.ReadyReplicas != 1 {
@@ -372,23 +372,23 @@ func (m *MpsControlDaemon) Stop(ctx context.Context) error {
 
 	err = m.manager.config.clientset.Core.AppsV1().Deployments(m.namespace).Delete(ctx, m.name, deleteOptions)
 	if err != nil && !errors.IsNotFound(err) {
-		return fmt.Errorf("failed to delete deployment: %v", err)
+		return fmt.Errorf("failed to delete deployment: %w", err)
 	}
 
 	mountExecutable, err := exec.LookPath("mount")
 	if err != nil {
-		return fmt.Errorf("error finding 'mount' executable: %v", err)
+		return fmt.Errorf("error finding 'mount' executable: %w", err)
 	}
 
 	mounter := mount.New(mountExecutable)
 	err = mount.CleanupMountPoint(m.shmDir, mounter, true)
 	if err != nil {
-		return fmt.Errorf("error unmounting %v: %v", m.shmDir, err)
+		return fmt.Errorf("error unmounting %v: %w", m.shmDir, err)
 	}
 
 	err = os.RemoveAll(m.rootDir)
 	if err != nil {
-		return fmt.Errorf("error removing directory %v: %v", m.rootDir, err)
+		return fmt.Errorf("error removing directory %v: %w", m.rootDir, err)
 	}
 
 	return nil

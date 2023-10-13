@@ -108,7 +108,7 @@ func (d *driver) NodePrepareResource(ctx context.Context, req *drapbv1.NodePrepa
 
 	isPrepared, prepared, err := d.IsPrepared(ctx, req.ClaimUid)
 	if err != nil {
-		return nil, fmt.Errorf("error checking if claim is already prepared: %v", err)
+		return nil, fmt.Errorf("error checking if claim is already prepared: %w", err)
 	}
 
 	if isPrepared {
@@ -118,7 +118,7 @@ func (d *driver) NodePrepareResource(ctx context.Context, req *drapbv1.NodePrepa
 
 	prepared, err = d.Prepare(ctx, req.ClaimUid)
 	if err != nil {
-		return nil, fmt.Errorf("error preparing devices for claim %v: %v", req.ClaimUid, err)
+		return nil, fmt.Errorf("error preparing devices for claim %v: %w", req.ClaimUid, err)
 	}
 
 	klog.Infof("Returning newly prepared devices for claim '%v': %s", req.ClaimUid, prepared)
@@ -199,12 +199,12 @@ func (d *driver) CleanupStaleStateContinuously(ctx context.Context) {
 	for {
 		resourceVersion, err := d.cleanupStaleStateOnce(ctx)
 		if err != nil {
-			klog.Errorf("Error cleaning up stale claim state: %v", err)
+			klog.Errorf("Error cleaning up stale claim state: %w", err)
 		}
 
 		err = d.cleanupStaleStateContinuously(ctx, resourceVersion, err)
 		if err != nil {
-			klog.Errorf("Error cleaning up stale claim state: %v", err)
+			klog.Errorf("Error cleaning up stale claim state: %w", err)
 			time.Sleep(CleanupTimeoutSecondsOnError * time.Second)
 		}
 	}
@@ -217,7 +217,7 @@ func (d *driver) cleanupStaleStateOnce(ctx context.Context) (string, error) {
 
 	list, err := d.nasclient.List(ctx, listOptions)
 	if err != nil {
-		return "", fmt.Errorf("error listing allocation state: %v", err)
+		return "", fmt.Errorf("error listing allocation state: %w", err)
 	}
 
 	if len(list.Items) != 1 {
@@ -247,7 +247,7 @@ func (d *driver) cleanupStaleStateContinuously(ctx context.Context, resourceVers
 
 	watcher, err := d.nasclient.Watch(ctx, watchOptions)
 	if err != nil {
-		return fmt.Errorf("error setting up watch to cleanup allocations: %v", err)
+		return fmt.Errorf("error setting up watch to cleanup allocations: %w", err)
 	}
 	defer watcher.Stop()
 
@@ -280,7 +280,7 @@ func (d *driver) cleanupStaleState(ctx context.Context, nas *nascrd.NodeAllocati
 	go func() {
 		count := 0
 		for err := range caErrors {
-			klog.Errorf("Error cleaning up claim allocations: %v", err)
+			klog.Errorf("Error cleaning up claim allocations: %w", err)
 			count++
 		}
 		errorCounts <- count
@@ -291,7 +291,7 @@ func (d *driver) cleanupStaleState(ctx context.Context, nas *nascrd.NodeAllocati
 	go func() {
 		count := 0
 		for err := range cdiErrors {
-			klog.Errorf("Error cleaning up CDI files: %v", err)
+			klog.Errorf("Error cleaning up CDI files: %w", err)
 			count++
 		}
 		errorCounts <- count
@@ -302,7 +302,7 @@ func (d *driver) cleanupStaleState(ctx context.Context, nas *nascrd.NodeAllocati
 	go func() {
 		count := 0
 		for err := range mpsErrors {
-			klog.Errorf("Error cleaning up MPS control daemon artifacts: %v", err)
+			klog.Errorf("Error cleaning up MPS control daemon artifacts: %w", err)
 			count++
 		}
 		errorCounts <- count
@@ -332,7 +332,7 @@ func (d *driver) cleanupClaimAllocations(ctx context.Context, nas *nascrd.NodeAl
 				klog.Infof("Attempting to unprepare resources for claim %v", claimUID)
 				err := d.Unprepare(ctx, claimUID)
 				if err != nil {
-					errors <- fmt.Errorf("error unpreparing resources for claim %v: %v", claimUID, err)
+					errors <- fmt.Errorf("error unpreparing resources for claim %v: %w", claimUID, err)
 					return
 				}
 				klog.Infof("Successfully unprepared resources for claim %v", claimUID)
