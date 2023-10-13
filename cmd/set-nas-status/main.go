@@ -28,6 +28,7 @@ import (
 
 	nascrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1"
 	nasclient "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1/client"
+	"github.com/NVIDIA/k8s-dra-driver/internal/info"
 
 	"github.com/NVIDIA/k8s-dra-driver/pkg/flags"
 )
@@ -100,7 +101,6 @@ func newApp() *cli.App {
 
 			client := nasclient.New(nascr, clientSets.Nvidia.NasV1alpha1())
 			if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
-				// TODO: Should we pass the context here and for UpdateStatus?
 				err := client.GetOrCreate(ctx)
 				if err != nil {
 					return err
@@ -111,6 +111,13 @@ func newApp() *cli.App {
 			}
 			return nil
 		},
+		Version: info.GetVersionString(),
+	}
+
+	// We remove the -v alias for the version flag so as to not conflict with the -v flag used for klog.
+	f, ok := cli.VersionFlag.(*cli.BoolFlag)
+	if ok {
+		f.Aliases = nil
 	}
 
 	return app

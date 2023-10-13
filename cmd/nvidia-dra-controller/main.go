@@ -38,6 +38,7 @@ import (
 	_ "k8s.io/component-base/metrics/prometheus/version"    // for version metric registration
 	_ "k8s.io/component-base/metrics/prometheus/workqueue"  // register work queues in the default legacy registry
 
+	"github.com/NVIDIA/k8s-dra-driver/internal/info"
 	"github.com/NVIDIA/k8s-dra-driver/pkg/flags"
 )
 
@@ -151,6 +152,13 @@ func newApp() *cli.App {
 
 			return nil
 		},
+		Version: info.GetVersionString(),
+	}
+
+	// We remove the -v alias for the version flag so as to not conflict with the -v flag used for klog.
+	f, ok := cli.VersionFlag.(*cli.BoolFlag)
+	if ok {
+		f.Aliases = nil
 	}
 
 	return app
