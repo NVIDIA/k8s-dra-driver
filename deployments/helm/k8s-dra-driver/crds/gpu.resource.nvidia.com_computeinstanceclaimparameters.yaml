@@ -19,7 +19,7 @@ spec:
     schema:
       openAPIV3Schema:
         description: ComputeInstanceClaimParameters holds the set of parameters provided
-          when creating a resource claim for a Compute Instance
+          when creating a resource claim for a Compute Instance.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -35,7 +35,7 @@ spec:
             type: object
           spec:
             description: ComputeInstanceClaimParametersSpec is the spec for the ComputeInstanceClaimParameters
-              CRD
+              CRD.
             properties:
               migDeviceClaimName:
                 type: string
