@@ -19,7 +19,7 @@ spec:
     schema:
       openAPIV3Schema:
         description: MigDeviceClaimParameters holds the set of parameters provided
-          when creating a resource claim for a MIG device
+          when creating a resource claim for a MIG device.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -35,7 +35,7 @@ spec:
             type: object
           spec:
             description: MigDeviceClaimParametersSpec is the spec for the MigDeviceClaimParameters
-              CRD
+              CRD.
             properties:
               gpuClaimName:
                 type: string
@@ -43,7 +43,7 @@ spec:
                 type: string
               sharing:
                 description: MigDeviceSharing holds the current sharing strategy for
-                  MIG Devices and its settings
+                  MIG Devices and its settings.
                 maxProperties: 2
                 properties:
                   mpsConfig:
@@ -62,13 +62,13 @@ spec:
                           pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                           x-kubernetes-int-or-string: true
                         description: MpsPinnedDeviceMemoryLimit holds the string representation
-                          of the limits across multiple devices
+                          of the limits across multiple devices.
                         type: object
                     type: object
                   strategy:
                     default: TimeSlicing
                     description: GpuSharingStrategy encodes the valid Sharing strategies
-                      as a string
+                      as a string.
                     enum:
                     - TimeSlicing
                     - MPS

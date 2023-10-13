@@ -19,7 +19,7 @@ spec:
     schema:
       openAPIV3Schema:
         description: GpuClaimParameters holds the set of parameters provided when
-          creating a resource claim for a GPU
+          creating a resource claim for a GPU.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -35,7 +35,7 @@ spec:
             type: object
           spec:
             description: GpuClaimParametersSpec is the spec for the GpuClaimParameters
-              CRD
+              CRD.
             properties:
               count:
                 type: integer
@@ -77,19 +77,19 @@ spec:
                                   properties:
                                     architecture:
                                       description: GlobProperty defines a string type
-                                        that can contain glob for matching against
+                                        that can contain glob for matching against.
                                       type: string
                                     brand:
                                       description: GlobProperty defines a string type
-                                        that can contain glob for matching against
+                                        that can contain glob for matching against.
                                       type: string
                                     cudaComputeCapability:
                                       description: VersionComparator compares a version
-                                        SelectorCondition using a specific operator
+                                        SelectorCondition using a specific operator.
                                       properties:
                                         operator:
                                           description: VersionComparatorOperator defines
-                                            the operators for use with a VersionComparator
+                                            the operators for use with a VersionComparator.
                                           enum:
                                           - Equals
                                           - LessThan
@@ -102,11 +102,11 @@ spec:
                                       type: object
                                     cudaRuntimeVersion:
                                       description: VersionComparator compares a version
-                                        SelectorCondition using a specific operator
+                                        SelectorCondition using a specific operator.
                                       properties:
                                         operator:
                                           description: VersionComparatorOperator defines
-                                            the operators for use with a VersionComparator
+                                            the operators for use with a VersionComparator.
                                           enum:
                                           - Equals
                                           - LessThan
@@ -119,11 +119,11 @@ spec:
                                       type: object
                                     driverVersion:
                                       description: VersionComparator compares a version
-                                        SelectorCondition using a specific operator
+                                        SelectorCondition using a specific operator.
                                       properties:
                                         operator:
                                           description: VersionComparatorOperator defines
-                                            the operators for use with a VersionComparator
+                                            the operators for use with a VersionComparator.
                                           enum:
                                           - Equals
                                           - LessThan
@@ -136,15 +136,15 @@ spec:
                                       type: object
                                     index:
                                       description: IntProperty defines an int type
-                                        that methods can hang off of
+                                        that methods can hang off of.
                                       type: integer
                                     memory:
                                       description: QuantityComparator compares a quantity
-                                        SelectorCondition using a specific operator
+                                        SelectorCondition using a specific operator.
                                       properties:
                                         operator:
                                           description: QuantityComparatorOperator
-                                            defines the operators for use with a QuantityComparator
+                                            defines the operators for use with a QuantityComparator.
                                           enum:
                                           - Equals
                                           - LessThan
@@ -161,33 +161,33 @@ spec:
                                       type: object
                                     migEnabled:
                                       description: BoolProperty defines a bool type
-                                        that methods can hang off of
+                                        that methods can hang off of.
                                       type: boolean
                                     productName:
                                       description: GlobProperty defines a string type
-                                        that can contain glob for matching against
+                                        that can contain glob for matching against.
                                       type: string
                                     uuid:
                                       description: StringProperty defines a string
-                                        type that methods can hang off of
+                                        type that methods can hang off of.
                                       type: string
                                   type: object
                                 type: array
                               architecture:
                                 description: GlobProperty defines a string type that
-                                  can contain glob for matching against
+                                  can contain glob for matching against.
                                 type: string
                               brand:
                                 description: GlobProperty defines a string type that
-                                  can contain glob for matching against
+                                  can contain glob for matching against.
                                 type: string
                               cudaComputeCapability:
                                 description: VersionComparator compares a version
-                                  SelectorCondition using a specific operator
+                                  SelectorCondition using a specific operator.
                                 properties:
                                   operator:
                                     description: VersionComparatorOperator defines
-                                      the operators for use with a VersionComparator
+                                      the operators for use with a VersionComparator.
                                     enum:
                                     - Equals
                                     - LessThan
@@ -200,11 +200,11 @@ spec:
                                 type: object
                               cudaRuntimeVersion:
                                 description: VersionComparator compares a version
-                                  SelectorCondition using a specific operator
+                                  SelectorCondition using a specific operator.
                                 properties:
                                   operator:
                                     description: VersionComparatorOperator defines
-                                      the operators for use with a VersionComparator
+                                      the operators for use with a VersionComparator.
                                     enum:
                                     - Equals
                                     - LessThan
@@ -217,11 +217,11 @@ spec:
                                 type: object
                               driverVersion:
                                 description: VersionComparator compares a version
-                                  SelectorCondition using a specific operator
+                                  SelectorCondition using a specific operator.
                                 properties:
                                   operator:
                                     description: VersionComparatorOperator defines
-                                      the operators for use with a VersionComparator
+                                      the operators for use with a VersionComparator.
                                     enum:
                                     - Equals
                                     - LessThan
@@ -234,15 +234,15 @@ spec:
                                 type: object
                               index:
                                 description: IntProperty defines an int type that
-                                  methods can hang off of
+                                  methods can hang off of.
                                 type: integer
                               memory:
                                 description: QuantityComparator compares a quantity
-                                  SelectorCondition using a specific operator
+                                  SelectorCondition using a specific operator.
                                 properties:
                                   operator:
                                     description: QuantityComparatorOperator defines
-                                      the operators for use with a QuantityComparator
+                                      the operators for use with a QuantityComparator.
                                     enum:
                                     - Equals
                                     - LessThan
@@ -259,7 +259,7 @@ spec:
                                 type: object
                               migEnabled:
                                 description: BoolProperty defines a bool type that
-                                  methods can hang off of
+                                  methods can hang off of.
                                 type: boolean
                               orExpression:
                                 items:
@@ -271,19 +271,19 @@ spec:
                                   properties:
                                     architecture:
                                       description: GlobProperty defines a string type
-                                        that can contain glob for matching against
+                                        that can contain glob for matching against.
                                       type: string
                                     brand:
                                       description: GlobProperty defines a string type
-                                        that can contain glob for matching against
+                                        that can contain glob for matching against.
                                       type: string
                                     cudaComputeCapability:
                                       description: VersionComparator compares a version
-                                        SelectorCondition using a specific operator
+                                        SelectorCondition using a specific operator.
                                       properties:
                                         operator:
                                           description: VersionComparatorOperator defines
-                                            the operators for use with a VersionComparator
+                                            the operators for use with a VersionComparator.
                                           enum:
                                           - Equals
                                           - LessThan
@@ -296,11 +296,11 @@ spec:
                                       type: object
                                     cudaRuntimeVersion:
                                       description: VersionComparator compares a version
-                                        SelectorCondition using a specific operator
+                                        SelectorCondition using a specific operator.
                                       properties:
                                         operator:
                                           description: VersionComparatorOperator defines
-                                            the operators for use with a VersionComparator
+                                            the operators for use with a VersionComparator.
                                           enum:
                                           - Equals
                                           - LessThan
@@ -313,11 +313,11 @@ spec:
                                       type: object
                                     driverVersion:
                                       description: VersionComparator compares a version
-                                        SelectorCondition using a specific operator
+                                        SelectorCondition using a specific operator.
                                       properties:
                                         operator:
                                           description: VersionComparatorOperator defines
-                                            the operators for use with a VersionComparator
+                                            the operators for use with a VersionComparator.
                                           enum:
                                           - Equals
                                           - LessThan
@@ -330,15 +330,15 @@ spec:
                                       type: object
                                     index:
                                       description: IntProperty defines an int type
-                                        that methods can hang off of
+                                        that methods can hang off of.
                                       type: integer
                                     memory:
                                       description: QuantityComparator compares a quantity
-                                        SelectorCondition using a specific operator
+                                        SelectorCondition using a specific operator.
                                       properties:
                                         operator:
                                           description: QuantityComparatorOperator
-                                            defines the operators for use with a QuantityComparator
+                                            defines the operators for use with a QuantityComparator.
                                           enum:
                                           - Equals
                                           - LessThan
@@ -355,43 +355,43 @@ spec:
                                       type: object
                                     migEnabled:
                                       description: BoolProperty defines a bool type
-                                        that methods can hang off of
+                                        that methods can hang off of.
                                       type: boolean
                                     productName:
                                       description: GlobProperty defines a string type
-                                        that can contain glob for matching against
+                                        that can contain glob for matching against.
                                       type: string
                                     uuid:
                                       description: StringProperty defines a string
-                                        type that methods can hang off of
+                                        type that methods can hang off of.
                                       type: string
                                   type: object
                                 type: array
                               productName:
                                 description: GlobProperty defines a string type that
-                                  can contain glob for matching against
+                                  can contain glob for matching against.
                                 type: string
                               uuid:
                                 description: StringProperty defines a string type
-                                  that methods can hang off of
+                                  that methods can hang off of.
                                 type: string
                             type: object
                           type: array
                         architecture:
                           description: GlobProperty defines a string type that can
-                            contain glob for matching against
+                            contain glob for matching against.
                           type: string
                         brand:
                           description: GlobProperty defines a string type that can
-                            contain glob for matching against
+                            contain glob for matching against.
                           type: string
                         cudaComputeCapability:
                           description: VersionComparator compares a version SelectorCondition
-                            using a specific operator
+                            using a specific operator.
                           properties:
                             operator:
                               description: VersionComparatorOperator defines the operators
-                                for use with a VersionComparator
+                                for use with a VersionComparator.
                               enum:
                               - Equals
                               - LessThan
@@ -404,11 +404,11 @@ spec:
                           type: object
                         cudaRuntimeVersion:
                           description: VersionComparator compares a version SelectorCondition
-                            using a specific operator
+                            using a specific operator.
                           properties:
                             operator:
                               description: VersionComparatorOperator defines the operators
-                                for use with a VersionComparator
+                                for use with a VersionComparator.
                               enum:
                               - Equals
                               - LessThan
@@ -421,11 +421,11 @@ spec:
                           type: object
                         driverVersion:
                           description: VersionComparator compares a version SelectorCondition
-                            using a specific operator
+                            using a specific operator.
                           properties:
                             operator:
                               description: VersionComparatorOperator defines the operators
-                                for use with a VersionComparator
+                                for use with a VersionComparator.
                               enum:
                               - Equals
                               - LessThan
@@ -438,15 +438,15 @@ spec:
                           type: object
                         index:
                           description: IntProperty defines an int type that methods
-                            can hang off of
+                            can hang off of.
                           type: integer
                         memory:
                           description: QuantityComparator compares a quantity SelectorCondition
-                            using a specific operator
+                            using a specific operator.
                           properties:
                             operator:
                               description: QuantityComparatorOperator defines the
-                                operators for use with a QuantityComparator
+                                operators for use with a QuantityComparator.
                               enum:
                               - Equals
                               - LessThan
@@ -463,7 +463,7 @@ spec:
                           type: object
                         migEnabled:
                           description: BoolProperty defines a bool type that methods
-                            can hang off of
+                            can hang off of.
                           type: boolean
                         orExpression:
                           items:
@@ -483,19 +483,19 @@ spec:
                                   properties:
                                     architecture:
                                       description: GlobProperty defines a string type
-                                        that can contain glob for matching against
+                                        that can contain glob for matching against.
                                       type: string
                                     brand:
                                       description: GlobProperty defines a string type
-                                        that can contain glob for matching against
+                                        that can contain glob for matching against.
                                       type: string
                                     cudaComputeCapability:
                                       description: VersionComparator compares a version
-                                        SelectorCondition using a specific operator
+                                        SelectorCondition using a specific operator.
                                       properties:
                                         operator:
                                           description: VersionComparatorOperator defines
-                                            the operators for use with a VersionComparator
+                                            the operators for use with a VersionComparator.
                                           enum:
                                           - Equals
                                           - LessThan
@@ -508,11 +508,11 @@ spec:
                                       type: object
                                     cudaRuntimeVersion:
                                       description: VersionComparator compares a version
-                                        SelectorCondition using a specific operator
+                                        SelectorCondition using a specific operator.
                                       properties:
                                         operator:
                                           description: VersionComparatorOperator defines
-                                            the operators for use with a VersionComparator
+                                            the operators for use with a VersionComparator.
                                           enum:
                                           - Equals
                                           - LessThan
@@ -525,11 +525,11 @@ spec:
                                       type: object
                                     driverVersion:
                                       description: VersionComparator compares a version
-                                        SelectorCondition using a specific operator
+                                        SelectorCondition using a specific operator.
                                       properties:
                                         operator:
                                           description: VersionComparatorOperator defines
-                                            the operators for use with a VersionComparator
+                                            the operators for use with a VersionComparator.
                                           enum:
                                           - Equals
                                           - LessThan
@@ -542,15 +542,15 @@ spec:
                                       type: object
                                     index:
                                       description: IntProperty defines an int type
-                                        that methods can hang off of
+                                        that methods can hang off of.
                                       type: integer
                                     memory:
                                       description: QuantityComparator compares a quantity
-                                        SelectorCondition using a specific operator
+                                        SelectorCondition using a specific operator.
                                       properties:
                                         operator:
                                           description: QuantityComparatorOperator
-                                            defines the operators for use with a QuantityComparator
+                                            defines the operators for use with a QuantityComparator.
                                           enum:
                                           - Equals
                                           - LessThan
@@ -567,33 +567,33 @@ spec:
                                       type: object
                                     migEnabled:
                                       description: BoolProperty defines a bool type
-                                        that methods can hang off of
+                                        that methods can hang off of.
                                       type: boolean
                                     productName:
                                       description: GlobProperty defines a string type
-                                        that can contain glob for matching against
+                                        that can contain glob for matching against.
                                       type: string
                                     uuid:
                                       description: StringProperty defines a string
-                                        type that methods can hang off of
+                                        type that methods can hang off of.
                                       type: string
                                   type: object
                                 type: array
                               architecture:
                                 description: GlobProperty defines a string type that
-                                  can contain glob for matching against
+                                  can contain glob for matching against.
                                 type: string
                               brand:
                                 description: GlobProperty defines a string type that
-                                  can contain glob for matching against
+                                  can contain glob for matching against.
                                 type: string
                               cudaComputeCapability:
                                 description: VersionComparator compares a version
-                                  SelectorCondition using a specific operator
+                                  SelectorCondition using a specific operator.
                                 properties:
                                   operator:
                                     description: VersionComparatorOperator defines
-                                      the operators for use with a VersionComparator
+                                      the operators for use with a VersionComparator.
                                     enum:
                                     - Equals
                                     - LessThan
@@ -606,11 +606,11 @@ spec:
                                 type: object
                               cudaRuntimeVersion:
                                 description: VersionComparator compares a version
-                                  SelectorCondition using a specific operator
+                                  SelectorCondition using a specific operator.
                                 properties:
                                   operator:
                                     description: VersionComparatorOperator defines
-                                      the operators for use with a VersionComparator
+                                      the operators for use with a VersionComparator.
                                     enum:
                                     - Equals
                                     - LessThan
@@ -623,11 +623,11 @@ spec:
                                 type: object
                               driverVersion:
                                 description: VersionComparator compares a version
-                                  SelectorCondition using a specific operator
+                                  SelectorCondition using a specific operator.
                                 properties:
                                   operator:
                                     description: VersionComparatorOperator defines
-                                      the operators for use with a VersionComparator
+                                      the operators for use with a VersionComparator.
                                     enum:
                                     - Equals
                                     - LessThan
@@ -640,15 +640,15 @@ spec:
                                 type: object
                               index:
                                 description: IntProperty defines an int type that
-                                  methods can hang off of
+                                  methods can hang off of.
                                 type: integer
                               memory:
                                 description: QuantityComparator compares a quantity
-                                  SelectorCondition using a specific operator
+                                  SelectorCondition using a specific operator.
                                 properties:
                                   operator:
                                     description: QuantityComparatorOperator defines
-                                      the operators for use with a QuantityComparator
+                                      the operators for use with a QuantityComparator.
                                     enum:
                                     - Equals
                                     - LessThan
@@ -665,7 +665,7 @@ spec:
                                 type: object
                               migEnabled:
                                 description: BoolProperty defines a bool type that
-                                  methods can hang off of
+                                  methods can hang off of.
                                 type: boolean
                               orExpression:
                                 items:
@@ -677,19 +677,19 @@ spec:
                                   properties:
                                     architecture:
                                       description: GlobProperty defines a string type
-                                        that can contain glob for matching against
+                                        that can contain glob for matching against.
                                       type: string
                                     brand:
                                       description: GlobProperty defines a string type
-                                        that can contain glob for matching against
+                                        that can contain glob for matching against.
                                       type: string
                                     cudaComputeCapability:
                                       description: VersionComparator compares a version
-                                        SelectorCondition using a specific operator
+                                        SelectorCondition using a specific operator.
                                       properties:
                                         operator:
                                           description: VersionComparatorOperator defines
-                                            the operators for use with a VersionComparator
+                                            the operators for use with a VersionComparator.
                                           enum:
                                           - Equals
                                           - LessThan
@@ -702,11 +702,11 @@ spec:
                                       type: object
                                     cudaRuntimeVersion:
                                       description: VersionComparator compares a version
-                                        SelectorCondition using a specific operator
+                                        SelectorCondition using a specific operator.
                                       properties:
                                         operator:
                                           description: VersionComparatorOperator defines
-                                            the operators for use with a VersionComparator
+                                            the operators for use with a VersionComparator.
                                           enum:
                                           - Equals
                                           - LessThan
@@ -719,11 +719,11 @@ spec:
                                       type: object
                                     driverVersion:
                                       description: VersionComparator compares a version
-                                        SelectorCondition using a specific operator
+                                        SelectorCondition using a specific operator.
                                       properties:
                                         operator:
                                           description: VersionComparatorOperator defines
-                                            the operators for use with a VersionComparator
+                                            the operators for use with a VersionComparator.
                                           enum:
                                           - Equals
                                           - LessThan
@@ -736,15 +736,15 @@ spec:
                                       type: object
                                     index:
                                       description: IntProperty defines an int type
-                                        that methods can hang off of
+                                        that methods can hang off of.
                                       type: integer
                                     memory:
                                       description: QuantityComparator compares a quantity
-                                        SelectorCondition using a specific operator
+                                        SelectorCondition using a specific operator.
                                       properties:
                                         operator:
                                           description: QuantityComparatorOperator
-                                            defines the operators for use with a QuantityComparator
+                                            defines the operators for use with a QuantityComparator.
                                           enum:
                                           - Equals
                                           - LessThan
@@ -761,53 +761,53 @@ spec:
                                       type: object
                                     migEnabled:
                                       description: BoolProperty defines a bool type
-                                        that methods can hang off of
+                                        that methods can hang off of.
                                       type: boolean
                                     productName:
                                       description: GlobProperty defines a string type
-                                        that can contain glob for matching against
+                                        that can contain glob for matching against.
                                       type: string
                                     uuid:
                                       description: StringProperty defines a string
-                                        type that methods can hang off of
+                                        type that methods can hang off of.
                                       type: string
                                   type: object
                                 type: array
                               productName:
                                 description: GlobProperty defines a string type that
-                                  can contain glob for matching against
+                                  can contain glob for matching against.
                                 type: string
                               uuid:
                                 description: StringProperty defines a string type
-                                  that methods can hang off of
+                                  that methods can hang off of.
                                 type: string
                             type: object
                           type: array
                         productName:
                           description: GlobProperty defines a string type that can
-                            contain glob for matching against
+                            contain glob for matching against.
                           type: string
                         uuid:
                           description: StringProperty defines a string type that methods
-                            can hang off of
+                            can hang off of.
                           type: string
                       type: object
                     type: array
                   architecture:
                     description: GlobProperty defines a string type that can contain
-                      glob for matching against
+                      glob for matching against.
                     type: string
                   brand:
                     description: GlobProperty defines a string type that can contain
-                      glob for matching against
+                      glob for matching against.
                     type: string
                   cudaComputeCapability:
                     description: VersionComparator compares a version SelectorCondition
-                      using a specific operator
+                      using a specific operator.
                     properties:
                       operator:
                         description: VersionComparatorOperator defines the operators
-                          for use with a VersionComparator
+                          for use with a VersionComparator.
                         enum:
                         - Equals
                         - LessThan
@@ -820,11 +820,11 @@ spec:
                     type: object
                   cudaRuntimeVersion:
                     description: VersionComparator compares a version SelectorCondition
-                      using a specific operator
+                      using a specific operator.
                     properties:
                       operator:
                         description: VersionComparatorOperator defines the operators
-                          for use with a VersionComparator
+                          for use with a VersionComparator.
                         enum:
                         - Equals
                         - LessThan
@@ -837,11 +837,11 @@ spec:
                     type: object
                   driverVersion:
                     description: VersionComparator compares a version SelectorCondition
-                      using a specific operator
+                      using a specific operator.
                     properties:
                       operator:
                         description: VersionComparatorOperator defines the operators
-                          for use with a VersionComparator
+                          for use with a VersionComparator.
                         enum:
                         - Equals
                         - LessThan
@@ -854,15 +854,15 @@ spec:
                     type: object
                   index:
                     description: IntProperty defines an int type that methods can
-                      hang off of
+                      hang off of.
                     type: integer
                   memory:
                     description: QuantityComparator compares a quantity SelectorCondition
-                      using a specific operator
+                      using a specific operator.
                     properties:
                       operator:
                         description: QuantityComparatorOperator defines the operators
-                          for use with a QuantityComparator
+                          for use with a QuantityComparator.
                         enum:
                         - Equals
                         - LessThan
@@ -879,7 +879,7 @@ spec:
                     type: object
                   migEnabled:
                     description: BoolProperty defines a bool type that methods can
-                      hang off of
+                      hang off of.
                     type: boolean
                   orExpression:
                     items:
@@ -907,19 +907,19 @@ spec:
                                   properties:
                                     architecture:
                                       description: GlobProperty defines a string type
-                                        that can contain glob for matching against
+                                        that can contain glob for matching against.
                                       type: string
                                     brand:
                                       description: GlobProperty defines a string type
-                                        that can contain glob for matching against
+                                        that can contain glob for matching against.
                                       type: string
                                     cudaComputeCapability:
                                       description: VersionComparator compares a version
-                                        SelectorCondition using a specific operator
+                                        SelectorCondition using a specific operator.
                                       properties:
                                         operator:
                                           description: VersionComparatorOperator defines
-                                            the operators for use with a VersionComparator
+                                            the operators for use with a VersionComparator.
                                           enum:
                                           - Equals
                                           - LessThan
@@ -932,11 +932,11 @@ spec:
                                       type: object
                                     cudaRuntimeVersion:
                                       description: VersionComparator compares a version
-                                        SelectorCondition using a specific operator
+                                        SelectorCondition using a specific operator.
                                       properties:
                                         operator:
                                           description: VersionComparatorOperator defines
-                                            the operators for use with a VersionComparator
+                                            the operators for use with a VersionComparator.
                                           enum:
                                           - Equals
                                           - LessThan
@@ -949,11 +949,11 @@ spec:
                                       type: object
                                     driverVersion:
                                       description: VersionComparator compares a version
-                                        SelectorCondition using a specific operator
+                                        SelectorCondition using a specific operator.
                                       properties:
                                         operator:
                                           description: VersionComparatorOperator defines
-                                            the operators for use with a VersionComparator
+                                            the operators for use with a VersionComparator.
                                           enum:
                                           - Equals
                                           - LessThan
@@ -966,15 +966,15 @@ spec:
                                       type: object
                                     index:
                                       description: IntProperty defines an int type
-                                        that methods can hang off of
+                                        that methods can hang off of.
                                       type: integer
                                     memory:
                                       description: QuantityComparator compares a quantity
-                                        SelectorCondition using a specific operator
+                                        SelectorCondition using a specific operator.
                                       properties:
                                         operator:
                                           description: QuantityComparatorOperator
-                                            defines the operators for use with a QuantityComparator
+                                            defines the operators for use with a QuantityComparator.
                                           enum:
                                           - Equals
                                           - LessThan
@@ -991,33 +991,33 @@ spec:
                                       type: object
                                     migEnabled:
                                       description: BoolProperty defines a bool type
-                                        that methods can hang off of
+                                        that methods can hang off of.
                                       type: boolean
                                     productName:
                                       description: GlobProperty defines a string type
-                                        that can contain glob for matching against
+                                        that can contain glob for matching against.
                                       type: string
                                     uuid:
                                       description: StringProperty defines a string
-                                        type that methods can hang off of
+                                        type that methods can hang off of.
                                       type: string
                                   type: object
                                 type: array
                               architecture:
                                 description: GlobProperty defines a string type that
-                                  can contain glob for matching against
+                                  can contain glob for matching against.
                                 type: string
                               brand:
                                 description: GlobProperty defines a string type that
-                                  can contain glob for matching against
+                                  can contain glob for matching against.
                                 type: string
                               cudaComputeCapability:
                                 description: VersionComparator compares a version
-                                  SelectorCondition using a specific operator
+                                  SelectorCondition using a specific operator.
                                 properties:
                                   operator:
                                     description: VersionComparatorOperator defines
-                                      the operators for use with a VersionComparator
+                                      the operators for use with a VersionComparator.
                                     enum:
                                     - Equals
                                     - LessThan
@@ -1030,11 +1030,11 @@ spec:
                                 type: object
                               cudaRuntimeVersion:
                                 description: VersionComparator compares a version
-                                  SelectorCondition using a specific operator
+                                  SelectorCondition using a specific operator.
                                 properties:
                                   operator:
                                     description: VersionComparatorOperator defines
-                                      the operators for use with a VersionComparator
+                                      the operators for use with a VersionComparator.
                                     enum:
                                     - Equals
                                     - LessThan
@@ -1047,11 +1047,11 @@ spec:
                                 type: object
                               driverVersion:
                                 description: VersionComparator compares a version
-                                  SelectorCondition using a specific operator
+                                  SelectorCondition using a specific operator.
                                 properties:
                                   operator:
                                     description: VersionComparatorOperator defines
-                                      the operators for use with a VersionComparator
+                                      the operators for use with a VersionComparator.
                                     enum:
                                     - Equals
                                     - LessThan
@@ -1064,15 +1064,15 @@ spec:
                                 type: object
                               index:
                                 description: IntProperty defines an int type that
-                                  methods can hang off of
+                                  methods can hang off of.
                                 type: integer
                               memory:
                                 description: QuantityComparator compares a quantity
-                                  SelectorCondition using a specific operator
+                                  SelectorCondition using a specific operator.
                                 properties:
                                   operator:
                                     description: QuantityComparatorOperator defines
-                                      the operators for use with a QuantityComparator
+                                      the operators for use with a QuantityComparator.
                                     enum:
                                     - Equals
                                     - LessThan
@@ -1089,7 +1089,7 @@ spec:
                                 type: object
                               migEnabled:
                                 description: BoolProperty defines a bool type that
-                                  methods can hang off of
+                                  methods can hang off of.
                                 type: boolean
                               orExpression:
                                 items:
@@ -1101,19 +1101,19 @@ spec:
                                   properties:
                                     architecture:
                                       description: GlobProperty defines a string type
-                                        that can contain glob for matching against
+                                        that can contain glob for matching against.
                                       type: string
                                     brand:
                                       description: GlobProperty defines a string type
-                                        that can contain glob for matching against
+                                        that can contain glob for matching against.
                                       type: string
                                     cudaComputeCapability:
                                       description: VersionComparator compares a version
-                                        SelectorCondition using a specific operator
+                                        SelectorCondition using a specific operator.
                                       properties:
                                         operator:
                                           description: VersionComparatorOperator defines
-                                            the operators for use with a VersionComparator
+                                            the operators for use with a VersionComparator.
                                           enum:
                                           - Equals
                                           - LessThan
@@ -1126,11 +1126,11 @@ spec:
                                       type: object
                                     cudaRuntimeVersion:
                                       description: VersionComparator compares a version
-                                        SelectorCondition using a specific operator
+                                        SelectorCondition using a specific operator.
                                       properties:
                                         operator:
                                           description: VersionComparatorOperator defines
-                                            the operators for use with a VersionComparator
+                                            the operators for use with a VersionComparator.
                                           enum:
                                           - Equals
                                           - LessThan
@@ -1143,11 +1143,11 @@ spec:
                                       type: object
                                     driverVersion:
                                       description: VersionComparator compares a version
-                                        SelectorCondition using a specific operator
+                                        SelectorCondition using a specific operator.
                                       properties:
                                         operator:
                                           description: VersionComparatorOperator defines
-                                            the operators for use with a VersionComparator
+                                            the operators for use with a VersionComparator.
                                           enum:
                                           - Equals
                                           - LessThan
@@ -1160,15 +1160,15 @@ spec:
                                       type: object
                                     index:
                                       description: IntProperty defines an int type
-                                        that methods can hang off of
+                                        that methods can hang off of.
                                       type: integer
                                     memory:
                                       description: QuantityComparator compares a quantity
-                                        SelectorCondition using a specific operator
+                                        SelectorCondition using a specific operator.
                                       properties:
                                         operator:
                                           description: QuantityComparatorOperator
-                                            defines the operators for use with a QuantityComparator
+                                            defines the operators for use with a QuantityComparator.
                                           enum:
                                           - Equals
                                           - LessThan
@@ -1185,43 +1185,43 @@ spec:
                                       type: object
                                     migEnabled:
                                       description: BoolProperty defines a bool type
-                                        that methods can hang off of
+                                        that methods can hang off of.
                                       type: boolean
                                     productName:
                                       description: GlobProperty defines a string type
-                                        that can contain glob for matching against
+                                        that can contain glob for matching against.
                                       type: string
                                     uuid:
                                       description: StringProperty defines a string
-                                        type that methods can hang off of
+                                        type that methods can hang off of.
                                       type: string
                                   type: object
                                 type: array
                               productName:
                                 description: GlobProperty defines a string type that
-                                  can contain glob for matching against
+                                  can contain glob for matching against.
                                 type: string
                               uuid:
                                 description: StringProperty defines a string type
-                                  that methods can hang off of
+                                  that methods can hang off of.
                                 type: string
                             type: object
                           type: array
                         architecture:
                           description: GlobProperty defines a string type that can
-                            contain glob for matching against
+                            contain glob for matching against.
                           type: string
                         brand:
                           description: GlobProperty defines a string type that can
-                            contain glob for matching against
+                            contain glob for matching against.
                           type: string
                         cudaComputeCapability:
                           description: VersionComparator compares a version SelectorCondition
-                            using a specific operator
+                            using a specific operator.
                           properties:
                             operator:
                               description: VersionComparatorOperator defines the operators
-                                for use with a VersionComparator
+                                for use with a VersionComparator.
                               enum:
                               - Equals
                               - LessThan
@@ -1234,11 +1234,11 @@ spec:
                           type: object
                         cudaRuntimeVersion:
                           description: VersionComparator compares a version SelectorCondition
-                            using a specific operator
+                            using a specific operator.
                           properties:
                             operator:
                               description: VersionComparatorOperator defines the operators
-                                for use with a VersionComparator
+                                for use with a VersionComparator.
                               enum:
                               - Equals
                               - LessThan
@@ -1251,11 +1251,11 @@ spec:
                           type: object
                         driverVersion:
                           description: VersionComparator compares a version SelectorCondition
-                            using a specific operator
+                            using a specific operator.
                           properties:
                             operator:
                               description: VersionComparatorOperator defines the operators
-                                for use with a VersionComparator
+                                for use with a VersionComparator.
                               enum:
                               - Equals
                               - LessThan
@@ -1268,15 +1268,15 @@ spec:
                           type: object
                         index:
                           description: IntProperty defines an int type that methods
-                            can hang off of
+                            can hang off of.
                           type: integer
                         memory:
                           description: QuantityComparator compares a quantity SelectorCondition
-                            using a specific operator
+                            using a specific operator.
                           properties:
                             operator:
                               description: QuantityComparatorOperator defines the
-                                operators for use with a QuantityComparator
+                                operators for use with a QuantityComparator.
                               enum:
                               - Equals
                               - LessThan
@@ -1293,7 +1293,7 @@ spec:
                           type: object
                         migEnabled:
                           description: BoolProperty defines a bool type that methods
-                            can hang off of
+                            can hang off of.
                           type: boolean
                         orExpression:
                           items:
@@ -1313,19 +1313,19 @@ spec:
                                   properties:
                                     architecture:
                                       description: GlobProperty defines a string type
-                                        that can contain glob for matching against
+                                        that can contain glob for matching against.
                                       type: string
                                     brand:
                                       description: GlobProperty defines a string type
-                                        that can contain glob for matching against
+                                        that can contain glob for matching against.
                                       type: string
                                     cudaComputeCapability:
                                       description: VersionComparator compares a version
-                                        SelectorCondition using a specific operator
+                                        SelectorCondition using a specific operator.
                                       properties:
                                         operator:
                                           description: VersionComparatorOperator defines
-                                            the operators for use with a VersionComparator
+                                            the operators for use with a VersionComparator.
                                           enum:
                                           - Equals
                                           - LessThan
@@ -1338,11 +1338,11 @@ spec:
                                       type: object
                                     cudaRuntimeVersion:
                                       description: VersionComparator compares a version
-                                        SelectorCondition using a specific operator
+                                        SelectorCondition using a specific operator.
                                       properties:
                                         operator:
                                           description: VersionComparatorOperator defines
-                                            the operators for use with a VersionComparator
+                                            the operators for use with a VersionComparator.
                                           enum:
                                           - Equals
                                           - LessThan
@@ -1355,11 +1355,11 @@ spec:
                                       type: object
                                     driverVersion:
                                       description: VersionComparator compares a version
-                                        SelectorCondition using a specific operator
+                                        SelectorCondition using a specific operator.
                                       properties:
                                         operator:
                                           description: VersionComparatorOperator defines
-                                            the operators for use with a VersionComparator
+                                            the operators for use with a VersionComparator.
                                           enum:
                                           - Equals
                                           - LessThan
@@ -1372,15 +1372,15 @@ spec:
                                       type: object
                                     index:
                                       description: IntProperty defines an int type
-                                        that methods can hang off of
+                                        that methods can hang off of.
                                       type: integer
                                     memory:
                                       description: QuantityComparator compares a quantity
-                                        SelectorCondition using a specific operator
+                                        SelectorCondition using a specific operator.
                                       properties:
                                         operator:
                                           description: QuantityComparatorOperator
-                                            defines the operators for use with a QuantityComparator
+                                            defines the operators for use with a QuantityComparator.
                                           enum:
                                           - Equals
                                           - LessThan
@@ -1397,33 +1397,33 @@ spec:
                                       type: object
                                     migEnabled:
                                       description: BoolProperty defines a bool type
-                                        that methods can hang off of
+                                        that methods can hang off of.
                                       type: boolean
                                     productName:
                                       description: GlobProperty defines a string type
-                                        that can contain glob for matching against
+                                        that can contain glob for matching against.
                                       type: string
                                     uuid:
                                       description: StringProperty defines a string
-                                        type that methods can hang off of
+                                        type that methods can hang off of.
                                       type: string
                                   type: object
                                 type: array
                               architecture:
                                 description: GlobProperty defines a string type that
-                                  can contain glob for matching against
+                                  can contain glob for matching against.
                                 type: string
                               brand:
                                 description: GlobProperty defines a string type that
-                                  can contain glob for matching against
+                                  can contain glob for matching against.
                                 type: string
                               cudaComputeCapability:
                                 description: VersionComparator compares a version
-                                  SelectorCondition using a specific operator
+                                  SelectorCondition using a specific operator.
                                 properties:
                                   operator:
                                     description: VersionComparatorOperator defines
-                                      the operators for use with a VersionComparator
+                                      the operators for use with a VersionComparator.
                                     enum:
                                     - Equals
                                     - LessThan
@@ -1436,11 +1436,11 @@ spec:
                                 type: object
                               cudaRuntimeVersion:
                                 description: VersionComparator compares a version
-                                  SelectorCondition using a specific operator
+                                  SelectorCondition using a specific operator.
                                 properties:
                                   operator:
                                     description: VersionComparatorOperator defines
-                                      the operators for use with a VersionComparator
+                                      the operators for use with a VersionComparator.
                                     enum:
                                     - Equals
                                     - LessThan
@@ -1453,11 +1453,11 @@ spec:
                                 type: object
                               driverVersion:
                                 description: VersionComparator compares a version
-                                  SelectorCondition using a specific operator
+                                  SelectorCondition using a specific operator.
                                 properties:
                                   operator:
                                     description: VersionComparatorOperator defines
-                                      the operators for use with a VersionComparator
+                                      the operators for use with a VersionComparator.
                                     enum:
                                     - Equals
                                     - LessThan
@@ -1470,15 +1470,15 @@ spec:
                                 type: object
                               index:
                                 description: IntProperty defines an int type that
-                                  methods can hang off of
+                                  methods can hang off of.
                                 type: integer
                               memory:
                                 description: QuantityComparator compares a quantity
-                                  SelectorCondition using a specific operator
+                                  SelectorCondition using a specific operator.
                                 properties:
                                   operator:
                                     description: QuantityComparatorOperator defines
-                                      the operators for use with a QuantityComparator
+                                      the operators for use with a QuantityComparator.
                                     enum:
                                     - Equals
                                     - LessThan
@@ -1495,7 +1495,7 @@ spec:
                                 type: object
                               migEnabled:
                                 description: BoolProperty defines a bool type that
-                                  methods can hang off of
+                                  methods can hang off of.
                                 type: boolean
                               orExpression:
                                 items:
@@ -1507,19 +1507,19 @@ spec:
                                   properties:
                                     architecture:
                                       description: GlobProperty defines a string type
-                                        that can contain glob for matching against
+                                        that can contain glob for matching against.
                                       type: string
                                     brand:
                                       description: GlobProperty defines a string type
-                                        that can contain glob for matching against
+                                        that can contain glob for matching against.
                                       type: string
                                     cudaComputeCapability:
                                       description: VersionComparator compares a version
-                                        SelectorCondition using a specific operator
+                                        SelectorCondition using a specific operator.
                                       properties:
                                         operator:
                                           description: VersionComparatorOperator defines
-                                            the operators for use with a VersionComparator
+                                            the operators for use with a VersionComparator.
                                           enum:
                                           - Equals
                                           - LessThan
@@ -1532,11 +1532,11 @@ spec:
                                       type: object
                                     cudaRuntimeVersion:
                                       description: VersionComparator compares a version
-                                        SelectorCondition using a specific operator
+                                        SelectorCondition using a specific operator.
                                       properties:
                                         operator:
                                           description: VersionComparatorOperator defines
-                                            the operators for use with a VersionComparator
+                                            the operators for use with a VersionComparator.
                                           enum:
                                           - Equals
                                           - LessThan
@@ -1549,11 +1549,11 @@ spec:
                                       type: object
                                     driverVersion:
                                       description: VersionComparator compares a version
-                                        SelectorCondition using a specific operator
+                                        SelectorCondition using a specific operator.
                                       properties:
                                         operator:
                                           description: VersionComparatorOperator defines
-                                            the operators for use with a VersionComparator
+                                            the operators for use with a VersionComparator.
                                           enum:
                                           - Equals
                                           - LessThan
@@ -1566,15 +1566,15 @@ spec:
                                       type: object
                                     index:
                                       description: IntProperty defines an int type
-                                        that methods can hang off of
+                                        that methods can hang off of.
                                       type: integer
                                     memory:
                                       description: QuantityComparator compares a quantity
-                                        SelectorCondition using a specific operator
+                                        SelectorCondition using a specific operator.
                                       properties:
                                         operator:
                                           description: QuantityComparatorOperator
-                                            defines the operators for use with a QuantityComparator
+                                            defines the operators for use with a QuantityComparator.
                                           enum:
                                           - Equals
                                           - LessThan
@@ -1591,50 +1591,50 @@ spec:
                                       type: object
                                     migEnabled:
                                       description: BoolProperty defines a bool type
-                                        that methods can hang off of
+                                        that methods can hang off of.
                                       type: boolean
                                     productName:
                                       description: GlobProperty defines a string type
-                                        that can contain glob for matching against
+                                        that can contain glob for matching against.
                                       type: string
                                     uuid:
                                       description: StringProperty defines a string
-                                        type that methods can hang off of
+                                        type that methods can hang off of.
                                       type: string
                                   type: object
                                 type: array
                               productName:
                                 description: GlobProperty defines a string type that
-                                  can contain glob for matching against
+                                  can contain glob for matching against.
                                 type: string
                               uuid:
                                 description: StringProperty defines a string type
-                                  that methods can hang off of
+                                  that methods can hang off of.
                                 type: string
                             type: object
                           type: array
                         productName:
                           description: GlobProperty defines a string type that can
-                            contain glob for matching against
+                            contain glob for matching against.
                           type: string
                         uuid:
                           description: StringProperty defines a string type that methods
-                            can hang off of
+                            can hang off of.
                           type: string
                       type: object
                     type: array
                   productName:
                     description: GlobProperty defines a string type that can contain
-                      glob for matching against
+                      glob for matching against.
                     type: string
                   uuid:
                     description: StringProperty defines a string type that methods
-                      can hang off of
+                      can hang off of.
                     type: string
                 type: object
               sharing:
                 description: GpuSharing holds the current sharing strategy for GPUs
-                  and its settings
+                  and its settings.
                 maxProperties: 2
                 properties:
                   mpsConfig:
@@ -1653,25 +1653,25 @@ spec:
                           pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                           x-kubernetes-int-or-string: true
                         description: MpsPinnedDeviceMemoryLimit holds the string representation
-                          of the limits across multiple devices
+                          of the limits across multiple devices.
                         type: object
                     type: object
                   strategy:
                     default: TimeSlicing
                     description: GpuSharingStrategy encodes the valid Sharing strategies
-                      as a string
+                      as a string.
                     enum:
                     - TimeSlicing
                     - MPS
                     type: string
                   timeSlicingConfig:
                     description: TimeSlicingSettings provides the settings for CUDA
-                      time-slicing.
+                      time-slicing..
                     properties:
                       timeSlice:
                         default: Default
                         description: TimeSliceDuration encodes the valid timeslice
-                          duration as a string
+                          duration as a string.
                         enum:
                         - Default
                         - Short
