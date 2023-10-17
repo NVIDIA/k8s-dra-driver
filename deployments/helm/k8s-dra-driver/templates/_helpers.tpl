@@ -95,3 +95,27 @@ Create the name of the service account to use
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}
 {{- end }}
+
+{{/*
+Check if an explicit set of configs has been provided or not
+*/}}
+{{- define "k8s-dra-driver.hasEmbeddedConfigMap" -}}
+{{- $result := true -}}
+{{- if empty .Values.config.map  -}}
+  {{- $result = false -}}
+{{- end -}}
+{{- $result -}}
+{{- end }}
+
+{{/*
+Pod annotations for the plugin and GFD
+*/}}
+{{- define "k8s-da-driver.podAnnotations" -}}
+{{- $annotations := deepCopy .Values.podAnnotations -}}
+{{- if not (hasKey $annotations "checksum/config") -}}
+  {{- if eq (include "nvidia-device-plugin.hasEmbeddedConfigMap" .root) "true" -}}
+    {{- $_ := set $annotations "checksum/config" (include (print $.root.Template.BasePath "/configmap.yml") .root | sha256sum) -}}
+  {{- end -}}
+{{- end -}}
+{{- toYaml $annotations }}
+{{- end -}}

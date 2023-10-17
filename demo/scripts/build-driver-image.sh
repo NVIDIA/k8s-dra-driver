@@ -23,7 +23,7 @@ set -o pipefail
 
 source "${CURRENT_DIR}/common.sh"
 
-# Create a temorary directory to hold all the artifacts we need for building the image
+# Create a temporary directory to hold all the artifacts we need for building the image
 TMP_DIR="$(mktemp -d)"
 cleanup() {
     rm -rf "${TMP_DIR}"

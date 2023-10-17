@@ -74,7 +74,7 @@ vendor:
 # Apply go fmt to the codebase
 fmt:
 	go list -f '{{.Dir}}' $(MODULE)/... \
-		| xargs gofmt -s -l -w
+		| xargs go fmt
 
 golangci-lint:
 	golangci-lint run ./...
