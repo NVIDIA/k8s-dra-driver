@@ -87,7 +87,10 @@ coverage: test
 	cat $(COVERAGE_FILE) | grep -v "_mock.go" > $(COVERAGE_FILE).no-mocks
 	go tool cover -func=$(COVERAGE_FILE).no-mocks
 
-generate: generate-crds fmt
+generate: git-status generate-crds fmt
+
+git-status:
+	git status
 
 generate-crds: generate-deepcopy
 	for dir in $(CLIENT_SOURCES); do \
