@@ -280,6 +280,11 @@ func (in *MpsConfig) DeepCopyInto(out *MpsConfig) {
 		*out = new(int)
 		**out = **in
 	}
+	if in.DefaultPinnedDeviceMemoryLimit != nil {
+		in, out := &in.DefaultPinnedDeviceMemoryLimit, &out.DefaultPinnedDeviceMemoryLimit
+		x := (*in).DeepCopy()
+		*out = &x
+	}
 	if in.DefaultPerDevicePinnedMemoryLimit != nil {
 		in, out := &in.DefaultPerDevicePinnedMemoryLimit, &out.DefaultPerDevicePinnedMemoryLimit
 		*out = make(MpsPerDevicePinnedMemoryLimit, len(*in))

@@ -181,11 +181,12 @@ func (m *MpsControlDaemon) Start(ctx context.Context) error {
 
 	klog.Infof("Starting MPS control daemon for '%v', with settings: %+v", m.claim.UID, m.config)
 
+	deviceUUIDs := m.devices.UUIDs()
 	templateData := MpsControlDaemonTemplateData{
 		NodeName:                        m.nodeName,
 		MpsControlDaemonNamespace:       m.namespace,
 		MpsControlDaemonName:            m.name,
-		CUDA_VISIBLE_DEVICES:            strings.Join(m.devices.UUIDs(), ","),
+		CUDA_VISIBLE_DEVICES:            strings.Join(deviceUUIDs, ","),
 		DefaultActiveThreadPercentage:   "",
 		DefaultPinnedDeviceMemoryLimits: nil,
 		NvidiaDriverRoot:                m.manager.hostDriverRoot,
@@ -198,8 +199,8 @@ func (m *MpsControlDaemon) Start(ctx context.Context) error {
 		templateData.DefaultActiveThreadPercentage = fmt.Sprintf("%d", *m.config.DefaultActiveThreadPercentage)
 	}
 
-	if m.config != nil && m.config.DefaultPerDevicePinnedMemoryLimit != nil {
-		limits, err := m.config.DefaultPerDevicePinnedMemoryLimit.Normalize()
+	if m.config != nil {
+		limits, err := m.config.DefaultPerDevicePinnedMemoryLimit.Normalize(deviceUUIDs, m.config.DefaultPinnedDeviceMemoryLimit)
 		if err != nil {
 			return fmt.Errorf("error transforming DefaultPerDevicePinnedMemoryLimit into string: %w", err)
 		}

@@ -89,6 +89,9 @@ type TimeSlicingConfig struct {
 // MpsConfig provides the configuring for an MPS control daemon.
 type MpsConfig struct {
 	DefaultActiveThreadPercentage *int `json:"defaultActiveThreadPercentage,omitempty"`
+	// DefaultPinnedDeviceMemoryLimit represents the pinned memory limit to be applied for all devices.
+	// This can be overridden for specific devices by specifying an associated entry DefaultPerDevicePinnedMemoryLimit for the device.
+	DefaultPinnedDeviceMemoryLimit *resource.Quantity `json:"defaultPinnedDeviceMemoryLimit,omitempty"`
 	// DefaultPerDevicePinnedMemoryLimit represents the pinned memory limit per device associated with an MPS daemon.
 	// This is defined as a map of device index or UUI to a memory limit and overrides a setting applied using DefaultPinnedDeviceMemoryLimit.
 	DefaultPerDevicePinnedMemoryLimit MpsPerDevicePinnedMemoryLimit `json:"defaultPerDevicePinnedMemoryLimit,omitempty"`
@@ -182,11 +185,23 @@ func (c TimeSliceDuration) Int() int {
 	return -1
 }
 
-// TODO: Update docstring
 // TODO: Always return a map of UUID -> limit
-// Normalize converts the specifice
-func (m MpsPerDevicePinnedMemoryLimit) Normalize() (map[string]string, error) {
+// Normalize converts the specified per-device pinned memory limits to limits for the devices that are to be allocated.
+// If provided, the defaultPinnedDeviceMemoryLimit is applied to each device before being overridden by specific values.
+func (m MpsPerDevicePinnedMemoryLimit) Normalize(uuids []string, defaultPinnedDeviceMemoryLimit *resource.Quantity) (map[string]string, error) {
 	limits := make(map[string]string)
+
+	// We set the defaults for all expected devices.
+	if v := defaultPinnedDeviceMemoryLimit; v != nil {
+		value := v.Value() / 1024 / 1024
+		if value == 0 {
+			return nil, fmt.Errorf("default value set too low: %v", v)
+		}
+		for i := range uuids {
+			limits[fmt.Sprintf("%d", i)] = fmt.Sprintf("%vM", value)
+		}
+	}
+
 	for k, v := range m {
 		// TODO: This has to be an integer or a UUID
 		// TODO: Check that k is valid for the list of UUIDs. e.g. can't be greater than the length
@@ -197,7 +212,7 @@ func (m MpsPerDevicePinnedMemoryLimit) Normalize() (map[string]string, error) {
 
 		value := v.Value() / 1024 / 1024
 		if value == 0 {
-			return nil, fmt.Errorf("value set too low: %v", v)
+			return nil, fmt.Errorf("value set too low: %v: %v", k, v)
 		}
 
 		limits[k] = fmt.Sprintf("%vM", value)

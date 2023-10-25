@@ -65,6 +65,17 @@ spec:
                           to a memory limit and overrides a setting applied using
                           DefaultPinnedDeviceMemoryLimit.
                         type: object
+                      defaultPinnedDeviceMemoryLimit:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        description: DefaultPinnedDeviceMemoryLimit represents the
+                          pinned memory limit to be applied for all devices. This
+                          can be overridden for specific devices by specifying an
+                          associated entry DefaultPerDevicePinnedMemoryLimit for the
+                          device.
+                        pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                        x-kubernetes-int-or-string: true
                     type: object
                   strategy:
                     default: TimeSlicing
