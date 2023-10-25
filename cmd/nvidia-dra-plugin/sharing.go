@@ -195,7 +195,7 @@ func (m *MpsControlDaemon) Start(ctx context.Context) error {
 	}
 
 	if m.config != nil && m.config.ActiveThreadPercentage != nil {
-		templateData.CUDA_MPS_ACTIVE_THREAD_PERCENTAGE = fmt.Sprintf("%v", m.config.ActiveThreadPercentage)
+		templateData.CUDA_MPS_ACTIVE_THREAD_PERCENTAGE = fmt.Sprintf("%d", *m.config.ActiveThreadPercentage)
 	}
 
 	if m.config != nil && m.config.PinnedDeviceMemoryLimit != nil {
