@@ -78,16 +78,16 @@ type MpsControlDaemon struct {
 }
 
 type MpsControlDaemonTemplateData struct {
-	NodeName                          string
-	MpsControlDaemonNamespace         string
-	MpsControlDaemonName              string
-	CUDA_VISIBLE_DEVICES              string //nolint:stylecheck
-	CUDA_MPS_ACTIVE_THREAD_PERCENTAGE string //nolint:stylecheck
-	CUDA_MPS_PINNED_DEVICE_MEM_LIMIT  string //nolint:stylecheck
-	NvidiaDriverRoot                  string
-	MpsShmDirectory                   string
-	MpsPipeDirectory                  string
-	MpsLogDirectory                   string
+	NodeName                        string
+	MpsControlDaemonNamespace       string
+	MpsControlDaemonName            string
+	CUDA_VISIBLE_DEVICES            string //nolint:stylecheck
+	DefaultActiveThreadPercentage   string
+	DefaultPinnedDeviceMemoryLimits map[string]string
+	NvidiaDriverRoot                string
+	MpsShmDirectory                 string
+	MpsPipeDirectory                string
+	MpsLogDirectory                 string
 }
 
 func NewTimeSlicingManager(deviceLib *deviceLib) *TimeSlicingManager {
@@ -182,28 +182,28 @@ func (m *MpsControlDaemon) Start(ctx context.Context) error {
 	klog.Infof("Starting MPS control daemon for '%v', with settings: %+v", m.claim.UID, m.config)
 
 	templateData := MpsControlDaemonTemplateData{
-		NodeName:                          m.nodeName,
-		MpsControlDaemonNamespace:         m.namespace,
-		MpsControlDaemonName:              m.name,
-		CUDA_VISIBLE_DEVICES:              strings.Join(m.devices.UUIDs(), ","),
-		CUDA_MPS_ACTIVE_THREAD_PERCENTAGE: "",
-		CUDA_MPS_PINNED_DEVICE_MEM_LIMIT:  "",
-		NvidiaDriverRoot:                  m.manager.hostDriverRoot,
-		MpsShmDirectory:                   m.shmDir,
-		MpsPipeDirectory:                  m.pipeDir,
-		MpsLogDirectory:                   m.logDir,
+		NodeName:                        m.nodeName,
+		MpsControlDaemonNamespace:       m.namespace,
+		MpsControlDaemonName:            m.name,
+		CUDA_VISIBLE_DEVICES:            strings.Join(m.devices.UUIDs(), ","),
+		DefaultActiveThreadPercentage:   "",
+		DefaultPinnedDeviceMemoryLimits: nil,
+		NvidiaDriverRoot:                m.manager.hostDriverRoot,
+		MpsShmDirectory:                 m.shmDir,
+		MpsPipeDirectory:                m.pipeDir,
+		MpsLogDirectory:                 m.logDir,
 	}
 
 	if m.config != nil && m.config.ActiveThreadPercentage != nil {
-		templateData.CUDA_MPS_ACTIVE_THREAD_PERCENTAGE = fmt.Sprintf("%d", *m.config.ActiveThreadPercentage)
+		templateData.DefaultActiveThreadPercentage = fmt.Sprintf("%d", *m.config.ActiveThreadPercentage)
 	}
 
 	if m.config != nil && m.config.PinnedDeviceMemoryLimit != nil {
-		limits, err := m.config.PinnedDeviceMemoryLimit.String()
+		limits, err := m.config.PinnedDeviceMemoryLimit.Normalize()
 		if err != nil {
 			return fmt.Errorf("error transforming PinnedDeviceMemoryLimit into string: %w", err)
 		}
-		templateData.CUDA_MPS_PINNED_DEVICE_MEM_LIMIT = limits
+		templateData.DefaultPinnedDeviceMemoryLimits = limits
 	}
 
 	tmpl, err := template.ParseFiles(m.manager.templatePath)

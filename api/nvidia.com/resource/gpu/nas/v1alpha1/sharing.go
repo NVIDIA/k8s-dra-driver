@@ -19,7 +19,6 @@ package v1alpha1
 import (
 	"fmt"
 	"strconv"
-	"strings"
 
 	"k8s.io/apimachinery/pkg/api/resource"
 )
@@ -181,21 +180,25 @@ func (c TimeSliceDuration) Int() int {
 	return -1
 }
 
-// String formats MpsPinnedDeviceMemoryLimit for passing as an envvar.
-func (m MpsPinnedDeviceMemoryLimit) String() (string, error) {
-	var limits []string
+// TODO: Update docstring
+// TODO: Always return a map of UUID -> limit
+// Normalize converts the specifice
+func (m MpsPinnedDeviceMemoryLimit) Normalize() (map[string]string, error) {
+	limits := make(map[string]string)
 	for k, v := range m {
+		// TODO: This has to be an integer or a UUID
+		// TODO: Check that k is valid for the list of UUIDs. e.g. can't be greater than the length
 		_, err := strconv.Atoi(k)
 		if err != nil {
-			return "", fmt.Errorf("unable to parse key as an integer: %v", k)
+			return nil, fmt.Errorf("unable to parse key as an integer: %v", k)
 		}
 
 		value := v.Value() / 1024 / 1024
 		if value == 0 {
-			return "", fmt.Errorf("value set too low: %v", v)
+			return nil, fmt.Errorf("value set too low: %v", v)
 		}
 
-		limits = append(limits, fmt.Sprintf("%v=%vM", k, value))
+		limits[k] = fmt.Sprintf("%vM", value)
 	}
-	return strings.Join(limits, ","), nil
+	return limits, nil
 }
