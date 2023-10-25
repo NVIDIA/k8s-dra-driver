@@ -198,10 +198,10 @@ func (m *MpsControlDaemon) Start(ctx context.Context) error {
 		templateData.DefaultActiveThreadPercentage = fmt.Sprintf("%d", *m.config.DefaultActiveThreadPercentage)
 	}
 
-	if m.config != nil && m.config.PinnedDeviceMemoryLimit != nil {
-		limits, err := m.config.PinnedDeviceMemoryLimit.Normalize()
+	if m.config != nil && m.config.DefaultPerDevicePinnedMemoryLimit != nil {
+		limits, err := m.config.DefaultPerDevicePinnedMemoryLimit.Normalize()
 		if err != nil {
-			return fmt.Errorf("error transforming PinnedDeviceMemoryLimit into string: %w", err)
+			return fmt.Errorf("error transforming DefaultPerDevicePinnedMemoryLimit into string: %w", err)
 		}
 		templateData.DefaultPinnedDeviceMemoryLimits = limits
 	}

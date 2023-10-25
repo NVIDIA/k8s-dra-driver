@@ -58,8 +58,8 @@ type MigDeviceSharingStrategy string
 // +kubebuilder:validation:Enum=Default;Short;Medium;Long
 type TimeSliceDuration string
 
-// MpsPinnedDeviceMemoryLimit holds the string representation of the limits across multiple devices.
-type MpsPinnedDeviceMemoryLimit map[string]resource.Quantity
+// MpsPerDevicePinnedMemoryLimit holds the string representation of the limits across multiple devices.
+type MpsPerDevicePinnedMemoryLimit map[string]resource.Quantity
 
 // GpuSharing holds the current sharing strategy for GPUs and its settings.
 // +kubebuilder:validation:MaxProperties=2
@@ -88,8 +88,10 @@ type TimeSlicingConfig struct {
 
 // MpsConfig provides the configuring for an MPS control daemon.
 type MpsConfig struct {
-	DefaultActiveThreadPercentage *int                       `json:"defaultActiveThreadPercentage,omitempty"`
-	PinnedDeviceMemoryLimit       MpsPinnedDeviceMemoryLimit `json:"pinnedDeviceMemoryLimit,omitempty"`
+	DefaultActiveThreadPercentage *int `json:"defaultActiveThreadPercentage,omitempty"`
+	// DefaultPerDevicePinnedMemoryLimit represents the pinned memory limit per device associated with an MPS daemon.
+	// This is defined as a map of device index or UUI to a memory limit and overrides a setting applied using DefaultPinnedDeviceMemoryLimit.
+	DefaultPerDevicePinnedMemoryLimit MpsPerDevicePinnedMemoryLimit `json:"defaultPerDevicePinnedMemoryLimit,omitempty"`
 }
 
 // IsTimeSlicing checks if the TimeSlicing strategy is applied.
@@ -183,7 +185,7 @@ func (c TimeSliceDuration) Int() int {
 // TODO: Update docstring
 // TODO: Always return a map of UUID -> limit
 // Normalize converts the specifice
-func (m MpsPinnedDeviceMemoryLimit) Normalize() (map[string]string, error) {
+func (m MpsPerDevicePinnedMemoryLimit) Normalize() (map[string]string, error) {
 	limits := make(map[string]string)
 	for k, v := range m {
 		// TODO: This has to be an integer or a UUID

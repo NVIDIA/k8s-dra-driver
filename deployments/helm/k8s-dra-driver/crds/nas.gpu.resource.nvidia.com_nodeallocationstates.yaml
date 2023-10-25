@@ -144,16 +144,18 @@ spec:
                               properties:
                                 defaultActiveThreadPercentage:
                                   type: integer
-                                pinnedDeviceMemoryLimit:
+                                defaultPerDevicePinnedMemoryLimit:
                                   additionalProperties:
                                     anyOf:
                                     - type: integer
                                     - type: string
                                     pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                                     x-kubernetes-int-or-string: true
-                                  description: MpsPinnedDeviceMemoryLimit holds the
-                                    string representation of the limits across multiple
-                                    devices.
+                                  description: DefaultPerDevicePinnedMemoryLimit represents
+                                    the pinned memory limit per device associated
+                                    with an MPS daemon. This is defined as a map of
+                                    device index or UUI to a memory limit and overrides
+                                    a setting applied using DefaultPinnedDeviceMemoryLimit.
                                   type: object
                               type: object
                             strategy:
@@ -227,16 +229,18 @@ spec:
                               properties:
                                 defaultActiveThreadPercentage:
                                   type: integer
-                                pinnedDeviceMemoryLimit:
+                                defaultPerDevicePinnedMemoryLimit:
                                   additionalProperties:
                                     anyOf:
                                     - type: integer
                                     - type: string
                                     pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                                     x-kubernetes-int-or-string: true
-                                  description: MpsPinnedDeviceMemoryLimit holds the
-                                    string representation of the limits across multiple
-                                    devices.
+                                  description: DefaultPerDevicePinnedMemoryLimit represents
+                                    the pinned memory limit per device associated
+                                    with an MPS daemon. This is defined as a map of
+                                    device index or UUI to a memory limit and overrides
+                                    a setting applied using DefaultPinnedDeviceMemoryLimit.
                                   type: object
                               type: object
                             strategy:
