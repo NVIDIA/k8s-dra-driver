@@ -121,10 +121,15 @@ type DeviceState struct {
 	allocatable AllocatableDevices
 	prepared    PreparedClaims
 	config      *Config
+
+	nvdevlib *deviceLib
 }
 
 func NewDeviceState(ctx context.Context, config *Config) (*DeviceState, error) {
-	nvdevlib := newDeviceLib()
+	nvdevlib, err := newDeviceLib(root(config.flags.containerDriverRoot))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create device library: %w", err)
+	}
 
 	allocatable, err := nvdevlib.enumerateAllPossibleDevices()
 	if err != nil {
@@ -146,8 +151,8 @@ func NewDeviceState(ctx context.Context, config *Config) (*DeviceState, error) {
 		return nil, fmt.Errorf("unable to create CDI handler: %w", err)
 	}
 
-	tsManager := NewTimeSlicingManager(containerDriverRoot)
-	mpsManager := NewMpsManager(config, MpsRoot, hostDriverRoot, containerDriverRoot, MpsControlDaemonTemplatePath)
+	tsManager := NewTimeSlicingManager(nvdevlib)
+	mpsManager := NewMpsManager(config, nvdevlib, MpsRoot, hostDriverRoot, MpsControlDaemonTemplatePath)
 
 	state := &DeviceState{
 		cdi:         cdi,
@@ -156,6 +161,7 @@ func NewDeviceState(ctx context.Context, config *Config) (*DeviceState, error) {
 		allocatable: allocatable,
 		prepared:    make(PreparedClaims),
 		config:      config,
+		nvdevlib:    nvdevlib,
 	}
 
 	err = state.syncPreparedDevicesFromCRDSpec(ctx, &config.nascrd.Spec)
@@ -273,8 +279,6 @@ func (s *DeviceState) prepareGpus(claimUID string, allocated *nascrd.AllocatedGp
 }
 
 func (s *DeviceState) prepareMigDevices(claimUID string, allocated *nascrd.AllocatedMigDevices) (*PreparedMigDevices, error) {
-	l := newDeviceLib()
-
 	prepared := &PreparedMigDevices{}
 
 	for _, device := range allocated.Devices {
@@ -297,7 +301,7 @@ func (s *DeviceState) prepareMigDevices(claimUID string, allocated *nascrd.Alloc
 			Size:  uint32(device.Placement.Size),
 		}
 
-		migInfo, err := l.createMigDevice(parent.GpuInfo, parent.migProfiles[device.Profile].profile, &placement)
+		migInfo, err := s.nvdevlib.createMigDevice(parent.GpuInfo, parent.migProfiles[device.Profile].profile, &placement)
 		if err != nil {
 			return nil, fmt.Errorf("error creating MIG device: %w", err)
 		}
@@ -317,9 +321,8 @@ func (s *DeviceState) unprepareGpus(claimUID string, devices *PreparedDevices) e
 }
 
 func (s *DeviceState) unprepareMigDevices(claimUID string, devices *PreparedDevices) error {
-	l := newDeviceLib()
 	for _, device := range devices.Mig.Devices {
-		err := l.deleteMigDevice(device)
+		err := s.nvdevlib.deleteMigDevice(device)
 		if err != nil {
 			return fmt.Errorf("error deleting MIG device for %v: %w", device.uuid, err)
 		}
@@ -427,9 +430,8 @@ func (s *DeviceState) syncPreparedDevicesFromCRDSpec(ctx context.Context, spec *
 	gpus := s.allocatable
 	migs := make(map[string]map[string]*MigDeviceInfo)
 
-	l := newDeviceLib()
 	for uuid, gpu := range gpus {
-		ms, err := l.getMigDevices(gpu.GpuInfo)
+		ms, err := s.nvdevlib.getMigDevices(gpu.GpuInfo)
 		if err != nil {
 			return fmt.Errorf("error getting MIG devices for GPU '%v': %w", uuid, err)
 		}
@@ -468,7 +470,7 @@ func (s *DeviceState) syncPreparedDevicesFromCRDSpec(ctx context.Context, spec *
 						Start: uint32(d.Placement.Start),
 						Size:  uint32(d.Placement.Size),
 					}
-					migInfo, err = l.createMigDevice(gpus[d.ParentUUID].GpuInfo, profile, placement)
+					migInfo, err = s.nvdevlib.createMigDevice(gpus[d.ParentUUID].GpuInfo, profile, placement)
 					if err != nil {
 						return fmt.Errorf("error creating MIG device info for '%v' on GPU '%v': %w", d.Profile, d.ParentUUID, err)
 					}

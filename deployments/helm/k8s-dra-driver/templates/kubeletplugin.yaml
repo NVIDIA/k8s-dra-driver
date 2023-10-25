@@ -84,8 +84,6 @@ spec:
           value: /var/run/cdi
         - name: NVIDIA_MIG_CONFIG_DEVICES
           value: all
-        - name: LD_LIBRARY_PATH
-          value: /usr/lib64/:/driver-root/usr/lib/x86_64-linux-gnu
         - name: NODE_NAME
           valueFrom:
             fieldRef:

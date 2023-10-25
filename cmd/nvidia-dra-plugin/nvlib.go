@@ -18,7 +18,10 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
+	"path/filepath"
+	"strings"
 
 	"k8s.io/klog/v2"
 
@@ -28,15 +31,47 @@ import (
 
 type deviceLib struct {
 	nvdev.Interface
-	nvmllib nvml.Interface
+	nvmllib       nvml.Interface
+	nvidiaSMIPath string
 }
 
-func newDeviceLib() deviceLib {
-	nvmllib := nvml.New()
-	return deviceLib{
-		Interface: nvdev.New(nvdev.WithNvml(nvmllib)),
-		nvmllib:   nvmllib,
+func newDeviceLib(driverRoot root) (*deviceLib, error) {
+	libraryPath, err := driverRoot.getDriverLibraryPath()
+	if err != nil {
+		return nil, fmt.Errorf("failed to locate driver libraries: %w", err)
 	}
+
+	nvidiaSMIPath, err := driverRoot.getNvidiaSMIPath()
+	if err != nil {
+		return nil, fmt.Errorf("failed to locate nvidia-smi: %w", err)
+	}
+
+	// In order for nvidia-smi to run, we need to set the PATH to the parent of
+	// the nvidia-smi executable and update the LD_LIBRARY_PATH to be able to
+	// locate libnvidia-ml.so.1
+	updatePathListEnvvar("LD_LIBRARY_PATH", filepath.Dir(libraryPath))
+	updatePathListEnvvar("PATH", filepath.Dir(nvidiaSMIPath))
+
+	// We construct an NVML library specifying the path to libnvidia-ml.so.1 explicitly
+	// so that we don't have to rely on the library path.
+	nvmllib := nvml.New(
+		nvml.WithLibraryPath(libraryPath),
+	)
+	d := deviceLib{
+		Interface:     nvdev.New(nvdev.WithNvml(nvmllib)),
+		nvmllib:       nvmllib,
+		nvidiaSMIPath: nvidiaSMIPath,
+	}
+	return &d, nil
+}
+
+// updatePathListEnvvar prepends a specified list of strings to a specified envvar.
+func updatePathListEnvvar(envvar string, prepend ...string) {
+	if len(prepend) == 0 {
+		return
+	}
+	current := filepath.SplitList(os.Getenv(envvar))
+	os.Setenv(envvar, strings.Join(append(prepend, current...), string(filepath.ListSeparator)))
 }
 
 func (l deviceLib) Init() error {
@@ -433,11 +468,9 @@ func walkMigDevices(d nvml.Device, f func(i int, d nvml.Device) error) error {
 	return nil
 }
 
-func setTimeSlice(nvidiaDriverRoot string, uuids []string, timeSlice int) error {
+func (l deviceLib) setTimeSlice(uuids []string, timeSlice int) error {
 	for _, uuid := range uuids {
 		cmd := exec.Command(
-			"chroot",
-			nvidiaDriverRoot,
 			"nvidia-smi",
 			"compute-policy",
 			"-i", uuid,
@@ -451,11 +484,9 @@ func setTimeSlice(nvidiaDriverRoot string, uuids []string, timeSlice int) error 
 	return nil
 }
 
-func setComputeMode(nvidiaDriverRoot string, uuids []string, mode string) error {
+func (l deviceLib) setComputeMode(uuids []string, mode string) error {
 	for _, uuid := range uuids {
 		cmd := exec.Command(
-			"chroot",
-			nvidiaDriverRoot,
 			"nvidia-smi",
 			"-i", uuid,
 			"-c", mode)
