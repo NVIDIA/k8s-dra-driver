@@ -52,8 +52,6 @@ spec:
                     properties:
                       activeThreadPercentage:
                         type: integer
-                      maxConnections:
-                        type: integer
                       pinnedDeviceMemoryLimit:
                         additionalProperties:
                           anyOf:

@@ -82,7 +82,6 @@ type MpsControlDaemonTemplateData struct {
 	MpsControlDaemonNamespace         string
 	MpsControlDaemonName              string
 	CUDA_VISIBLE_DEVICES              string //nolint:stylecheck
-	CUDA_DEVICE_MAX_CONNECTIONS       string //nolint:stylecheck
 	CUDA_MPS_ACTIVE_THREAD_PERCENTAGE string //nolint:stylecheck
 	CUDA_MPS_PINNED_DEVICE_MEM_LIMIT  string //nolint:stylecheck
 	NvidiaDriverRoot                  string
@@ -187,17 +186,12 @@ func (m *MpsControlDaemon) Start(ctx context.Context) error {
 		MpsControlDaemonNamespace:         m.namespace,
 		MpsControlDaemonName:              m.name,
 		CUDA_VISIBLE_DEVICES:              strings.Join(m.devices.UUIDs(), ","),
-		CUDA_DEVICE_MAX_CONNECTIONS:       "",
 		CUDA_MPS_ACTIVE_THREAD_PERCENTAGE: "",
 		CUDA_MPS_PINNED_DEVICE_MEM_LIMIT:  "",
 		NvidiaDriverRoot:                  m.manager.hostDriverRoot,
 		MpsShmDirectory:                   m.shmDir,
 		MpsPipeDirectory:                  m.pipeDir,
 		MpsLogDirectory:                   m.logDir,
-	}
-
-	if m.config != nil && m.config.MaxConnections != nil {
-		templateData.CUDA_DEVICE_MAX_CONNECTIONS = fmt.Sprintf("%v", m.config.MaxConnections)
 	}
 
 	if m.config != nil && m.config.ActiveThreadPercentage != nil {

@@ -37,10 +37,6 @@ spec:
         env:
         - name: CUDA_VISIBLE_DEVICES
           value: "{{ .CUDA_VISIBLE_DEVICES }}"
-        {{- if .CUDA_DEVICE_MAX_CONNECTIONS }}
-        - name: CUDA_DEVICE_MAX_CONNECTIONS
-          value: "{{ .CUDA_DEVICE_MAX_CONNECTIONS }}"
-        {{- end}}
 		{{- if .CUDA_MPS_ACTIVE_THREAD_PERCENTAGE }}
         - name: CUDA_MPS_ACTIVE_THREAD_PERCENTAGE
           value: "{{ .CUDA_MPS_ACTIVE_THREAD_PERCENTAGE }}"

@@ -89,7 +89,6 @@ type TimeSlicingConfig struct {
 
 // MpsConfig provides the configuring for an MPS control daemon.
 type MpsConfig struct {
-	MaxConnections          *int                       `json:"maxConnections,omitempty"`
 	ActiveThreadPercentage  *int                       `json:"activeThreadPercentage,omitempty"`
 	PinnedDeviceMemoryLimit MpsPinnedDeviceMemoryLimit `json:"pinnedDeviceMemoryLimit,omitempty"`
 }

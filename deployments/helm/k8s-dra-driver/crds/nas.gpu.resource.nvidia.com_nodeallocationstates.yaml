@@ -144,8 +144,6 @@ spec:
                               properties:
                                 activeThreadPercentage:
                                   type: integer
-                                maxConnections:
-                                  type: integer
                                 pinnedDeviceMemoryLimit:
                                   additionalProperties:
                                     anyOf:
@@ -228,8 +226,6 @@ spec:
                                 an MPS control daemon.
                               properties:
                                 activeThreadPercentage:
-                                  type: integer
-                                maxConnections:
                                   type: integer
                                 pinnedDeviceMemoryLimit:
                                   additionalProperties:
