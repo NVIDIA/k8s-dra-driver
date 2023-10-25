@@ -142,7 +142,7 @@ spec:
                               description: MpsConfig provides the configuring for
                                 an MPS control daemon.
                               properties:
-                                activeThreadPercentage:
+                                defaultActiveThreadPercentage:
                                   type: integer
                                 pinnedDeviceMemoryLimit:
                                   additionalProperties:
@@ -225,7 +225,7 @@ spec:
                               description: MpsConfig provides the configuring for
                                 an MPS control daemon.
                               properties:
-                                activeThreadPercentage:
+                                defaultActiveThreadPercentage:
                                   type: integer
                                 pinnedDeviceMemoryLimit:
                                   additionalProperties:

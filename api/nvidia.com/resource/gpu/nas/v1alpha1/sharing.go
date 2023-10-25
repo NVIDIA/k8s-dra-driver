@@ -88,8 +88,8 @@ type TimeSlicingConfig struct {
 
 // MpsConfig provides the configuring for an MPS control daemon.
 type MpsConfig struct {
-	ActiveThreadPercentage  *int                       `json:"activeThreadPercentage,omitempty"`
-	PinnedDeviceMemoryLimit MpsPinnedDeviceMemoryLimit `json:"pinnedDeviceMemoryLimit,omitempty"`
+	DefaultActiveThreadPercentage *int                       `json:"defaultActiveThreadPercentage,omitempty"`
+	PinnedDeviceMemoryLimit       MpsPinnedDeviceMemoryLimit `json:"pinnedDeviceMemoryLimit,omitempty"`
 }
 
 // IsTimeSlicing checks if the TimeSlicing strategy is applied.

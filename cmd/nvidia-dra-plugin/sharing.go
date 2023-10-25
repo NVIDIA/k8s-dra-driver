@@ -194,8 +194,8 @@ func (m *MpsControlDaemon) Start(ctx context.Context) error {
 		MpsLogDirectory:                 m.logDir,
 	}
 
-	if m.config != nil && m.config.ActiveThreadPercentage != nil {
-		templateData.DefaultActiveThreadPercentage = fmt.Sprintf("%d", *m.config.ActiveThreadPercentage)
+	if m.config != nil && m.config.DefaultActiveThreadPercentage != nil {
+		templateData.DefaultActiveThreadPercentage = fmt.Sprintf("%d", *m.config.DefaultActiveThreadPercentage)
 	}
 
 	if m.config != nil && m.config.PinnedDeviceMemoryLimit != nil {
