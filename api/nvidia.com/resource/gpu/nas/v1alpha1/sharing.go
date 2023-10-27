@@ -17,6 +17,7 @@
 package v1alpha1
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 
@@ -185,37 +186,94 @@ func (c TimeSliceDuration) Int() int {
 	return -1
 }
 
-// TODO: Always return a map of UUID -> limit
+// ErrInvalidDeviceSelector indicates that a device index or UUID was invalid
+var ErrInvalidDeviceSelector error = errors.New("invalid device")
+
+// ErrInvalidLimit indicates that a limit was invalid.
+var ErrInvalidLimit error = errors.New("invalid limit")
+
 // Normalize converts the specified per-device pinned memory limits to limits for the devices that are to be allocated.
 // If provided, the defaultPinnedDeviceMemoryLimit is applied to each device before being overridden by specific values.
 func (m MpsPerDevicePinnedMemoryLimit) Normalize(uuids []string, defaultPinnedDeviceMemoryLimit *resource.Quantity) (map[string]string, error) {
-	limits := make(map[string]string)
-
-	// We set the defaults for all expected devices.
-	if v := defaultPinnedDeviceMemoryLimit; v != nil {
-		value := v.Value() / 1024 / 1024
-		if value == 0 {
-			return nil, fmt.Errorf("default value set too low: %v", v)
-		}
-		for i := range uuids {
-			limits[fmt.Sprintf("%d", i)] = fmt.Sprintf("%vM", value)
-		}
+	limits, err := (*limit)(defaultPinnedDeviceMemoryLimit).get(uuids)
+	if err != nil {
+		return nil, err
 	}
 
+	devices := newUuidSet(uuids)
 	for k, v := range m {
-		// TODO: This has to be an integer or a UUID
-		// TODO: Check that k is valid for the list of UUIDs. e.g. can't be greater than the length
-		_, err := strconv.Atoi(k)
+		id, err := devices.Normalize(k)
 		if err != nil {
-			return nil, fmt.Errorf("unable to parse key as an integer: %v", k)
+			return nil, err
 		}
-
-		value := v.Value() / 1024 / 1024
-		if value == 0 {
-			return nil, fmt.Errorf("value set too low: %v: %v", k, v)
+		megabyte, valid := (limit)(v).Megabyte()
+		if !valid {
+			return nil, fmt.Errorf("%w: value set too low: %v: %v", ErrInvalidLimit, k, v)
 		}
-
-		limits[k] = fmt.Sprintf("%vM", value)
+		limits[id] = megabyte
 	}
 	return limits, nil
+}
+
+type limit resource.Quantity
+
+func (d *limit) get(uuids []string) (map[string]string, error) {
+	limits := make(map[string]string)
+	if d == nil || len(uuids) == 0 {
+		return limits, nil
+	}
+
+	megabyte, valid := d.Megabyte()
+	if !valid {
+		return nil, fmt.Errorf("%w: default value set too low: %v", ErrInvalidLimit, d)
+	}
+	for _, uuid := range uuids {
+		limits[uuid] = megabyte
+	}
+
+	return limits, nil
+}
+
+func (d limit) Value() int64 {
+	return (*resource.Quantity)(&d).Value()
+}
+
+func (d limit) Megabyte() (string, bool) {
+	v := d.Value() / 1024 / 1024
+	return fmt.Sprintf("%vM", v), v > 0
+}
+
+type uuidSet struct {
+	uuids  []string
+	lookup map[string]bool
+}
+
+func newUuidSet(uuids []string) *uuidSet {
+	lookup := make(map[string]bool)
+	for _, uuid := range uuids {
+		lookup[uuid] = true
+	}
+
+	return &uuidSet{
+		uuids:  uuids,
+		lookup: lookup,
+	}
+}
+
+func (s *uuidSet) Normalize(key string) (string, error) {
+	// Check whether key is a UUID
+	if _, ok := s.lookup[key]; ok {
+		return key, nil
+	}
+
+	index, err := strconv.Atoi(key)
+	if err != nil {
+		return "", fmt.Errorf("%w: unable to parse key as an integer: %v", ErrInvalidDeviceSelector, key)
+	}
+
+	if index >= 0 && index < len(s.uuids) {
+		return s.uuids[index], nil
+	}
+
+	return "", fmt.Errorf("%w: invalid device index: %v", ErrInvalidDeviceSelector, index)
 }
