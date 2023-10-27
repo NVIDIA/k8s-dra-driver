@@ -19,7 +19,6 @@ package v1alpha1
 import (
 	"fmt"
 	"strconv"
-	"strings"
 
 	"k8s.io/apimachinery/pkg/api/resource"
 )
@@ -59,8 +58,8 @@ type MigDeviceSharingStrategy string
 // +kubebuilder:validation:Enum=Default;Short;Medium;Long
 type TimeSliceDuration string
 
-// MpsPinnedDeviceMemoryLimit holds the string representation of the limits across multiple devices.
-type MpsPinnedDeviceMemoryLimit map[string]resource.Quantity
+// MpsPerDevicePinnedMemoryLimit holds the string representation of the limits across multiple devices.
+type MpsPerDevicePinnedMemoryLimit map[string]resource.Quantity
 
 // GpuSharing holds the current sharing strategy for GPUs and its settings.
 // +kubebuilder:validation:MaxProperties=2
@@ -89,9 +88,13 @@ type TimeSlicingConfig struct {
 
 // MpsConfig provides the configuring for an MPS control daemon.
 type MpsConfig struct {
-	MaxConnections          *int                       `json:"maxConnections,omitempty"`
-	ActiveThreadPercentage  *int                       `json:"activeThreadPercentage,omitempty"`
-	PinnedDeviceMemoryLimit MpsPinnedDeviceMemoryLimit `json:"pinnedDeviceMemoryLimit,omitempty"`
+	DefaultActiveThreadPercentage *int `json:"defaultActiveThreadPercentage,omitempty"`
+	// DefaultPinnedDeviceMemoryLimit represents the pinned memory limit to be applied for all devices.
+	// This can be overridden for specific devices by specifying an associated entry DefaultPerDevicePinnedMemoryLimit for the device.
+	DefaultPinnedDeviceMemoryLimit *resource.Quantity `json:"defaultPinnedDeviceMemoryLimit,omitempty"`
+	// DefaultPerDevicePinnedMemoryLimit represents the pinned memory limit per device associated with an MPS daemon.
+	// This is defined as a map of device index or UUI to a memory limit and overrides a setting applied using DefaultPinnedDeviceMemoryLimit.
+	DefaultPerDevicePinnedMemoryLimit MpsPerDevicePinnedMemoryLimit `json:"defaultPerDevicePinnedMemoryLimit,omitempty"`
 }
 
 // IsTimeSlicing checks if the TimeSlicing strategy is applied.
@@ -182,21 +185,37 @@ func (c TimeSliceDuration) Int() int {
 	return -1
 }
 
-// String formats MpsPinnedDeviceMemoryLimit for passing as an envvar.
-func (m MpsPinnedDeviceMemoryLimit) String() (string, error) {
-	var limits []string
+// TODO: Always return a map of UUID -> limit
+// Normalize converts the specified per-device pinned memory limits to limits for the devices that are to be allocated.
+// If provided, the defaultPinnedDeviceMemoryLimit is applied to each device before being overridden by specific values.
+func (m MpsPerDevicePinnedMemoryLimit) Normalize(uuids []string, defaultPinnedDeviceMemoryLimit *resource.Quantity) (map[string]string, error) {
+	limits := make(map[string]string)
+
+	// We set the defaults for all expected devices.
+	if v := defaultPinnedDeviceMemoryLimit; v != nil {
+		value := v.Value() / 1024 / 1024
+		if value == 0 {
+			return nil, fmt.Errorf("default value set too low: %v", v)
+		}
+		for i := range uuids {
+			limits[fmt.Sprintf("%d", i)] = fmt.Sprintf("%vM", value)
+		}
+	}
+
 	for k, v := range m {
+		// TODO: This has to be an integer or a UUID
+		// TODO: Check that k is valid for the list of UUIDs. e.g. can't be greater than the length
 		_, err := strconv.Atoi(k)
 		if err != nil {
-			return "", fmt.Errorf("unable to parse key as an integer: %v", k)
+			return nil, fmt.Errorf("unable to parse key as an integer: %v", k)
 		}
 
 		value := v.Value() / 1024 / 1024
 		if value == 0 {
-			return "", fmt.Errorf("value set too low: %v", v)
+			return nil, fmt.Errorf("value set too low: %v: %v", k, v)
 		}
 
-		limits = append(limits, fmt.Sprintf("%v=%vM", k, value))
+		limits[k] = fmt.Sprintf("%vM", value)
 	}
-	return strings.Join(limits, ","), nil
+	return limits, nil
 }
