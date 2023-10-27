@@ -21,3 +21,10 @@ $(PUSH_TARGETS): push-%:
 push-short:
 	$(DOCKER) tag "$(IMAGE_NAME):$(VERSION)-$(DEFAULT_PUSH_TARGET)" "$(OUT_IMAGE_NAME):$(OUT_IMAGE_VERSION)"
 	$(DOCKER) push "$(OUT_IMAGE_NAME):$(OUT_IMAGE_VERSION)"
+
+# For the default distribution we also retag the image.
+# Note: This needs to be updated for multi-arch images.
+ifeq ($(IMAGE_TAG),$(VERSION)-$(DIST))
+$(DEFAULT_PUSH_TARGET):
+	$(DOCKER) tag $(IMAGE) $(subst :$(IMAGE_TAG),:$(VERSION),$(IMAGE))
+endif
