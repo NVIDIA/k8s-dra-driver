@@ -1,0 +1,10 @@
+---
+apiVersion: gpu.resource.nvidia.com/v1alpha1
+kind: MigDeviceClaimParameters
+metadata:
+  namespace: sharing-demo
+  name: mig-mps-sharing
+spec:
+  profile: "1g.5gb"
+  sharing:
+    strategy: MPS
