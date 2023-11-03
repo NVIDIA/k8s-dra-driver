@@ -30,6 +30,9 @@ func (r root) getDriverLibraryPath() (string, error) {
 		"/usr/lib64",
 		"/usr/lib/x86_64-linux-gnu",
 		"/usr/lib/aarch64-linux-gnu",
+		"/lib64",
+		"/lib/x86_64-linux-gnu",
+		"/lib/aarch64-linux-gnu",
 	}
 
 	libraryPath, err := r.findFile("libnvidia-ml.so.1", librarySearchPaths...)
@@ -45,6 +48,8 @@ func (r root) getNvidiaSMIPath() (string, error) {
 	binarySearchPaths := []string{
 		"/usr/bin",
 		"/usr/sbin",
+		"/bin",
+		"/sbin",
 	}
 
 	binaryPath, err := r.findFile("nvidia-smi", binarySearchPaths...)
