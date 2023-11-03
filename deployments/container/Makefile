@@ -91,13 +91,8 @@ build-ubuntu%: DOCKERFILE_SUFFIX := ubuntu
 
 build-ubi8: DOCKERFILE_SUFFIX := ubi8
 
-# Handle the default build target
+# Handle the default build target.
 .PHONY: build
 build: $(DEFAULT_PUSH_TARGET)
-$(DEFAULT_PUSH_TARGET): DIST = $(DEFAULT_PUSH_TARGET)
-# For the default distribution we also retag the image.
-# Note: This needs to be updated for multi-arch images.
-ifeq ($(IMAGE_TAG),$(VERSION)-$(DIST))
 $(DEFAULT_PUSH_TARGET): build-$(DEFAULT_PUSH_TARGET)
-	$(DOCKER) tag $(IMAGE) $(subst :$(IMAGE_TAG),:$(VERSION),$(IMAGE))
-endif
+$(DEFAULT_PUSH_TARGET): DIST = $(DEFAULT_PUSH_TARGET)
