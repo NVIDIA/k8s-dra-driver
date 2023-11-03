@@ -25,6 +25,8 @@ build-dev-image:
 
 .requires-build-image:
   image: "${BUILDIMAGE}"
+  needs:
+    - build-dev-image
 
 .go-check:
   extends:
@@ -62,11 +64,13 @@ unit-tests:
   before_script:
     - !reference [.buildx-setup, before_script]
 
-    - apk add --no-cache bash make
+    - apk add --no-cache bash make git
     - 'echo "Logging in to CI registry ${CI_REGISTRY}"'
     - docker login -u "${CI_REGISTRY_USER}" -p "${CI_REGISTRY_PASSWORD}" "${CI_REGISTRY}"
   script:
     - make -f deployments/container/Makefile build-${DIST}
+  needs:
+    - trigger-pipeline
 
 image-ubi8:
   extends:

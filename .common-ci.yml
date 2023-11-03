@@ -20,7 +20,8 @@ default:
 variables:
   GIT_SUBMODULE_STRATEGY: recursive
   BUILDIMAGE: "${CI_REGISTRY_IMAGE}/build:${CI_COMMIT_SHORT_SHA}"
-  BUILD_MULTI_ARCH_IMAGES: "true"
+  # TODO: For now we only build amd64 images to speed up development
+  BUILD_MULTI_ARCH_IMAGES: "false"
 
 stages:
   - trigger
@@ -77,6 +78,9 @@ trigger-pipeline:
 .dist-ubi8:
   variables:
     DIST: "ubi8"
+  rules:
+    - when: manual
+      allow_failure: false
 
 .dist-ubuntu20.04:
   variables:
@@ -92,6 +96,8 @@ trigger-pipeline:
   variables:
     PLATFORM: linux/arm64
     PLATFORM_ARCH: arm64
+  rules:
+    - if: $BUILD_MULTI_ARCH_IMAGES == "true"
 
 # Make buildx available as a docker CLI plugin
 .buildx-setup:
@@ -114,9 +120,6 @@ trigger-pipeline:
   variables:
     IMAGE: "${CI_REGISTRY_IMAGE}/k8s-dra-driver:${CI_COMMIT_SHORT_SHA}-${DIST}"
     IMAGE_ARCHIVE: "k8s-dra-driver-${CI_COMMIT_SHORT_SHA}-${DIST}-${PLATFORM_ARCH}.tar"
-  except:
-    variables:
-      - $SKIP_SCANS && $SKIP_SCANS == "yes"
   before_script:
     - docker login -u "${CI_REGISTRY_USER}" -p "${CI_REGISTRY_PASSWORD}" "${CI_REGISTRY}"
     - docker pull --platform="${PLATFORM}" "${IMAGE}"
@@ -230,6 +233,9 @@ scan-ubi8-arm64:
     - if: $CI_COMMIT_BRANCH == $RELEASE_DEVEL_BRANCH
       variables:
         OUT_IMAGE_VERSION: "${DEVEL_RELEASE_IMAGE_VERSION}"
+  needs:
+    - job: unit-tests
+      optional:
 
 release:staging-ubi8:
   extends:

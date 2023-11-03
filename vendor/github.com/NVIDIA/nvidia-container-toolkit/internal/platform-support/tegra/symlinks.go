@@ -24,25 +24,29 @@ import (
 	"github.com/NVIDIA/nvidia-container-toolkit/internal/discover"
 	"github.com/NVIDIA/nvidia-container-toolkit/internal/logger"
 	"github.com/NVIDIA/nvidia-container-toolkit/internal/lookup"
-	"github.com/NVIDIA/nvidia-container-toolkit/internal/lookup/symlinks"
 )
 
 type symlinkHook struct {
 	discover.None
 	logger        logger.Interface
-	driverRoot    string
 	nvidiaCTKPath string
 	targets       []string
 	mountsFrom    discover.Discover
+
+	// The following can be overridden for testing
+	symlinkChainLocator lookup.Locator
+	resolveSymlink      func(string) (string, error)
 }
 
 // createCSVSymlinkHooks creates a discoverer for a hook that creates required symlinks in the container
-func createCSVSymlinkHooks(logger logger.Interface, targets []string, mounts discover.Discover, nvidiaCTKPath string) discover.Discover {
+func (o tegraOptions) createCSVSymlinkHooks(targets []string, mounts discover.Discover) discover.Discover {
 	return symlinkHook{
-		logger:        logger,
-		nvidiaCTKPath: nvidiaCTKPath,
-		targets:       targets,
-		mountsFrom:    mounts,
+		logger:              o.logger,
+		nvidiaCTKPath:       o.nvidiaCTKPath,
+		targets:             targets,
+		mountsFrom:          mounts,
+		symlinkChainLocator: o.symlinkChainLocator,
+		resolveSymlink:      o.resolveSymlink,
 	}
 }
 
@@ -76,19 +80,20 @@ func (d symlinkHook) getSpecificLinks() ([]string, error) {
 
 		lib := filepath.Base(m.Path)
 
-		if strings.HasPrefix(lib, "libcuda.so") {
+		switch {
+		case strings.HasPrefix(lib, "libcuda.so"):
 			// XXX Many applications wrongly assume that libcuda.so exists (e.g. with dlopen).
 			target = "libcuda.so.1"
 			link = "libcuda.so"
-		} else if strings.HasPrefix(lib, "libGLX_nvidia.so") {
+		case strings.HasPrefix(lib, "libGLX_nvidia.so"):
 			// XXX GLVND requires this symlink for indirect GLX support.
 			target = lib
 			link = "libGLX_indirect.so.0"
-		} else if strings.HasPrefix(lib, "libnvidia-opticalflow.so") {
+		case strings.HasPrefix(lib, "libnvidia-opticalflow.so"):
 			// XXX Fix missing symlink for libnvidia-opticalflow.so.
 			target = "libnvidia-opticalflow.so.1"
 			link = "libnvidia-opticalflow.so"
-		} else {
+		default:
 			continue
 		}
 		if linkProcessed[link] {
@@ -105,14 +110,9 @@ func (d symlinkHook) getSpecificLinks() ([]string, error) {
 
 // getSymlinkCandidates returns a list of symlinks that are candidates for being created.
 func (d symlinkHook) getSymlinkCandidates() []string {
-	chainLocator := lookup.NewSymlinkChainLocator(
-		lookup.WithLogger(d.logger),
-		lookup.WithRoot(d.driverRoot),
-	)
-
 	var candidates []string
 	for _, target := range d.targets {
-		reslovedSymlinkChain, err := chainLocator.Locate(target)
+		reslovedSymlinkChain, err := d.symlinkChainLocator.Locate(target)
 		if err != nil {
 			d.logger.Warningf("Failed to locate symlink %v", target)
 			continue
@@ -127,7 +127,7 @@ func (d symlinkHook) getCSVFileSymlinks() []string {
 	created := make(map[string]bool)
 	// candidates is a list of absolute paths to symlinks in a chain, or the final target of the chain.
 	for _, candidate := range d.getSymlinkCandidates() {
-		target, err := symlinks.Resolve(candidate)
+		target, err := d.resolveSymlink(candidate)
 		if err != nil {
 			d.logger.Debugf("Skipping invalid link: %v", err)
 			continue

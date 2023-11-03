@@ -26,11 +26,11 @@ import (
 	"github.com/NVIDIA/nvidia-container-toolkit/pkg/nvcdi"
 	"github.com/NVIDIA/nvidia-container-toolkit/pkg/nvcdi/spec"
 	"github.com/NVIDIA/nvidia-container-toolkit/pkg/nvcdi/transform"
-	cdiapi "github.com/container-orchestrated-devices/container-device-interface/pkg/cdi"
-	cdiparser "github.com/container-orchestrated-devices/container-device-interface/pkg/parser"
-	cdispec "github.com/container-orchestrated-devices/container-device-interface/specs-go"
 	nvdevice "gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvlib/device"
 	"gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvml"
+	cdiapi "tags.cncf.io/container-device-interface/pkg/cdi"
+	cdiparser "tags.cncf.io/container-device-interface/pkg/parser"
+	cdispec "tags.cncf.io/container-device-interface/specs-go"
 
 	nascrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1"
 )

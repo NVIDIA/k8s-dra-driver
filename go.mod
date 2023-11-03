@@ -30,8 +30,7 @@ replace (
 
 require (
 	github.com/NVIDIA/go-nvml v0.12.0-1.0.20231020145430-e06766c5e74f
-	github.com/NVIDIA/nvidia-container-toolkit v1.14.1
-	github.com/container-orchestrated-devices/container-device-interface v0.6.1
+	github.com/NVIDIA/nvidia-container-toolkit v1.14.4-0.20231103212247-65b0b2b5e0a1
 	github.com/prometheus/client_golang v1.14.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/pflag v1.0.5
@@ -47,6 +46,8 @@ require (
 	k8s.io/klog/v2 v2.90.1
 	k8s.io/kubelet v0.27.0-beta.0
 	k8s.io/mount-utils v0.26.3
+	tags.cncf.io/container-device-interface v0.6.2
+	tags.cncf.io/container-device-interface/specs-go v0.6.0
 )
 
 require (
