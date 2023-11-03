@@ -117,9 +117,6 @@ trigger-pipeline:
   variables:
     IMAGE: "${CI_REGISTRY_IMAGE}/k8s-dra-driver:${CI_COMMIT_SHORT_SHA}-${DIST}"
     IMAGE_ARCHIVE: "k8s-dra-driver-${CI_COMMIT_SHORT_SHA}-${DIST}-${PLATFORM_ARCH}.tar"
-  except:
-    variables:
-      - $SKIP_SCANS && $SKIP_SCANS == "yes"
   before_script:
     - docker login -u "${CI_REGISTRY_USER}" -p "${CI_REGISTRY_PASSWORD}" "${CI_REGISTRY}"
     - docker pull --platform="${PLATFORM}" "${IMAGE}"
