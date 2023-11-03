@@ -23,9 +23,9 @@ import (
 	"github.com/NVIDIA/nvidia-container-toolkit/internal/edits"
 	"github.com/NVIDIA/nvidia-container-toolkit/internal/platform-support/tegra"
 	"github.com/NVIDIA/nvidia-container-toolkit/pkg/nvcdi/spec"
-	"github.com/container-orchestrated-devices/container-device-interface/pkg/cdi"
-	"github.com/container-orchestrated-devices/container-device-interface/specs-go"
 	"gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvlib/device"
+	"tags.cncf.io/container-device-interface/pkg/cdi"
+	"tags.cncf.io/container-device-interface/specs-go"
 )
 
 type csvlib nvcdilib
@@ -45,6 +45,7 @@ func (l *csvlib) GetAllDeviceSpecs() ([]specs.Device, error) {
 		tegra.WithNVIDIACTKPath(l.nvidiaCTKPath),
 		tegra.WithCSVFiles(l.csvFiles),
 		tegra.WithLibrarySearchPaths(l.librarySearchPaths...),
+		tegra.WithIngorePatterns(l.csvIgnorePatterns...),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create discoverer for CSV files: %v", err)
