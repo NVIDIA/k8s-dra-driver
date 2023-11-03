@@ -20,7 +20,8 @@ default:
 variables:
   GIT_SUBMODULE_STRATEGY: recursive
   BUILDIMAGE: "${CI_REGISTRY_IMAGE}/build:${CI_COMMIT_SHORT_SHA}"
-  BUILD_MULTI_ARCH_IMAGES: "true"
+  # TODO: For now we only build amd64 images to speed up development
+  BUILD_MULTI_ARCH_IMAGES: "false"
 
 stages:
   - trigger

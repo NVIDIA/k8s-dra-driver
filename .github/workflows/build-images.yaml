@@ -55,7 +55,8 @@ jobs:
         env:
           IMAGE_NAME: ghcr.io/${LOWERCASE_REPO_OWNER}/k8s-dra-driver
           VERSION: ${COMMIT_SHORT_SHA}
-          BUILD_MULTI_ARCH_IMAGES: "true"
+          # TODO: For now we only build multi-arch images to speed up development.
+          BUILD_MULTI_ARCH_IMAGES: "false"
           PUSH_ON_BUILD: "true"
         run: |
           echo "${VERSION}"
