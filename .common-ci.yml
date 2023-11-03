@@ -230,6 +230,9 @@ scan-ubi8-arm64:
     - if: $CI_COMMIT_BRANCH == $RELEASE_DEVEL_BRANCH
       variables:
         OUT_IMAGE_VERSION: "${DEVEL_RELEASE_IMAGE_VERSION}"
+  needs:
+    - job: unit-tests
+      optional:
 
 release:staging-ubi8:
   extends:
