@@ -38,8 +38,8 @@ import (
 	"k8s.io/klog/v2"
 	"k8s.io/mount-utils"
 
-	cdiapi "github.com/container-orchestrated-devices/container-device-interface/pkg/cdi"
-	cdispec "github.com/container-orchestrated-devices/container-device-interface/specs-go"
+	cdiapi "tags.cncf.io/container-device-interface/pkg/cdi"
+	cdispec "tags.cncf.io/container-device-interface/specs-go"
 
 	nascrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1"
 )
