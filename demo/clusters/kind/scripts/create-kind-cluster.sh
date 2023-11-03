@@ -28,3 +28,7 @@ kind create cluster \
 	--name "${KIND_CLUSTER_NAME}" \
 	--image "${KIND_IMAGE}" \
 	--config "${KIND_CLUSTER_CONFIG_PATH}"
+
+# Unmount the masked /proc/driver/nvidia to allow
+# dynamically generated MIG devices to be discovered
+docker exec -it "${KIND_CLUSTER_NAME}-worker" umount -R /proc/driver/nvidia
