@@ -20,10 +20,12 @@ $(BUILD_TARGETS): build-%: image-% push-% | image-%
 endif
 
 $(PUSH_TARGETS): push-%:
+	$(DOCKER) image inspect $(IMAGE) > /dev/null || $(DOCKER) pull $(IMAGE)
 	$(DOCKER) tag "$(IMAGE)" "$(OUT_IMAGE)"
 	$(DOCKER) push "$(OUT_IMAGE)"
 
 push-short:
+	$(DOCKER) image inspect "$(IMAGE_NAME):$(VERSION)-$(DEFAULT_PUSH_TARGET)" > /dev/null || $(DOCKER) pull "$(IMAGE_NAME):$(VERSION)-$(DEFAULT_PUSH_TARGET)"
 	$(DOCKER) tag "$(IMAGE_NAME):$(VERSION)-$(DEFAULT_PUSH_TARGET)" "$(OUT_IMAGE_NAME):$(OUT_IMAGE_VERSION)"
 	$(DOCKER) push "$(OUT_IMAGE_NAME):$(OUT_IMAGE_VERSION)"
 
@@ -31,5 +33,6 @@ push-short:
 # Note: This needs to be updated for multi-arch images.
 ifeq ($(IMAGE_TAG),$(VERSION)-$(DIST))
 $(DEFAULT_PUSH_TARGET):
+	$(DOCKER) image inspect $(IMAGE) > /dev/null || $(DOCKER) pull $(IMAGE)
 	$(DOCKER) tag $(IMAGE) $(subst :$(IMAGE_TAG),:$(VERSION),$(IMAGE))
 endif
