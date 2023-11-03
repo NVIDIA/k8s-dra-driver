@@ -78,6 +78,8 @@ trigger-pipeline:
 .dist-ubi8:
   variables:
     DIST: "ubi8"
+  rules:
+    - when: manual
 
 .dist-ubuntu20.04:
   variables:
