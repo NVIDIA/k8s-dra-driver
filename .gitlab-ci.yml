@@ -25,6 +25,8 @@ build-dev-image:
 
 .requires-build-image:
   image: "${BUILDIMAGE}"
+  needs:
+    - build-dev-image
 
 .go-check:
   extends:
