@@ -95,6 +95,8 @@ trigger-pipeline:
   variables:
     PLATFORM: linux/arm64
     PLATFORM_ARCH: arm64
+  rules:
+    - if: $BUILD_MULTI_ARCH_IMAGES == "true"
 
 # Make buildx available as a docker CLI plugin
 .buildx-setup:
