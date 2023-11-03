@@ -97,3 +97,14 @@ build-ubi8: DOCKERFILE_SUFFIX := ubi8
 build: $(DEFAULT_PUSH_TARGET)
 $(DEFAULT_PUSH_TARGET): build-$(DEFAULT_PUSH_TARGET)
 $(DEFAULT_PUSH_TARGET): DIST = $(DEFAULT_PUSH_TARGET)
+
+REGCTL ?= regctl
+$(PUSH_TARGETS): push-%:
+	$(REGCTL) \
+	        image copy \
+	        $(IMAGE) $(OUT_IMAGE)
+
+push-short:
+	$(REGCTL) \
+	        image copy \
+	        $(IMAGE) $(OUT_IMAGE_NAME):$(OUT_IMAGE_VERSION)

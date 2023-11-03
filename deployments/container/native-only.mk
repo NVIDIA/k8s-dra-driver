@@ -16,18 +16,11 @@ PUSH_ON_BUILD ?= false
 DOCKER_BUILD_PLATFORM_OPTIONS = --platform=linux/amd64
 
 ifeq ($(PUSH_ON_BUILD),true)
-$(BUILD_TARGETS): build-%: image-% push-% | image-%
+$(BUILD_TARGETS): build-%: image-%
+	$(DOCKER) push "$(IMAGE)"
+else
+$(BUILD_TARGETS): build-%: image-%
 endif
-
-$(PUSH_TARGETS): push-%:
-	$(DOCKER) image inspect $(IMAGE) > /dev/null || $(DOCKER) pull $(IMAGE)
-	$(DOCKER) tag "$(IMAGE)" "$(OUT_IMAGE)"
-	$(DOCKER) push "$(OUT_IMAGE)"
-
-push-short:
-	$(DOCKER) image inspect "$(IMAGE_NAME):$(VERSION)-$(DEFAULT_PUSH_TARGET)" > /dev/null || $(DOCKER) pull "$(IMAGE_NAME):$(VERSION)-$(DEFAULT_PUSH_TARGET)"
-	$(DOCKER) tag "$(IMAGE_NAME):$(VERSION)-$(DEFAULT_PUSH_TARGET)" "$(OUT_IMAGE_NAME):$(OUT_IMAGE_VERSION)"
-	$(DOCKER) push "$(OUT_IMAGE_NAME):$(OUT_IMAGE_VERSION)"
 
 # For the default distribution we also retag the image.
 # Note: This needs to be updated for multi-arch images.
