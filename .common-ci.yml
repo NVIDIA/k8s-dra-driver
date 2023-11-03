@@ -80,6 +80,7 @@ trigger-pipeline:
     DIST: "ubi8"
   rules:
     - when: manual
+      allow_failure: false
 
 .dist-ubuntu20.04:
   variables:
