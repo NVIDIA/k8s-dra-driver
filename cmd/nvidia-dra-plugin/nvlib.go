@@ -36,7 +36,7 @@ type deviceLib struct {
 }
 
 func newDeviceLib(driverRoot root) (*deviceLib, error) {
-	libraryPath, err := driverRoot.getDriverLibraryPath()
+	driverLibraryPath, err := driverRoot.getDriverLibraryPath()
 	if err != nil {
 		return nil, fmt.Errorf("failed to locate driver libraries: %w", err)
 	}
@@ -47,15 +47,15 @@ func newDeviceLib(driverRoot root) (*deviceLib, error) {
 	}
 
 	// In order for nvidia-smi to run, we need to set the PATH to the parent of
-	// the nvidia-smi executable and update the LD_LIBRARY_PATH to be able to
-	// locate libnvidia-ml.so.1
-	updatePathListEnvvar("LD_LIBRARY_PATH", filepath.Dir(libraryPath))
+	// the nvidia-smi executable and update LD_PRELOAD to include the path to
+	// libnvidia-ml.so.1
+	updatePathListEnvvar("LD_PRELOAD", driverLibraryPath)
 	updatePathListEnvvar("PATH", filepath.Dir(nvidiaSMIPath))
 
-	// We construct an NVML library specifying the path to libnvidia-ml.so.1 explicitly
-	// so that we don't have to rely on the library path.
+	// We construct an NVML library specifying the path to libnvidia-ml.so.1
+	// explicitly so that we don't have to rely on the library path.
 	nvmllib := nvml.New(
-		nvml.WithLibraryPath(libraryPath),
+		nvml.WithLibraryPath(driverLibraryPath),
 	)
 	d := deviceLib{
 		Interface:     nvdev.New(nvdev.WithNvml(nvmllib)),
