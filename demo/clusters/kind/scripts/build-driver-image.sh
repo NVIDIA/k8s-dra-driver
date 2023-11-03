@@ -31,7 +31,7 @@ cleanup() {
 trap cleanup EXIT
 
 # Go back to the root directory of this repo
-cd ${CURRENT_DIR}/../..
+cd ${PROJECT_DIR}
 
 # Regenerate the CRDs and build the container image
 # TODO: This should be part of the image name

@@ -17,7 +17,7 @@
 
 # A reference to the current directory where this script is located
 SCRIPTS_DIR="$(cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd)"
-PROJECT_DIR="$(cd -- "$( dirname -- "${SCRIPTS_DIR}/../../.." )" &> /dev/null && pwd)"
+PROJECT_DIR="$(cd -- "$( dirname -- "${SCRIPTS_DIR}/../../../../.." )" &> /dev/null && pwd)"
 
 # We extract information from versions.mk
 function from_versions_mk() {

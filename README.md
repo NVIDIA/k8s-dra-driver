@@ -32,33 +32,34 @@ First since we'll launch kind with GPU support, ensure that the following prereq
    Container Runtime to use volume mounts to select devices to inject into a
    container.
 
-We start by first cloning this repository and `cd`ing into its `demo`
-subdirectory. All of the scripts and example Pod specs used in this demo are
-contained here, so take a moment to browse through the various files and see
+We start by first cloning this repository and `cd`ing into it.
+All of the scripts and example Pod specs used in this demo are in the `demo`
+subdirectory, so take a moment to browse through the various files and see
 what's available:
 
 ```
 git clone https://github.com/NVIDIA/k8s-dra-driver.git
-cd k8s-dra-driver/demo
+```
+```
+cd k8s-dra-driver
 ```
 
 ### Setting up the infrastructure
 First, create a `kind` cluster to run the demo:
 ```bash
-./create-cluster.sh
+./demo/clusters/kind/create-cluster.sh
 ```
-
 
 From here we will build the image for the example resource driver:
 ```bash
-./build-dra-driver.sh
+./demo/clusters/kind/build-dra-driver.sh
 ```
 
 This also makes the built images available to the `kind` cluster.
 
 We now install the NVIDIA GPU DRA driver:
 ```
-./install-dra-driver.sh
+./demo/clusters/kind/install-dra-driver.sh
 ```
 
 This should show two pods running in the `nvidia-dra-driver` namespace:
@@ -70,16 +71,16 @@ nvidia-dra-driver   nvidia-dra-plugin-lt7qh                    1/1     Running  
 ```
 
 ### Run the examples by following the steps in the demo script
-Finally, you can run the various examples contained in the `demo` folder.
-The files `demo/DEMO.sh` shows the full script of the demo you can walk through.
+Finally, you can run the various examples contained in the `demo/specs/quickstart` folder.
+The `README` in that directory shows the full script of the demo you can walk through.
 ```console
-cat demo/DEMO.sh
+cat demo/specs/quickstart/README.md
 ...
 ```
 
 Where the running the first three examples should produce output similar to the following:
 ```console
-$ kubectl apply --filename=gpu-test{1,2,3}.yaml
+$ kubectl apply --filename=demo/specs/quickstart/gpu-test{1,2,3}.yaml
 ...
 
 ```
@@ -112,7 +113,7 @@ GPU 0: A100-SXM4-40GB (UUID: GPU-4404041a-04cf-1ccf-9e70-f139a9b1e23c)
 
 Running
 ```
-$ ./delete-cluster.sh
+$ ./demo/clusters/kind/delete-cluster.sh
 ```
 will remove the cluster created in the preceding steps.
 
