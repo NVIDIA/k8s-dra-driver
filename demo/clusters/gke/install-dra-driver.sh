@@ -27,7 +27,7 @@ DRIVER_NAME=$(from_versions_mk "DRIVER_NAME")
 
 : ${IMAGE_REGISTRY:=registry.gitlab.com/nvidia/cloud-native/k8s-dra-driver/staging}
 : ${IMAGE_NAME:=${DRIVER_NAME}}
-: ${IMAGE_TAG:=f2e6e89c-ubuntu20.04}
+: ${IMAGE_TAG:=530b16c-ubuntu20.04}
 
 helm upgrade -i --create-namespace --namespace nvidia nvidia-dra-driver ${PROJECT_DIR}/deployments/helm/k8s-dra-driver \
   --set image.repository=${IMAGE_REGISTRY}/${IMAGE_NAME} \

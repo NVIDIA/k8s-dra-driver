@@ -1,0 +1,51 @@
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  namespace: kubecon-demo
+  name: "inference-pod"
+  labels:
+    app: inference-pod
+spec:
+  resourceClaims:
+  - name: gpu
+    source:
+      resourceClaimTemplateName: "inference-gpu"
+  containers:
+  - name: ctr
+    image: ubuntu:22.04
+    command: ["bash", "-c"]
+    args: ["nvidia-smi -L; sleep 9999"]
+    resources:
+      claims:
+      - name: gpu
+  tolerations:
+  - key: nvidia.com/gpu
+    operator: Exists
+    effect: NoSchedule
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  namespace: kubecon-demo
+  name: "training-pod"
+  labels:
+    app: training-pod
+spec:
+  resourceClaims:
+  - name: gpu
+    source:
+      resourceClaimTemplateName: "training-gpu"
+  containers:
+  - name: ctr
+    image: ubuntu:22.04
+    command: ["bash", "-c"]
+    args: ["nvidia-smi -L; sleep 9999"]
+    resources:
+      claims:
+      - name: gpu
+  tolerations:
+  - key: nvidia.com/gpu
+    operator: Exists
+    effect: NoSchedule
