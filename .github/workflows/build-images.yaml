@@ -31,7 +31,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        dist: [ubuntu20.04, ubi8]
+        dist: [ubuntu20.04]
     steps:
       - uses: actions/checkout@v3
 
