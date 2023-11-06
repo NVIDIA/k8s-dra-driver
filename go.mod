@@ -30,7 +30,7 @@ replace (
 
 require (
 	github.com/NVIDIA/go-nvml v0.12.0-1.0.20231020145430-e06766c5e74f
-	github.com/NVIDIA/nvidia-container-toolkit v1.14.4-0.20231103212247-65b0b2b5e0a1
+	github.com/NVIDIA/nvidia-container-toolkit v1.14.4-0.20231106181725-da0755769fee
 	github.com/prometheus/client_golang v1.14.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/pflag v1.0.5
