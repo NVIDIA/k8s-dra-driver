@@ -44,8 +44,10 @@ jobs:
           echo "COMMIT_SHORT_SHA=${GITHUB_SHA:0:8}" >> $GITHUB_ENV
           LOWERCASE_REPO_FULL_NAME=$(echo "${{ github.event.pull_request.head.repo.full_name }}" | awk '{print tolower($0)}')
           echo ${LOWERCASE_REPO_FULL_NAME}
-          echo $(dirname ${LOWERCASE_REPO_FULL_NAME})
-          echo "LOWERCASE_REPO=$(dirname ${LOWERCASE_REPO_FULL_NAME})" >> $GITHUB_ENV
+          LOWERCASE_REPO_ORG=$(dirname ${LOWERCASE_REPO_FULL_NAME})
+          echo ${LOWERCASE_REPO_ORG}
+          echo "LOWERCASE_REPO_ORG=${LOWERCASE_REPO_ORG}" >> $GITHUB_ENV
+          echo "LABEL_IMAGE_SOURCE=https://github.com/${LOWERCASE_REPO_FULL_NAME}" >> $GITHUB_ENV
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
@@ -59,7 +61,7 @@ jobs:
 
       - name: Build image
         env:
-          IMAGE_NAME: ghcr.io/${LOWERCASE_REPO}/k8s-dra-driver
+          IMAGE_NAME: ghcr.io/${LOWERCASE_REPO_ORG}/k8s-dra-driver
           VERSION: ${COMMIT_SHORT_SHA}
           # TODO: For now we only build multi-arch images to speed up development.
           BUILD_MULTI_ARCH_IMAGES: "false"
