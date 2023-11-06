@@ -63,7 +63,7 @@ jobs:
         env:
           IMAGE_NAME: ghcr.io/${LOWERCASE_REPO_ORG}/k8s-dra-driver
           VERSION: ${COMMIT_SHORT_SHA}
-          # TODO: For now we only build multi-arch images to speed up development.
+          DOCKER_BUILD_PLATFORM_OPTIONS: "--platform=linux/amd64"
           BUILD_MULTI_ARCH_IMAGES: "true"
           PUSH_ON_BUILD: "true"
         run: |
