@@ -50,6 +50,7 @@ type CDIHandler struct {
 	nvcdi            nvcdi.Interface
 	registry         cdiapi.Registry
 	driverRoot       string
+	devRoot          string
 	targetDriverRoot string
 	nvidiaCTKPath    string
 
@@ -84,6 +85,7 @@ func NewCDIHandler(opts ...cdiOption) (*CDIHandler, error) {
 		nvcdilib, err := nvcdi.New(
 			nvcdi.WithDeviceLib(h.nvdevice),
 			nvcdi.WithDriverRoot(h.driverRoot),
+			nvcdi.WithDevRoot(h.devRoot),
 			nvcdi.WithLogger(h.logger),
 			nvcdi.WithNvmlLib(h.nvml),
 			nvcdi.WithMode("nvml"),

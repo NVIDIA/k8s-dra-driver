@@ -22,6 +22,7 @@ import (
 	"sync"
 
 	"github.com/NVIDIA/go-nvlib/pkg/nvml"
+	"k8s.io/klog/v2"
 
 	nascrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1"
 )
@@ -126,7 +127,8 @@ type DeviceState struct {
 }
 
 func NewDeviceState(ctx context.Context, config *Config) (*DeviceState, error) {
-	nvdevlib, err := newDeviceLib(root(config.flags.containerDriverRoot))
+	containerDriverRoot := root(config.flags.containerDriverRoot)
+	nvdevlib, err := newDeviceLib(containerDriverRoot)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create device library: %w", err)
 	}
@@ -136,12 +138,15 @@ func NewDeviceState(ctx context.Context, config *Config) (*DeviceState, error) {
 		return nil, fmt.Errorf("error enumerating all possible devices: %w", err)
 	}
 
+	devRoot := containerDriverRoot.getDevRoot()
+	klog.Infof("using devRoot=%v", devRoot)
+
 	hostDriverRoot := config.flags.hostDriverRoot
-	containerDriverRoot := config.flags.containerDriverRoot
 	cdi, err := NewCDIHandler(
 		WithNvml(nvdevlib.nvmllib),
 		WithDeviceLib(nvdevlib),
-		WithDriverRoot(containerDriverRoot),
+		WithDriverRoot(string(containerDriverRoot)),
+		WithDevRoot(devRoot),
 		WithTargetDriverRoot(hostDriverRoot),
 		WithNvidiaCTKPath(config.flags.nvidiaCTKPath),
 		WithCDIRoot(config.flags.cdiRoot),
