@@ -31,6 +31,13 @@ func WithDriverRoot(root string) cdiOption {
 	}
 }
 
+// WithDevRoot provides a cdiOption to set the device root used by the 'cdi' interface.
+func WithDevRoot(root string) cdiOption {
+	return func(c *CDIHandler) {
+		c.devRoot = root
+	}
+}
+
 // WithTargetDriverRoot provides an cdiOption to set the target driver root used by the 'cdi' interface.
 func WithTargetDriverRoot(root string) cdiOption {
 	return func(c *CDIHandler) {
