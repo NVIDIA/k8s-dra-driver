@@ -29,6 +29,7 @@ replace (
 )
 
 require (
+	github.com/NVIDIA/go-nvlib v0.0.0-20231116150931-9fd385bace0d
 	github.com/NVIDIA/go-nvml v0.12.0-1.0.20231020145430-e06766c5e74f
 	github.com/NVIDIA/nvidia-container-toolkit v1.14.4-0.20231120112525-f6e3593a726a
 	github.com/prometheus/client_golang v1.14.0
@@ -36,7 +37,6 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.8.4
 	github.com/urfave/cli/v2 v2.25.7
-	gitlab.com/nvidia/cloud-native/go-nvlib v0.0.0-20231024132753-f3bc000e2ef8
 	golang.org/x/mod v0.12.0
 	k8s.io/api v0.27.0-beta.0
 	k8s.io/apimachinery v0.27.0-beta.0
@@ -51,7 +51,6 @@ require (
 )
 
 require (
-	github.com/NVIDIA/go-nvlib v0.0.0-20231116150931-9fd385bace0d // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect

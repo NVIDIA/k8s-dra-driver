@@ -25,8 +25,8 @@ import (
 
 	"k8s.io/klog/v2"
 
-	nvdev "gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvlib/device"
-	"gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvml"
+	nvdev "github.com/NVIDIA/go-nvlib/pkg/nvlib/device"
+	"github.com/NVIDIA/go-nvlib/pkg/nvml"
 )
 
 type deviceLib struct {

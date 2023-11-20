@@ -23,11 +23,11 @@ import (
 
 	"github.com/sirupsen/logrus"
 
+	nvdevice "github.com/NVIDIA/go-nvlib/pkg/nvlib/device"
+	"github.com/NVIDIA/go-nvlib/pkg/nvml"
 	"github.com/NVIDIA/nvidia-container-toolkit/pkg/nvcdi"
 	"github.com/NVIDIA/nvidia-container-toolkit/pkg/nvcdi/spec"
 	"github.com/NVIDIA/nvidia-container-toolkit/pkg/nvcdi/transform"
-	nvdevice "gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvlib/device"
-	"gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvml"
 	cdiapi "tags.cncf.io/container-device-interface/pkg/cdi"
 	cdiparser "tags.cncf.io/container-device-interface/pkg/parser"
 	cdispec "tags.cncf.io/container-device-interface/specs-go"
