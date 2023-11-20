@@ -35,8 +35,8 @@ github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
 github.com/NVIDIA/go-nvml v0.12.0-1.0.20231020145430-e06766c5e74f h1:FTblgO87K1vPB8tcwM5EOFpFf6UpsrlDpErPm25mFWE=
 github.com/NVIDIA/go-nvml v0.12.0-1.0.20231020145430-e06766c5e74f/go.mod h1:7ruy85eOM73muOc/I37euONSwEyFqZsv5ED9AogD4G0=
-github.com/NVIDIA/nvidia-container-toolkit v1.14.4-0.20231103212247-65b0b2b5e0a1 h1:G1qRTOROHfm2J8vT9DXNZ4ayqI/UEsYL8yJrQWmYEGg=
-github.com/NVIDIA/nvidia-container-toolkit v1.14.4-0.20231103212247-65b0b2b5e0a1/go.mod h1:Z5vUmDoCATXcSY936d0CQKfNixzshZjMAvcoTD4No2s=
+github.com/NVIDIA/nvidia-container-toolkit v1.14.4-0.20231106181725-da0755769fee h1:ORgI5uUpaEvde0TlcocPSm4/Vf0gOZGoQWeYFm0abo8=
+github.com/NVIDIA/nvidia-container-toolkit v1.14.4-0.20231106181725-da0755769fee/go.mod h1:Z5vUmDoCATXcSY936d0CQKfNixzshZjMAvcoTD4No2s=
 github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc/go.mod h1:LOuyumcjzFXgccqObfd/Ljyb9UuFJ6TxHnclSeseNhc=
 github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751/go.mod h1:LOuyumcjzFXgccqObfd/Ljyb9UuFJ6TxHnclSeseNhc=
 github.com/alecthomas/units v0.0.0-20151022065526-2efee857e7cf/go.mod h1:ybxpYRFXyAe+OPACYpWeL0wqObRcbAqCMya13uyzqw0=
