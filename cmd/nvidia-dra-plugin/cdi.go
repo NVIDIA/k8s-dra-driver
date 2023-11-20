@@ -18,7 +18,6 @@ package main
 
 import (
 	"fmt"
-	"io"
 	"path/filepath"
 
 	"github.com/sirupsen/logrus"
@@ -67,7 +66,7 @@ func NewCDIHandler(opts ...cdiOption) (*CDIHandler, error) {
 
 	if h.logger == nil {
 		h.logger = logrus.New()
-		h.logger.SetOutput(io.Discard)
+		// h.logger.SetOutput(io.Discard)
 	}
 	if h.nvml == nil {
 		h.nvml = nvml.New()
