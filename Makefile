@@ -96,7 +96,7 @@ generate-crds: generate-deepcopy
 			output:crd:dir=$(CURDIR)/deployments/helm/$(DRIVER_NAME)/crds; \
 	done
 
-generate-deepcopy: generate-clientset vendor
+generate-deepcopy: generate-clientset
 	for dir in $(DEEPCOPY_SOURCES); do \
 		controller-gen \
 			object:headerFile=$(CURDIR)/hack/boilerplate.go.txt,year=$(shell date +"%Y") \
