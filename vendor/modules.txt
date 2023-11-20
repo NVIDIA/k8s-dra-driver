@@ -1,8 +1,13 @@
+# github.com/NVIDIA/go-nvlib v0.0.0-20231116150931-9fd385bace0d
+## explicit; go 1.20
+github.com/NVIDIA/go-nvlib/pkg/nvlib/device
+github.com/NVIDIA/go-nvlib/pkg/nvlib/info
+github.com/NVIDIA/go-nvlib/pkg/nvml
 # github.com/NVIDIA/go-nvml v0.12.0-1.0.20231020145430-e06766c5e74f
 ## explicit; go 1.15
 github.com/NVIDIA/go-nvml/pkg/dl
 github.com/NVIDIA/go-nvml/pkg/nvml
-# github.com/NVIDIA/nvidia-container-toolkit v1.14.4-0.20231106181725-da0755769fee
+# github.com/NVIDIA/nvidia-container-toolkit v1.14.4-0.20231120112525-f6e3593a726a
 ## explicit; go 1.20
 github.com/NVIDIA/nvidia-container-toolkit/internal/config/image
 github.com/NVIDIA/nvidia-container-toolkit/internal/discover
@@ -193,7 +198,6 @@ github.com/xrash/smetrics
 # gitlab.com/nvidia/cloud-native/go-nvlib v0.0.0-20231024132753-f3bc000e2ef8
 ## explicit; go 1.20
 gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvlib/device
-gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvlib/info
 gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvml
 # go.uber.org/atomic v1.9.0
 ## explicit; go 1.13
