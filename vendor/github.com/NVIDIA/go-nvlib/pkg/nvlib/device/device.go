@@ -19,7 +19,7 @@ package device
 import (
 	"fmt"
 
-	"gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvml"
+	"github.com/NVIDIA/go-nvlib/pkg/nvml"
 )
 
 // Device defines the set of extended functions associated with a device.Device
