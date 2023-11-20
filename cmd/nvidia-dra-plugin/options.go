@@ -79,3 +79,10 @@ func WithVendor(vendor string) cdiOption {
 		c.vendor = vendor
 	}
 }
+
+// WithLogger provides an cdiOption to set the logger used by the 'cdi' interface.
+func WithLogger(logger *klogLogger) cdiOption {
+	return func(c *CDIHandler) {
+		c.logger = logger
+	}
+}

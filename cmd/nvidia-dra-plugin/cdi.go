@@ -20,8 +20,6 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/sirupsen/logrus"
-
 	nvdevice "github.com/NVIDIA/go-nvlib/pkg/nvlib/device"
 	"github.com/NVIDIA/go-nvlib/pkg/nvml"
 	"github.com/NVIDIA/nvidia-container-toolkit/pkg/nvcdi"
@@ -43,7 +41,7 @@ const (
 )
 
 type CDIHandler struct {
-	logger           *logrus.Logger
+	logger           *klogLogger
 	nvml             nvml.Interface
 	nvdevice         nvdevice.Interface
 	nvcdi            nvcdi.Interface
@@ -65,8 +63,7 @@ func NewCDIHandler(opts ...cdiOption) (*CDIHandler, error) {
 	}
 
 	if h.logger == nil {
-		h.logger = logrus.New()
-		// h.logger.SetOutput(io.Discard)
+		h.logger = &klogAsLogger
 	}
 	if h.nvml == nil {
 		h.nvml = nvml.New()
