@@ -28,7 +28,9 @@ on:
 jobs:
   build-image:
     # We trigger builds on MERGED pull requests or on non-closed PRs that are not created against a fork.
-    if: (github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true) || (github.event_name == 'pull_request' && github.event.action != 'closed' && github.event.pull_request.head.repo.full_name == github.repository)
+    if: |
+      (github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true) ||
+      (github.event_name == 'pull_request' && github.event.action != 'closed' && github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -44,6 +46,11 @@ jobs:
           REPO_FULL_NAME="${{ github.event.pull_request.head.repo.full_name }}"
           echo "${REPO_FULL_NAME}"
           echo "LABEL_IMAGE_SOURCE=https://github.com/${REPO_FULL_NAME}" >> $GITHUB_ENV
+          if [[ "${{ github.actor }}" == "dependabot[bot]" ]]; then
+            echo "PUSH_ON_BUILD=false" >> $GITHUB_ENV
+          else
+            echo "PUSH_ON_BUILD=true" >> $GITHUB_ENV
+          fi
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
@@ -59,9 +66,8 @@ jobs:
         env:
           IMAGE_NAME: ghcr.io/${LOWERCASE_REPO_OWNER}/k8s-dra-driver
           VERSION: ${COMMIT_SHORT_SHA}
-          # TODO: For now we only build multi-arch images to speed up development.
+          # TODO: For now we only build single-arch images to speed up development.
           BUILD_MULTI_ARCH_IMAGES: "false"
-          PUSH_ON_BUILD: "true"
         run: |
           echo "${VERSION}"
           make -f deployments/container/Makefile build-${{ matrix.dist }}
