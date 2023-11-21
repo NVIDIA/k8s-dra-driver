@@ -27,11 +27,12 @@ on:
 
 jobs:
   build-image:
-    if: (github.event.action != 'closed' || github.event.pull_request.merged == true)
+    # We trigger builds on MERGED pull requests or on non-closed PRs that are not created against a fork.
+    if: (github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true) || (github.event_name == 'pull_request' && github.event.action != 'closed' && github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        dist: [ubuntu20.04, ubi8]
+        dist: [ubuntu20.04]
     steps:
       - uses: actions/checkout@v3
 
@@ -40,6 +41,9 @@ jobs:
         run: |
           echo "COMMIT_SHORT_SHA=${GITHUB_SHA:0:8}" >> $GITHUB_ENV
           echo "LOWERCASE_REPO_OWNER=$(echo "${GITHUB_REPOSITORY_OWNER}" | awk '{print tolower($0)}')" >> $GITHUB_ENV
+          REPO_FULL_NAME="${{ github.event.pull_request.head.repo.full_name }}"
+          echo "${REPO_FULL_NAME}"
+          echo "LABEL_IMAGE_SOURCE=https://github.com/${REPO_FULL_NAME}" >> $GITHUB_ENV
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
