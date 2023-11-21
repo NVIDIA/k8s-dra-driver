@@ -25,6 +25,10 @@ on:
       - main
       - release-*
 
+# We allow for the build-image job to push images to the package registry.
+permissions:
+  packages: write
+
 jobs:
   build-image:
     # We trigger builds on MERGED pull requests or on non-closed PRs that are not created against a fork.
