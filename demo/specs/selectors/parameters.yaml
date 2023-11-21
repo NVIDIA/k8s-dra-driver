@@ -1,0 +1,28 @@
+---
+apiVersion: gpu.resource.nvidia.com/v1alpha1
+kind: GpuClaimParameters
+metadata:
+  namespace: kubecon-demo
+  name: "inference-gpu"
+spec:
+  selector:
+    andExpression:
+    - memory:
+        value: "16G"
+        operator: LessThanOrEqualTo
+    - cudaComputeCapability:
+        value: "7.5"
+        operator: GreaterThanOrEqualTo
+
+---
+apiVersion: gpu.resource.nvidia.com/v1alpha1
+kind: GpuClaimParameters
+metadata:
+  namespace: kubecon-demo
+  name: "training-gpu"
+spec:
+  selector:
+    memory:
+      value: "16G"
+      operator: GreaterThanOrEqualTo
+

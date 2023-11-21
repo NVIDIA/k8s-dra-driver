@@ -1,0 +1,27 @@
+---
+apiVersion: resource.k8s.io/v1alpha2
+kind: ResourceClaimTemplate
+metadata:
+  namespace: kubecon-demo
+  name: "inference-gpu"
+spec:
+  spec:
+    resourceClassName: gpu.nvidia.com
+    parametersRef:
+      apiGroup: gpu.resource.nvidia.com
+      kind: GpuClaimParameters
+      name: "inference-gpu"
+
+---
+apiVersion: resource.k8s.io/v1alpha2
+kind: ResourceClaimTemplate
+metadata:
+  namespace: kubecon-demo
+  name: "training-gpu"
+spec:
+  spec:
+    resourceClassName: gpu.nvidia.com
+    parametersRef:
+      apiGroup: gpu.resource.nvidia.com
+      kind: GpuClaimParameters
+      name: "training-gpu"
