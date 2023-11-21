@@ -24,13 +24,18 @@ on:
     branches:
       - main
       - release-*
+  push:
+    branches:
+      - main
+      - release-*
 
 jobs:
   build-image:
     # We trigger builds on MERGED pull requests or on non-closed PRs that are not created against a fork.
     if: |
       (github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true) ||
-      (github.event_name == 'pull_request' && github.event.action != 'closed' && github.event.pull_request.head.repo.full_name == github.repository)
+      (github.event_name == 'pull_request' && github.event.action != 'closed' && github.event.pull_request.head.repo.full_name == github.repository) ||
+      (github.event_name == 'push')
     runs-on: ubuntu-latest
     strategy:
       matrix:
