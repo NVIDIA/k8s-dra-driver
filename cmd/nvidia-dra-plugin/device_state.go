@@ -169,7 +169,7 @@ func NewDeviceState(ctx context.Context, config *Config) (*DeviceState, error) {
 		nvdevlib:    nvdevlib,
 	}
 
-	err = state.syncPreparedDevicesFromCRDSpec(ctx, &config.nascrd.Spec)
+	err = state.syncPreparedDevicesFromCRDSpec(ctx, &config.nascr.Spec)
 	if err != nil {
 		return nil, fmt.Errorf("unable to sync prepared devices from CRD: %w", err)
 	}

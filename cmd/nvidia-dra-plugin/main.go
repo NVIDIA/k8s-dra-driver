@@ -54,11 +54,9 @@ type Flags struct {
 }
 
 type Config struct {
-	flags *Flags
-	// TODO: Rename to nascr
-	nascrd *nascrd.NodeAllocationState
-	// TODO: Rename to clientsets
-	clientset flags.ClientSets
+	flags      *Flags
+	nascr      *nascrd.NodeAllocationState
+	clientsets flags.ClientSets
 }
 
 func main() {
@@ -132,9 +130,9 @@ func newApp() *cli.App {
 			}
 
 			config := &Config{
-				flags:     flags,
-				nascrd:    nascr,
-				clientset: clientSets,
+				flags:      flags,
+				nascr:      nascr,
+				clientsets: clientSets,
 			}
 
 			return StartPlugin(ctx, config)
