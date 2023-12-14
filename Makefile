@@ -81,7 +81,7 @@ golangci-lint:
 
 COVERAGE_FILE := coverage.out
 test: build cmds
-	go test -v -coverprofile=$(COVERAGE_FILE) $(MODULE)/...
+	go test -race -cover -v -coverprofile=$(COVERAGE_FILE) $(MODULE)/...
 
 coverage: test
 	cat $(COVERAGE_FILE) | grep -v "_mock.go" > $(COVERAGE_FILE).no-mocks
