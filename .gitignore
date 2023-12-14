@@ -3,4 +3,5 @@
 /set-nas-status
 /nvidia-dra-controller
 /nvidia-dra-plugin
+.idea
 [._]*.sw[a-p]

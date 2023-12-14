@@ -38,15 +38,14 @@ const (
 
 type driver struct {
 	sync.Mutex
-	// TODO: Rename to nascr
-	nascrd    *nascrd.NodeAllocationState
+	nascr     *nascrd.NodeAllocationState
 	nasclient *nasclient.Client
 	state     *DeviceState
 }
 
 func NewDriver(ctx context.Context, config *Config) (*driver, error) {
 	var d *driver
-	client := nasclient.New(config.nascrd, config.clientset.Nvidia.NasV1alpha1())
+	client := nasclient.New(config.nascr, config.clientsets.Nvidia.NasV1alpha1())
 	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		err := client.GetOrCreate(ctx)
 		if err != nil {
@@ -63,7 +62,7 @@ func NewDriver(ctx context.Context, config *Config) (*driver, error) {
 			return err
 		}
 
-		err = client.Update(ctx, state.GetUpdatedSpec(&config.nascrd.Spec))
+		err = client.Update(ctx, state.GetUpdatedSpec(&config.nascr.Spec))
 		if err != nil {
 			return err
 		}
@@ -74,7 +73,7 @@ func NewDriver(ctx context.Context, config *Config) (*driver, error) {
 		}
 
 		d = &driver{
-			nascrd:    config.nascrd,
+			nascr:     config.nascr,
 			nasclient: client,
 			state:     state,
 		}
@@ -137,7 +136,7 @@ func (d *driver) IsPrepared(ctx context.Context, claimUID string) (bool, []strin
 	if err != nil {
 		return false, nil, err
 	}
-	if _, exists := d.nascrd.Spec.PreparedClaims[claimUID]; exists {
+	if _, exists := d.nascr.Spec.PreparedClaims[claimUID]; exists {
 		return true, d.state.cdi.GetClaimDevices(claimUID), nil
 	}
 	return false, nil, nil
@@ -152,12 +151,12 @@ func (d *driver) Prepare(ctx context.Context, claimUID string) ([]string, error)
 			return err
 		}
 
-		prepared, err = d.state.Prepare(ctx, claimUID, d.nascrd.Spec.AllocatedClaims[claimUID])
+		prepared, err = d.state.Prepare(ctx, claimUID, d.nascr.Spec.AllocatedClaims[claimUID])
 		if err != nil {
 			return err
 		}
 
-		err = d.nasclient.Update(ctx, d.state.GetUpdatedSpec(&d.nascrd.Spec))
+		err = d.nasclient.Update(ctx, d.state.GetUpdatedSpec(&d.nascr.Spec))
 		if err != nil {
 			return err
 		}
@@ -182,7 +181,7 @@ func (d *driver) Unprepare(ctx context.Context, claimUID string) error {
 			return err
 		}
 
-		err = d.nasclient.Update(ctx, d.state.GetUpdatedSpec(&d.nascrd.Spec))
+		err = d.nasclient.Update(ctx, d.state.GetUpdatedSpec(&d.nascr.Spec))
 		if err != nil {
 			return err
 		}
@@ -212,7 +211,7 @@ func (d *driver) CleanupStaleStateContinuously(ctx context.Context) {
 
 func (d *driver) cleanupStaleStateOnce(ctx context.Context) (string, error) {
 	listOptions := metav1.ListOptions{
-		FieldSelector: fmt.Sprintf("metadata.name=%s", d.nascrd.Name),
+		FieldSelector: fmt.Sprintf("metadata.name=%s", d.nascr.Name),
 	}
 
 	list, err := d.nasclient.List(ctx, listOptions)
@@ -237,7 +236,7 @@ func (d *driver) cleanupStaleStateContinuously(ctx context.Context, resourceVers
 	watchOptions := metav1.ListOptions{
 		Watch:           true,
 		ResourceVersion: resourceVersion,
-		FieldSelector:   fmt.Sprintf("metadata.name=%s", d.nascrd.Name),
+		FieldSelector:   fmt.Sprintf("metadata.name=%s", d.nascr.Name),
 	}
 
 	if previousError != nil {
