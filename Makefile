@@ -57,6 +57,7 @@ $(CMD_TARGETS): cmd-%:
 	CGO_LDFLAGS_ALLOW='-Wl,--unresolved-symbols=ignore-in-object-files' GOOS=$(GOOS) \
 		go build -ldflags "-s -w -X $(CLI_VERSION_PACKAGE).gitCommit=$(GIT_COMMIT) -X $(CLI_VERSION_PACKAGE).version=$(CLI_VERSION)" $(COMMAND_BUILD_OPTIONS) $(MODULE)/cmd/$(*)
 
+## build: Build the driver
 build:
 	GOOS=$(GOOS) go build ./...
 
@@ -67,28 +68,33 @@ $(EXAMPLE_TARGETS): example-%:
 all: check test build binary
 check: $(CHECK_TARGETS)
 
-# Update the vendor folder
+## vendor: Update the vendor folder
 vendor:
 	go mod vendor
 
-# Apply go fmt to the codebase
+## fmt: Apply go fmt to the codebase
 fmt:
 	go list -f '{{.Dir}}' $(MODULE)/... \
 		| xargs gofmt -s -l -w
 
+## golangci-lint: Run the golangci-lint tool
 golangci-lint:
-	golangci-lint run ./...
+	golangci-lint run ./... --fix
 
 COVERAGE_FILE := coverage.out
+## test: Run the unit tests
 test: build cmds
 	go test -v -coverprofile=$(COVERAGE_FILE) $(MODULE)/...
 
+## coverage: Show the test coverage
 coverage: test
 	cat $(COVERAGE_FILE) | grep -v "_mock.go" > $(COVERAGE_FILE).no-mocks
 	go tool cover -func=$(COVERAGE_FILE).no-mocks
 
+## generate: Generate code, including CRDs, clients, and deepcopies
 generate: generate-crds fmt
 
+## generate-crds: Generate CRDs
 generate-crds: generate-deepcopy
 	for dir in $(CLIENT_SOURCES); do \
 		controller-gen crd:crdVersions=v1 \
@@ -175,3 +181,15 @@ PHONY: .shell
 		-w $(PWD) \
 		--user $$(id -u):$$(id -g) \
 		$(BUILDIMAGE)
+
+## help: Display help information
+help: Makefile
+	@echo ""
+	@echo "Usage:"
+	@echo ""
+	@echo "  make [target]"
+	@echo ""
+	@echo "Targets:"
+	@echo ""
+	@awk -F ':|##' '/^[^\.%\t][^\t]*:.*##/{printf "  \033[36m%-20s\033[0m %s\n", $$1, $$NF}' $(MAKEFILE_LIST) | sort
+	@sed -n 's/^##//p' ${MAKEFILE_LIST} | column -t -s ':' |  sed -e 's/^/ /'
