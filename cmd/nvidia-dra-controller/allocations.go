@@ -103,6 +103,9 @@ func (p *PerNodeAllocatedClaims) RemoveNode(claimUID, node string) {
 	}
 
 	delete(p.allocations[claimUID], node)
+	if len(p.allocations[claimUID]) == 0 {
+		delete(p.allocations, claimUID)
+	}
 }
 
 func (p *PerNodeAllocatedClaims) Remove(claimUID string) {
