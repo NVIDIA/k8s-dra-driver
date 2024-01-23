@@ -13,6 +13,8 @@ updates:
       - area/dependency
     ignore:
     - dependency-name: k8s.io/*
+    labels:
+    - dependencies
 
   - package-ecosystem: "github-actions"
     directory: "/"
