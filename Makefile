@@ -76,6 +76,14 @@ fmt:
 	go list -f '{{.Dir}}' $(MODULE)/... \
 		| xargs gofmt -s -l -w
 
+## goimports: Apply goimports -local to the codebase
+goimports:
+	find . -name \*.go \
+			-not -name "zz_generated.deepcopy.go" \
+			-not -path "./vendor/*" \
+			-not -path "./pkg/nvidia.com/resource/clientset/versioned/*" \
+		-exec goimports -local $(MODULE) -w {} \;
+
 golangci-lint:
 	golangci-lint run ./...
 
