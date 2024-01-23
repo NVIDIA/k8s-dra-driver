@@ -36,7 +36,7 @@ require (
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.8.4
-	github.com/urfave/cli/v2 v2.25.7
+	github.com/urfave/cli/v2 v2.27.1
 	golang.org/x/mod v0.14.0
 	k8s.io/api v0.27.0-beta.0
 	k8s.io/apimachinery v0.27.0-beta.0
