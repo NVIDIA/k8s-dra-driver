@@ -1,5 +1,5 @@
 /**
-# Copyright (c) NVIDIA CORPORATION.  All rights reserved.
+# Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,22 +14,20 @@
 # limitations under the License.
 **/
 
-package transform
+package discover
 
-import (
-	"tags.cncf.io/container-device-interface/specs-go"
-)
+import "github.com/NVIDIA/nvidia-container-toolkit/internal/logger"
 
-type noop struct{}
+// NewNvSwitchDiscoverer creates a discoverer for NVSWITCH devices.
+func NewNvSwitchDiscoverer(logger logger.Interface, devRoot string) (Discover, error) {
+	devices := NewCharDeviceDiscoverer(
+		logger,
+		devRoot,
+		[]string{
+			"/dev/nvidia-nvswitchctl",
+			"/dev/nvidia-nvswitch*",
+		},
+	)
 
-var _ Transformer = (*noop)(nil)
-
-// NewNoopTransformer returns a no-op transformer
-func NewNoopTransformer() Transformer {
-	return noop{}
-}
-
-// Transform is a no-op
-func (n noop) Transform(spec *specs.Spec) error {
-	return nil
+	return devices, nil
 }
