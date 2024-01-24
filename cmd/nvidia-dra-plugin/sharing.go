@@ -26,6 +26,7 @@ import (
 	"text/template"
 	"time"
 
+	"golang.org/x/mod/semver"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -101,6 +102,15 @@ func (t *TimeSlicingManager) SetTimeSlice(devices *PreparedDevices, config *nasc
 		return fmt.Errorf("setting a TimeSlice duration on MIG devices is unsupported")
 	}
 
+	var supportTimeSliceIDs []string
+	for _, gpu := range devices.Gpu.Devices {
+		isSupportTimeSlice := detectSupportTimeSliceByCudaComputeCapability(gpu.cudaComputeCapability)
+		if !isSupportTimeSlice {
+			//todo: we need a more desirable way to handle it, instead of directly err, causing plugin crash
+			return fmt.Errorf("setting a TimeSlice duration on uuid:%v,cudaComputeCapability:%v is unsupported", gpu.uuid, gpu.cudaComputeCapability)
+		}
+	}
+
 	timeSlice := nascrd.DefaultTimeSlice
 	if config != nil && config.TimeSlice != nil {
 		timeSlice = *config.TimeSlice
@@ -111,7 +121,7 @@ func (t *TimeSlicingManager) SetTimeSlice(devices *PreparedDevices, config *nasc
 		return fmt.Errorf("error setting compute mode: %w", err)
 	}
 
-	err = t.nvdevlib.setTimeSlice(devices.UUIDs(), timeSlice.Int())
+	err = t.nvdevlib.setTimeSlice(supportTimeSliceIDs, timeSlice.Int())
 	if err != nil {
 		return fmt.Errorf("error setting time slice: %w", err)
 	}
@@ -388,4 +398,14 @@ func (m *MpsControlDaemon) Stop(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+// detactSupportTimeSliceByArch Determine whether the architecture series
+// supports setting time slices based on the gpu cudaComputeCapability.
+func detectSupportTimeSliceByCudaComputeCapability(cudaComputeCapability string) bool {
+	// ref https://github.com/NVIDIA/k8s-dra-driver/pull/58#discussion_r1469338562
+	// we believe time-slicing is available on Volta+ architectures, so the check would simply be cudaComputeCapability >= 7.0
+	// by https://github.com/NVIDIA/go-nvlib/blob/main/pkg/nvlib/device/device.go#L149, We know that cuda major and minor versions are concatenated through `.` .
+
+	return semver.Compare("v"+strings.TrimPrefix(cudaComputeCapability, "v"), "v7.0") >= 0
 }
