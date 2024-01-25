@@ -9,8 +9,6 @@ updates:
     schedule:
       interval: "weekly"
       day: "sunday"
-    labels:
-      - area/dependency
     ignore:
     - dependency-name: k8s.io/*
     labels:
