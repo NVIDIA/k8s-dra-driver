@@ -19,6 +19,7 @@ package nvcdi
 import (
 	"github.com/NVIDIA/go-nvlib/pkg/nvlib/device"
 	"github.com/NVIDIA/go-nvlib/pkg/nvml"
+
 	"github.com/NVIDIA/nvidia-container-toolkit/internal/logger"
 	"github.com/NVIDIA/nvidia-container-toolkit/pkg/nvcdi/transform"
 )
@@ -65,6 +66,13 @@ func WithLogger(logger logger.Interface) Option {
 func WithNVIDIACTKPath(path string) Option {
 	return func(l *nvcdilib) {
 		l.nvidiaCTKPath = path
+	}
+}
+
+// WithLdconfigPath sets the path to the ldconfig program
+func WithLdconfigPath(path string) Option {
+	return func(l *nvcdilib) {
+		l.ldconfigPath = path
 	}
 }
 

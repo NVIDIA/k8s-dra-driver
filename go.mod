@@ -29,9 +29,9 @@ replace (
 )
 
 require (
-	github.com/NVIDIA/go-nvlib v0.0.0-20231116150931-9fd385bace0d
+	github.com/NVIDIA/go-nvlib v0.0.0-20231212194527-f3264c8a6a7a
 	github.com/NVIDIA/go-nvml v0.12.0-2
-	github.com/NVIDIA/nvidia-container-toolkit v1.14.4-0.20231120225202-039d7fd32429
+	github.com/NVIDIA/nvidia-container-toolkit v1.15.0-rc.2
 	github.com/prometheus/client_golang v1.14.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/pflag v1.0.5
@@ -70,7 +70,7 @@ require (
 	github.com/google/gnostic v0.5.7-v3refs // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/google/gofuzz v1.1.0 // indirect
-	github.com/google/uuid v1.3.0 // indirect
+	github.com/google/uuid v1.4.0 // indirect
 	github.com/imdario/mergo v0.3.6 // indirect
 	github.com/inconshreveable/mousetrap v1.0.1 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
