@@ -24,4 +24,7 @@ vVERSION := v$(VERSION:v%=%)
 GOLANG_VERSION ?= 1.20.4
 CUDA_VERSION ?= 11.8.0
 
+BUILDIMAGE_TAG ?= devel-go$(GOLANG_VERSION)
+BUILDIMAGE ?=  ghcr.io/nvidia/k8s-test-infra:$(BUILDIMAGE_TAG)
+
 GIT_COMMIT ?= $(shell git describe --match="" --dirty --long --always --abbrev=40 2> /dev/null || echo "")
