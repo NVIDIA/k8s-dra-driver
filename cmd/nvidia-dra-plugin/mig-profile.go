@@ -30,6 +30,28 @@ const (
 	AttributeMediaExtensions = "me"
 )
 
+var (
+	CIProfileIDMap = map[int]int{
+		1: nvml.COMPUTE_INSTANCE_PROFILE_1_SLICE,
+		2: nvml.COMPUTE_INSTANCE_PROFILE_2_SLICE,
+		3: nvml.COMPUTE_INSTANCE_PROFILE_3_SLICE,
+		4: nvml.COMPUTE_INSTANCE_PROFILE_4_SLICE,
+		6: nvml.COMPUTE_INSTANCE_PROFILE_6_SLICE,
+		7: nvml.COMPUTE_INSTANCE_PROFILE_7_SLICE,
+		8: nvml.COMPUTE_INSTANCE_PROFILE_8_SLICE,
+	}
+
+	GIProfileIDMap = map[int]int{
+		1: nvml.GPU_INSTANCE_PROFILE_1_SLICE,
+		2: nvml.GPU_INSTANCE_PROFILE_2_SLICE,
+		3: nvml.GPU_INSTANCE_PROFILE_3_SLICE,
+		4: nvml.GPU_INSTANCE_PROFILE_4_SLICE,
+		6: nvml.GPU_INSTANCE_PROFILE_6_SLICE,
+		7: nvml.GPU_INSTANCE_PROFILE_7_SLICE,
+		8: nvml.GPU_INSTANCE_PROFILE_8_SLICE,
+	}
+)
+
 // MigProfile represents a specific MIG profile.
 // Examples include "1g.5gb", "2g.10gb", "1c.2g.10gb", or "1c.1g.5gb+me", etc.
 type MigProfile struct {
@@ -82,43 +104,17 @@ func ParseMigProfile(profile string) (*MigProfile, error) {
 		GB: gb,
 	}
 
-	switch c {
-	case 1:
-		m.CIProfileID = nvml.COMPUTE_INSTANCE_PROFILE_1_SLICE
-	case 2:
-		m.CIProfileID = nvml.COMPUTE_INSTANCE_PROFILE_2_SLICE
-	case 3:
-		m.CIProfileID = nvml.COMPUTE_INSTANCE_PROFILE_3_SLICE
-	case 4:
-		m.CIProfileID = nvml.COMPUTE_INSTANCE_PROFILE_4_SLICE
-	case 6:
-		m.CIProfileID = nvml.COMPUTE_INSTANCE_PROFILE_6_SLICE
-	case 7:
-		m.CIProfileID = nvml.COMPUTE_INSTANCE_PROFILE_7_SLICE
-	case 8:
-		m.CIProfileID = nvml.COMPUTE_INSTANCE_PROFILE_8_SLICE
-	default:
+	ciProfileID, ok := CIProfileIDMap[c]
+	if !ok {
 		return nil, fmt.Errorf("unknown Compute Instance slice size: %v", c)
 	}
+	m.CIProfileID = ciProfileID
 
-	switch g {
-	case 1:
-		m.GIProfileID = nvml.GPU_INSTANCE_PROFILE_1_SLICE
-	case 2:
-		m.GIProfileID = nvml.GPU_INSTANCE_PROFILE_2_SLICE
-	case 3:
-		m.GIProfileID = nvml.GPU_INSTANCE_PROFILE_3_SLICE
-	case 4:
-		m.GIProfileID = nvml.GPU_INSTANCE_PROFILE_4_SLICE
-	case 6:
-		m.GIProfileID = nvml.GPU_INSTANCE_PROFILE_6_SLICE
-	case 7:
-		m.GIProfileID = nvml.GPU_INSTANCE_PROFILE_7_SLICE
-	case 8:
-		m.GIProfileID = nvml.GPU_INSTANCE_PROFILE_8_SLICE
-	default:
+	giProfileID, ok := GIProfileIDMap[g]
+	if !ok {
 		return nil, fmt.Errorf("unknown GPU Instance slice size: %v", g)
 	}
+	m.GIProfileID = giProfileID
 
 	m.CIEngProfileID = nvml.COMPUTE_INSTANCE_ENGINE_PROFILE_SHARED
 

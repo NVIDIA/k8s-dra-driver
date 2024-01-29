@@ -37,6 +37,15 @@ const (
 	LongTimeSlice    TimeSliceDuration = "Long"
 )
 
+var (
+	timeSliceDurationTypeMap = map[TimeSliceDuration]int{
+		DefaultTimeSlice: 0,
+		ShortTimeSlice:   1,
+		MediumTimeSlice:  2,
+		LongTimeSlice:    3,
+	}
+)
+
 // Sharing provides methods to check if a given sharing strategy is selected and grab its configuration.
 // +k8s:deepcopy-gen=false
 type Sharing interface {
@@ -172,17 +181,11 @@ func (s *MigDeviceSharing) GetMpsConfig() (*MpsConfig, error) {
 
 // Int returns the integer representations of a timeslice duration.
 func (c TimeSliceDuration) Int() int {
-	switch c {
-	case DefaultTimeSlice:
-		return 0
-	case ShortTimeSlice:
-		return 1
-	case MediumTimeSlice:
-		return 2
-	case LongTimeSlice:
-		return 3
+	typ, ok := timeSliceDurationTypeMap[c]
+	if !ok {
+		return -1
 	}
-	return -1
+	return typ
 }
 
 // TODO: Always return a map of UUID -> limit
