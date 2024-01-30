@@ -27,8 +27,10 @@ import (
 	nascrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1"
 )
 
-type AllocatableDevices map[string]*AllocatableDeviceInfo
-type PreparedClaims map[string]*PreparedDevices
+type (
+	AllocatableDevices map[string]*AllocatableDeviceInfo
+	PreparedClaims     map[string]*PreparedDevices
+)
 
 type GpuInfo struct {
 	minor                 int

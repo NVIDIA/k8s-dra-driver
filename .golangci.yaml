@@ -10,6 +10,7 @@ linters:
     - goimports
     - misspell
     - stylecheck
+    - gofumpt
 
 run:
   tests: true
@@ -18,3 +19,5 @@ run:
 linters-settings:
   goimports:
     local-prefixes: "github.com/NVIDIA/k8s-dra-driver"
+  gofumpt:
+    extra-rules: true

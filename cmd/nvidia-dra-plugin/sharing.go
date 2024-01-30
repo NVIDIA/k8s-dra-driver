@@ -229,17 +229,17 @@ func (m *MpsControlDaemon) Start(ctx context.Context) error {
 		return fmt.Errorf("failed to convert unstructured data to typed object: %w", err)
 	}
 
-	err = os.MkdirAll(m.shmDir, 0755)
+	err = os.MkdirAll(m.shmDir, 0o755)
 	if err != nil {
 		return fmt.Errorf("error creating directory %v: %w", m.shmDir, err)
 	}
 
-	err = os.MkdirAll(m.pipeDir, 0755)
+	err = os.MkdirAll(m.pipeDir, 0o755)
 	if err != nil {
 		return fmt.Errorf("error creating directory %v: %w", m.pipeDir, err)
 	}
 
-	err = os.MkdirAll(m.logDir, 0755)
+	err = os.MkdirAll(m.logDir, 0o755)
 	if err != nil {
 		return fmt.Errorf("error creating directory %v: %w", m.logDir, err)
 	}

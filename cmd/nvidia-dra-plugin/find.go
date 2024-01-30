@@ -84,7 +84,6 @@ func (r root) getDevRoot() string {
 // A number of folders can be specified to search in addition to the root itself.
 // If the file represents a symlink, this is resolved and the final path is returned.
 func (r root) findFile(name string, searchIn ...string) (string, error) {
-
 	for _, d := range append([]string{"/"}, searchIn...) {
 		l := filepath.Join(string(r), d, name)
 		candidate, err := resolveLink(l)

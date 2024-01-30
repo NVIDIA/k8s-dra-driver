@@ -150,7 +150,7 @@ func newApp() *cli.App {
 }
 
 func StartPlugin(ctx context.Context, config *Config) error {
-	err := os.MkdirAll(DriverPluginPath, 0750)
+	err := os.MkdirAll(DriverPluginPath, 0o750)
 	if err != nil {
 		return err
 	}
@@ -158,7 +158,7 @@ func StartPlugin(ctx context.Context, config *Config) error {
 	info, err := os.Stat(config.flags.cdiRoot)
 	switch {
 	case err != nil && os.IsNotExist(err):
-		err := os.MkdirAll(config.flags.cdiRoot, 0750)
+		err := os.MkdirAll(config.flags.cdiRoot, 0o750)
 		if err != nil {
 			return err
 		}

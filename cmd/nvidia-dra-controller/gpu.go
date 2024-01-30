@@ -65,7 +65,7 @@ func (g *gpudriver) Deallocate(crd *nascrd.NodeAllocationState, claim *resourcev
 	return nil
 }
 
-func (g *gpudriver) UnsuitableNode(crd *nascrd.NodeAllocationState, pod *corev1.Pod, gpucas []*controller.ClaimAllocation, allcas []*controller.ClaimAllocation, potentialNode string) error {
+func (g *gpudriver) UnsuitableNode(crd *nascrd.NodeAllocationState, pod *corev1.Pod, gpucas, allcas []*controller.ClaimAllocation, potentialNode string) error {
 	g.PendingAllocatedClaims.VisitNode(potentialNode, func(claimUID string, allocated nascrd.AllocatedDevices) {
 		if _, exists := crd.Spec.AllocatedClaims[claimUID]; exists {
 			g.PendingAllocatedClaims.Remove(claimUID)
@@ -111,7 +111,7 @@ func (g *gpudriver) UnsuitableNode(crd *nascrd.NodeAllocationState, pod *corev1.
 	return nil
 }
 
-func (g *gpudriver) allocate(crd *nascrd.NodeAllocationState, pod *corev1.Pod, gpucas []*controller.ClaimAllocation, allcas []*controller.ClaimAllocation, node string) map[string][]string {
+func (g *gpudriver) allocate(crd *nascrd.NodeAllocationState, pod *corev1.Pod, gpucas, allcas []*controller.ClaimAllocation, node string) map[string][]string {
 	available := make(map[string]*nascrd.AllocatableGpu)
 
 	for _, device := range crd.Spec.AllocatableDevices {

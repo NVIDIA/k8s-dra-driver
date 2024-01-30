@@ -177,7 +177,7 @@ func (m MigProfile) Equals(other *MigProfile) bool {
 	return m == *other
 }
 
-func parseMigProfileField(s string, field string) (int, error) {
+func parseMigProfileField(s, field string) (int, error) {
 	if strings.TrimSpace(s) != s {
 		return -1, fmt.Errorf("leading or trailing spaces on '%%d%s'", field)
 	}

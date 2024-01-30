@@ -73,7 +73,7 @@ func (m *migdriver) Deallocate(crd *nascrd.NodeAllocationState, claim *resourcev
 	return nil
 }
 
-func (m *migdriver) UnsuitableNode(crd *nascrd.NodeAllocationState, pod *corev1.Pod, migcas []*controller.ClaimAllocation, allcas []*controller.ClaimAllocation, potentialNode string) error {
+func (m *migdriver) UnsuitableNode(crd *nascrd.NodeAllocationState, pod *corev1.Pod, migcas, allcas []*controller.ClaimAllocation, potentialNode string) error {
 	m.PendingAllocatedClaims.VisitNode(potentialNode, func(claimUID string, allocated nascrd.AllocatedDevices) {
 		if _, exists := crd.Spec.AllocatedClaims[claimUID]; exists {
 			m.PendingAllocatedClaims.Remove(claimUID)
@@ -168,7 +168,7 @@ func (m *migdriver) available(crd *nascrd.NodeAllocationState) MigDevicePlacemen
 	return placements
 }
 
-func (m *migdriver) allocate(crd *nascrd.NodeAllocationState, pod *corev1.Pod, migcas []*controller.ClaimAllocation, allcas []*controller.ClaimAllocation, node string) map[*controller.ClaimAllocation]MigDevicePlacement {
+func (m *migdriver) allocate(crd *nascrd.NodeAllocationState, pod *corev1.Pod, migcas, allcas []*controller.ClaimAllocation, node string) map[*controller.ClaimAllocation]MigDevicePlacement {
 	available := m.available(crd)
 	gpuClaimInfo := m.gpuClaimInfo(crd, allcas)
 

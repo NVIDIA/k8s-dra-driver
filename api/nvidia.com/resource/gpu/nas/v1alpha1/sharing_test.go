@@ -76,7 +76,6 @@ func TestMpsPerDevicePinnedMemoryLimitNormalize(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.description, func(t *testing.T) {
-
 			limits, err := tc.perDeviceMemoryLimit.Normalize(tc.uuids, tc.memoryLimit)
 			require.ErrorIs(t, err, tc.expectedError)
 			require.EqualValues(t, tc.expectedLimits, limits)
