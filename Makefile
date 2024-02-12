@@ -61,7 +61,7 @@ examples: $(EXAMPLE_TARGETS)
 $(EXAMPLE_TARGETS): example-%:
 	GOOS=$(GOOS) go build ./examples/$(*)
 
-all: check test build binary
+all: check test build binaries
 check: $(CHECK_TARGETS)
 
 # Update the vendor folder
