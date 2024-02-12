@@ -121,7 +121,7 @@ func (d *driver) nodePrepareResource(ctx context.Context, claim *drapbv1.Claim) 
 	isPrepared, prepared, err := d.isPrepared(ctx, claim.Uid)
 	if err != nil {
 		return &drapbv1.NodePrepareResourceResponse{
-			Error: fmt.Sprintf("error checking if claim is already prepared: %w", err),
+			Error: fmt.Sprintf("error checking if claim is already prepared: %v", err),
 		}
 	}
 
@@ -133,7 +133,7 @@ func (d *driver) nodePrepareResource(ctx context.Context, claim *drapbv1.Claim) 
 	prepared, err = d.prepare(ctx, claim.Uid)
 	if err != nil {
 		return &drapbv1.NodePrepareResourceResponse{
-			Error: fmt.Sprintf("error preparing devices for claim %v: %w", claim.Uid, err),
+			Error: fmt.Sprintf("error preparing devices for claim %v: %v", claim.Uid, err),
 		}
 	}
 
@@ -215,12 +215,12 @@ func (d *driver) CleanupStaleStateContinuously(ctx context.Context) {
 	for {
 		resourceVersion, err := d.cleanupStaleStateOnce(ctx)
 		if err != nil {
-			klog.Errorf("Error cleaning up stale claim state: %w", err)
+			klog.Errorf("Error cleaning up stale claim state: %v", err)
 		}
 
 		err = d.cleanupStaleStateContinuously(ctx, resourceVersion, err)
 		if err != nil {
-			klog.Errorf("Error cleaning up stale claim state: %w", err)
+			klog.Errorf("Error cleaning up stale claim state: %v", err)
 			time.Sleep(CleanupTimeoutSecondsOnError * time.Second)
 		}
 	}
@@ -296,7 +296,7 @@ func (d *driver) cleanupStaleState(ctx context.Context, nas *nascrd.NodeAllocati
 	go func() {
 		count := 0
 		for err := range caErrors {
-			klog.Errorf("Error cleaning up claim allocations: %w", err)
+			klog.Errorf("Error cleaning up claim allocations: %v", err)
 			count++
 		}
 		errorCounts <- count
@@ -307,7 +307,7 @@ func (d *driver) cleanupStaleState(ctx context.Context, nas *nascrd.NodeAllocati
 	go func() {
 		count := 0
 		for err := range cdiErrors {
-			klog.Errorf("Error cleaning up CDI files: %w", err)
+			klog.Errorf("Error cleaning up CDI files: %v", err)
 			count++
 		}
 		errorCounts <- count
@@ -318,7 +318,7 @@ func (d *driver) cleanupStaleState(ctx context.Context, nas *nascrd.NodeAllocati
 	go func() {
 		count := 0
 		for err := range mpsErrors {
-			klog.Errorf("Error cleaning up MPS control daemon artifacts: %w", err)
+			klog.Errorf("Error cleaning up MPS control daemon artifacts: %v", err)
 			count++
 		}
 		errorCounts <- count

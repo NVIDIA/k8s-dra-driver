@@ -191,7 +191,7 @@ func StartPlugin(ctx context.Context, config *Config) error {
 
 	err = driver.Shutdown(ctx)
 	if err != nil {
-		klog.Errorf("Unable to cleanly shutdown driver: %w", err)
+		klog.Errorf("Unable to cleanly shutdown driver: %v", err)
 	}
 
 	return nil
