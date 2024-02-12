@@ -26,7 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/util/retry"
 	"k8s.io/klog/v2"
-	drapbv1 "k8s.io/kubelet/pkg/apis/dra/v1alpha2"
+	drapbv1 "k8s.io/kubelet/pkg/apis/dra/v1alpha3"
 
 	nascrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1"
 	nasclient "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1/client"
@@ -99,39 +99,56 @@ func (d *driver) Shutdown(ctx context.Context) error {
 	})
 }
 
-func (d *driver) NodePrepareResource(ctx context.Context, req *drapbv1.NodePrepareResourceRequest) (*drapbv1.NodePrepareResourceResponse, error) {
+func (d *driver) NodePrepareResources(ctx context.Context, req *drapbv1.NodePrepareResourcesRequest) (*drapbv1.NodePrepareResourcesResponse, error) {
+
+	klog.Infof("NodePrepareResource is called: number of claims: %d", len(req.Claims))
+	preparedResources := &drapbv1.NodePrepareResourcesResponse{Claims: map[string]*drapbv1.NodePrepareResourceResponse{}}
+
+	// In production version some common operations of d.nodeUnprepareResources
+	// should be done outside of the loop, for instance updating the CR could
+	// be done once after all HW was prepared.
+	for _, claim := range req.Claims {
+		preparedResources.Claims[claim.Uid] = d.nodePrepareResource(ctx, claim)
+	}
+
+	return preparedResources, nil
+}
+
+func (d *driver) nodePrepareResource(ctx context.Context, claim *drapbv1.Claim) *drapbv1.NodePrepareResourceResponse {
 	d.Lock()
 	defer d.Unlock()
 
-	klog.Infof("NodePrepareResource is called: request: %+v", req)
-
-	isPrepared, prepared, err := d.IsPrepared(ctx, req.ClaimUid)
+	isPrepared, prepared, err := d.isPrepared(ctx, claim.Uid)
 	if err != nil {
-		return nil, fmt.Errorf("error checking if claim is already prepared: %w", err)
+		return &drapbv1.NodePrepareResourceResponse{
+			Error: fmt.Sprintf("error checking if claim is already prepared: %w", err),
+		}
 	}
 
 	if isPrepared {
-		klog.Infof("Returning cached devices for claim '%v': %s", req.ClaimUid, prepared)
-		return &drapbv1.NodePrepareResourceResponse{CdiDevices: prepared}, nil
+		klog.Infof("Returning cached devices for claim '%v': %s", claim.Uid, prepared)
+		return &drapbv1.NodePrepareResourceResponse{CDIDevices: prepared}
 	}
 
-	prepared, err = d.Prepare(ctx, req.ClaimUid)
+	prepared, err = d.prepare(ctx, claim.Uid)
 	if err != nil {
-		return nil, fmt.Errorf("error preparing devices for claim %v: %w", req.ClaimUid, err)
+		return &drapbv1.NodePrepareResourceResponse{
+			Error: fmt.Sprintf("error preparing devices for claim %v: %w", claim.Uid, err),
+		}
 	}
 
-	klog.Infof("Returning newly prepared devices for claim '%v': %s", req.ClaimUid, prepared)
-	return &drapbv1.NodePrepareResourceResponse{CdiDevices: prepared}, nil
+	klog.Infof("Returning newly prepared devices for claim '%v': %s", claim.Uid, prepared)
+	return &drapbv1.NodePrepareResourceResponse{CDIDevices: prepared}
 }
 
-func (d *driver) NodeUnprepareResource(ctx context.Context, req *drapbv1.NodeUnprepareResourceRequest) (*drapbv1.NodeUnprepareResourceResponse, error) {
+func (d *driver) NodeUnprepareResources(ctx context.Context, req *drapbv1.NodeUnprepareResourcesRequest) (*drapbv1.NodeUnprepareResourcesResponse, error) {
 	// We don't upprepare as part of NodeUnprepareResource, we do it
 	// asynchronously when the claims themselves are deleted and the
 	// AllocatedClaim has been removed.
-	return &drapbv1.NodeUnprepareResourceResponse{}, nil
+	return &drapbv1.NodeUnprepareResourcesResponse{}, nil
 }
 
-func (d *driver) IsPrepared(ctx context.Context, claimUID string) (bool, []string, error) {
+func (d *driver) isPrepared(ctx context.Context, claimUID string) (bool, []string, error) {
 	err := d.nasclient.Get(ctx)
 	if err != nil {
 		return false, nil, err
@@ -142,7 +159,7 @@ func (d *driver) IsPrepared(ctx context.Context, claimUID string) (bool, []strin
 	return false, nil, nil
 }
 
-func (d *driver) Prepare(ctx context.Context, claimUID string) ([]string, error) {
+func (d *driver) prepare(ctx context.Context, claimUID string) ([]string, error) {
 	var err error
 	var prepared []string
 	err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
@@ -169,7 +186,7 @@ func (d *driver) Prepare(ctx context.Context, claimUID string) ([]string, error)
 	return prepared, nil
 }
 
-func (d *driver) Unprepare(ctx context.Context, claimUID string) error {
+func (d *driver) unprepare(ctx context.Context, claimUID string) error {
 	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		err := d.nasclient.Get(ctx)
 		if err != nil {
@@ -329,7 +346,7 @@ func (d *driver) cleanupClaimAllocations(ctx context.Context, nas *nascrd.NodeAl
 			go func(claimUID string) {
 				defer wg.Done()
 				klog.Infof("Attempting to unprepare resources for claim %v", claimUID)
-				err := d.Unprepare(ctx, claimUID)
+				err := d.unprepare(ctx, claimUID)
 				if err != nil {
 					errors <- fmt.Errorf("error unpreparing resources for claim %v: %w", claimUID, err)
 					return

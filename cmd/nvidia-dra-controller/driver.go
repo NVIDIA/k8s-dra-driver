@@ -106,7 +106,17 @@ func (d driver) GetClaimParameters(ctx context.Context, claim *resourcev1.Resour
 	return nil, fmt.Errorf("unknown ResourceClaim.ParametersRef.Kind: %v", claim.Spec.ParametersRef.Kind)
 }
 
-func (d driver) Allocate(ctx context.Context, claim *resourcev1.ResourceClaim, claimParameters interface{}, class *resourcev1.ResourceClass, classParameters interface{}, selectedNode string) (*resourcev1.AllocationResult, error) {
+func (d driver) Allocate(ctx context.Context, cas []*controller.ClaimAllocation, selectedNode string) {
+	// In production version of the driver the common operations for every
+	// d.allocate looped call should be done prior this loop, and can be reused
+	// for every d.allocate() looped call.
+	// E.g.: selectedNode=="" check, client stup and CRD fetching.
+	for _, ca := range cas {
+		ca.Allocation, ca.Error = d.allocate(ctx, ca.Claim, ca.ClaimParameters, ca.Class, ca.ClassParameters, selectedNode)
+	}
+}
+
+func (d driver) allocate(ctx context.Context, claim *resourcev1.ResourceClaim, claimParameters interface{}, class *resourcev1.ResourceClass, classParameters interface{}, selectedNode string) (*resourcev1.AllocationResult, error) {
 	if selectedNode == "" {
 		return nil, fmt.Errorf("TODO: immediate allocations not yet supported")
 	}
@@ -126,16 +136,16 @@ func (d driver) Allocate(ctx context.Context, claim *resourcev1.ResourceClaim, c
 		return nil, fmt.Errorf("error retrieving node specific Gpu CRD: %w", err)
 	}
 
+	if crd.Status != nascrd.NodeAllocationStateStatusReady {
+		return nil, fmt.Errorf("NodeAllocationStateStatus: %v", crd.Status)
+	}
+
 	if crd.Spec.AllocatedClaims == nil {
 		crd.Spec.AllocatedClaims = make(map[string]nascrd.AllocatedDevices)
 	}
 
 	if _, exists := crd.Spec.AllocatedClaims[string(claim.UID)]; exists {
 		return buildAllocationResult(selectedNode, true), nil
-	}
-
-	if crd.Status != nascrd.NodeAllocationStateStatusReady {
-		return nil, fmt.Errorf("NodeAllocationStateStatus: %v", crd.Status)
 	}
 
 	var onSuccess OnSuccessCallback
