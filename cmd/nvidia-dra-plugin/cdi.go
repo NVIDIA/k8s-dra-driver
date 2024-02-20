@@ -91,6 +91,7 @@ func NewCDIHandler(opts ...cdiOption) (*CDIHandler, error) {
 			nvcdi.WithMode("nvml"),
 			nvcdi.WithVendor(h.vendor),
 			nvcdi.WithClass(h.class),
+			nvcdi.WithNVIDIACTKPath(h.nvidiaCTKPath),
 		)
 		if err != nil {
 			return nil, fmt.Errorf("unable to create CDI library: %w", err)
