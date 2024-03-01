@@ -35,13 +35,15 @@ func TestMpsPerDevicePinnedMemoryLimitNormalize(t *testing.T) {
 		expectedLimits       map[string]string
 	}{
 		{
-			description: "no uuids, no default",
+			description:    "empty input",
+			expectedLimits: map[string]string{},
+		},
+		{
+			description: "no uuids, invalid device index",
 			perDeviceMemoryLimit: v1alpha1.MpsPerDevicePinnedMemoryLimit{
 				"0": resource.MustParse("1Gi"),
 			},
-			expectedLimits: map[string]string{
-				"0": "1024M",
-			},
+			expectedError: v1alpha1.ErrInvalidDeviceSelector,
 		},
 		{
 			description: "no uuids, default is overridden",
@@ -49,17 +51,29 @@ func TestMpsPerDevicePinnedMemoryLimitNormalize(t *testing.T) {
 			perDeviceMemoryLimit: v1alpha1.MpsPerDevicePinnedMemoryLimit{
 				"0": resource.MustParse("1Gi"),
 			},
-			expectedLimits: map[string]string{
-				"0": "1024M",
-			},
+			expectedError: v1alpha1.ErrInvalidDeviceSelector,
 		},
 		{
 			description: "uuids, default is set",
 			uuids:       []string{"UUID0"},
 			memoryLimit: ptr(resource.MustParse("2Gi")),
 			expectedLimits: map[string]string{
-				"0": "2048M",
+				"UUID0": "2048M",
 			},
+		},
+		{
+			description:   "uuids, default is too low",
+			uuids:         []string{"UUID0"},
+			memoryLimit:   ptr(resource.MustParse("1M")),
+			expectedError: v1alpha1.ErrInvalidLimit,
+		},
+		{
+			description: "uuids, override is too low",
+			uuids:       []string{"UUID0"},
+			perDeviceMemoryLimit: v1alpha1.MpsPerDevicePinnedMemoryLimit{
+				"UUID0": resource.MustParse("1M"),
+			},
+			expectedError: v1alpha1.ErrInvalidLimit,
 		},
 		{
 			description: "uuids, default is overridden",
@@ -69,7 +83,68 @@ func TestMpsPerDevicePinnedMemoryLimitNormalize(t *testing.T) {
 				"0": resource.MustParse("1Gi"),
 			},
 			expectedLimits: map[string]string{
-				"0": "1024M",
+				"UUID0": "1024M",
+			},
+		},
+		{
+			description: "uuids, default is overridden by uuid",
+			uuids:       []string{"UUID0"},
+			memoryLimit: ptr(resource.MustParse("2Gi")),
+			perDeviceMemoryLimit: v1alpha1.MpsPerDevicePinnedMemoryLimit{
+				"UUID0": resource.MustParse("1Gi"),
+			},
+			expectedLimits: map[string]string{
+				"UUID0": "1024M",
+			},
+		},
+		{
+			description: "uuids, default is overridden, invalid UUID",
+			uuids:       []string{"UUID0"},
+			memoryLimit: ptr(resource.MustParse("2Gi")),
+			perDeviceMemoryLimit: v1alpha1.MpsPerDevicePinnedMemoryLimit{
+				"UUID1": resource.MustParse("1Gi"),
+			},
+			expectedError: v1alpha1.ErrInvalidDeviceSelector,
+		},
+		{
+			description: "uuids, default is overridden, invalid index",
+			uuids:       []string{"UUID0"},
+			memoryLimit: ptr(resource.MustParse("2Gi")),
+			perDeviceMemoryLimit: v1alpha1.MpsPerDevicePinnedMemoryLimit{
+				"1": resource.MustParse("1Gi"),
+			},
+			expectedError: v1alpha1.ErrInvalidDeviceSelector,
+		},
+		{
+			description: "unit conversion Mi to M",
+			uuids:       []string{"UUID0"},
+			memoryLimit: ptr(resource.MustParse("10Mi")),
+			expectedLimits: map[string]string{
+				"UUID0": "10M",
+			},
+		},
+		{
+			description: "unit conversion Gi to M",
+			uuids:       []string{"UUID0"},
+			memoryLimit: ptr(resource.MustParse("1Gi")),
+			expectedLimits: map[string]string{
+				"UUID0": "1024M",
+			},
+		},
+		{
+			description: "unit conversion M to M",
+			uuids:       []string{"UUID0"},
+			memoryLimit: ptr(resource.MustParse("10M")),
+			expectedLimits: map[string]string{
+				"UUID0": "9M",
+			},
+		},
+		{
+			description: "unit conversion G to M",
+			uuids:       []string{"UUID0"},
+			memoryLimit: ptr(resource.MustParse("1G")),
+			expectedLimits: map[string]string{
+				"UUID0": "953M",
 			},
 		},
 	}
