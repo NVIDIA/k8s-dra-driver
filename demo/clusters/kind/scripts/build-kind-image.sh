@@ -42,7 +42,6 @@ cleanup() {
 trap cleanup EXIT
 
 # Set some build variables
-KIND_K8S_REPO="https://github.com/kubernetes/kubernetes.git "
 KIND_K8S_DIR="${TMP_DIR}/kubernetes-${KIND_K8S_TAG}"
 
 # Checkout the version of kubernetes we want to build our kind image from
