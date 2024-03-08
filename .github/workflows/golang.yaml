@@ -68,6 +68,13 @@ jobs:
     steps:
     - uses: actions/checkout@v4
       name: Checkout code
-
-    - name: Build
-      run: make docker-build
+    - name: Get Golang version
+      id: vars
+      run: |
+        GOLANG_VERSION=$( grep "GOLANG_VERSION ?=" versions.mk )
+        echo "GOLANG_VERSION=${GOLANG_VERSION##GOLANG_VERSION ?= }" >> $GITHUB_ENV
+    - name: Install Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ env.GOLANG_VERSION }}
+    - run: make build

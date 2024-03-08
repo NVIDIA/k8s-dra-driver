@@ -24,7 +24,12 @@ vVERSION := v$(VERSION:v%=%)
 GOLANG_VERSION ?= 1.20.4
 CUDA_VERSION ?= 11.8.0
 
-BUILDIMAGE_TAG ?= devel-go$(GOLANG_VERSION)
-BUILDIMAGE ?=  ghcr.io/nvidia/k8s-test-infra:$(BUILDIMAGE_TAG)
+# these variables are only needed when building a local image
+CLIENT_GEN_VERSION ?= v0.26.1
+CONTROLLER_GEN_VERSION ?= v0.9.2
+GOLANGCI_LINT_VERSION ?= v1.52.0
+MOQ_VERSION ?= v0.3.4
+
+BUILDIMAGE ?= ghcr.io/nvidia/k8s-test-infra:devel-go$(GOLANG_VERSION)
 
 GIT_COMMIT ?= $(shell git describe --match="" --dirty --long --always --abbrev=40 2> /dev/null || echo "")

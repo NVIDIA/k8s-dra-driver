@@ -30,12 +30,13 @@ CMDS := $(patsubst ./cmd/%/,%,$(sort $(dir $(wildcard ./cmd/*/))))
 CMD_TARGETS := $(patsubst %,cmd-%, $(CMDS))
 
 CHECK_TARGETS := golangci-lint
-MAKE_TARGETS := binaries build check fmt lint-internal test examples cmds coverage generate vendor check-vendor $(CHECK_TARGETS)
+MAKE_TARGETS := binaries build build-image check fmt lint-internal test examples cmds coverage generate vendor check-vendor $(CHECK_TARGETS)
 
 TARGETS := $(MAKE_TARGETS) $(CMD_TARGETS)
 
 DOCKER_TARGETS := $(patsubst %,docker-%, $(TARGETS))
 .PHONY: $(TARGETS) $(DOCKER_TARGETS)
+DOCKERFILE_DEVEL := $(CURDIR)/deployments/container/Dockerfile.devel
 
 GOOS ?= linux
 ifeq ($(VERSION),)
@@ -138,6 +139,18 @@ generate-clientset: .remove-clientset .remove-deepcopy .remove-crds
 
 .remove-clientset:
 	rm -rf $(CURDIR)/$(PKG_BASE)/clientset
+
+build-image: $(DOCKERFILE_DEVEL)
+	$(DOCKER) build \
+		--progress=plain \
+		--build-arg GOLANG_VERSION="$(GOLANG_VERSION)" \
+		--build-arg CLIENT_GEN_VERSION="$(CLIENT_GEN_VERSION)" \
+		--build-arg CONTROLLER_GEN_VERSION="$(CONTROLLER_GEN_VERSION)" \
+		--build-arg GOLANGCI_LINT_VERSION="$(GOLANGCI_LINT_VERSION)" \
+		--build-arg MOQ_VERSION="$(MOQ_VERSION)" \
+		--tag $(BUILDIMAGE) \
+		-f $(DOCKERFILE_DEVEL) \
+		.
 
 $(DOCKER_TARGETS): docker-%:
 	@echo "Running 'make $(*)' in container image $(BUILDIMAGE)"
