@@ -19,10 +19,15 @@ package main
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 
+	"github.com/Masterminds/semver"
 	"github.com/NVIDIA/go-nvml/pkg/nvml"
+	resourceapi "k8s.io/api/resource/v1alpha2"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/klog/v2"
+	"k8s.io/utils/ptr"
 
 	nascrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1"
 	"github.com/NVIDIA/k8s-dra-driver/api/utils/sharing"
@@ -369,6 +374,84 @@ func (s *DeviceState) setupSharing(ctx context.Context, sharing sharing.Interfac
 	}
 
 	return nil
+}
+
+func (s *DeviceState) getResourceModelFromAllocatableDevices() resourceapi.ResourceModel {
+	var instances []resourceapi.NamedResourcesInstance
+	for _, device := range s.allocatable {
+		instance := resourceapi.NamedResourcesInstance{
+			Name: strings.ToLower(device.uuid),
+			Attributes: []resourceapi.NamedResourcesAttribute{
+				{
+					Name: "index",
+					NamedResourcesAttributeValue: resourceapi.NamedResourcesAttributeValue{
+						IntValue: ptr.To(int64(device.index)),
+					},
+				},
+				{
+					Name: "uuid",
+					NamedResourcesAttributeValue: resourceapi.NamedResourcesAttributeValue{
+						StringValue: &device.uuid,
+					},
+				},
+				{
+					Name: "mig-enabled",
+					NamedResourcesAttributeValue: resourceapi.NamedResourcesAttributeValue{
+						BoolValue: &device.migEnabled,
+					},
+				},
+				{
+					Name: "memory",
+					NamedResourcesAttributeValue: resourceapi.NamedResourcesAttributeValue{
+						QuantityValue: resource.NewQuantity(int64(device.memoryBytes), resource.BinarySI),
+					},
+				},
+				{
+					Name: "product-name",
+					NamedResourcesAttributeValue: resourceapi.NamedResourcesAttributeValue{
+						StringValue: &device.productName,
+					},
+				},
+				{
+					Name: "brand",
+					NamedResourcesAttributeValue: resourceapi.NamedResourcesAttributeValue{
+						StringValue: &device.brand,
+					},
+				},
+				{
+					Name: "architecture",
+					NamedResourcesAttributeValue: resourceapi.NamedResourcesAttributeValue{
+						StringValue: &device.architecture,
+					},
+				},
+				{
+					Name: "cuda-compute-capability",
+					NamedResourcesAttributeValue: resourceapi.NamedResourcesAttributeValue{
+						VersionValue: ptr.To(semver.MustParse(device.cudaComputeCapability).String()),
+					},
+				},
+				{
+					Name: "driver-version",
+					NamedResourcesAttributeValue: resourceapi.NamedResourcesAttributeValue{
+						VersionValue: ptr.To(semver.MustParse(device.driverVersion).String()),
+					},
+				},
+				{
+					Name: "cuda-driver-version",
+					NamedResourcesAttributeValue: resourceapi.NamedResourcesAttributeValue{
+						VersionValue: ptr.To(semver.MustParse(device.cudaDriverVersion).String()),
+					},
+				},
+			},
+		}
+		instances = append(instances, instance)
+	}
+
+	model := resourceapi.ResourceModel{
+		NamedResources: &resourceapi.NamedResourcesResources{instances},
+	}
+
+	return model
 }
 
 func (s *DeviceState) syncAllocatableDevicesToCRDSpec(spec *nascrd.NodeAllocationStateSpec) {

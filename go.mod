@@ -15,6 +15,7 @@ replace (
 )
 
 require (
+	github.com/Masterminds/semver v1.5.0
 	github.com/NVIDIA/go-nvlib v0.3.0
 	github.com/NVIDIA/go-nvml v0.12.0-5
 	github.com/NVIDIA/nvidia-container-toolkit v1.15.1-0.20240419094620-0aed9a16addf
@@ -32,6 +33,7 @@ require (
 	k8s.io/klog/v2 v2.120.1
 	k8s.io/kubelet v0.29.2
 	k8s.io/mount-utils v0.29.2
+	k8s.io/utils v0.0.0-20230726121419-3b25d923346b
 	tags.cncf.io/container-device-interface v0.7.2
 	tags.cncf.io/container-device-interface/specs-go v0.7.0
 )
@@ -93,7 +95,6 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20240228011516-70dd3763d340 // indirect
-	k8s.io/utils v0.0.0-20230726121419-3b25d923346b // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.4.1 // indirect
 	sigs.k8s.io/yaml v1.3.0 // indirect
