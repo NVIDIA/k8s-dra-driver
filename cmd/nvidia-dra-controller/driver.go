@@ -167,7 +167,7 @@ func (d driver) allocate(ctx context.Context, claim *resourcev1.ResourceClaim, c
 	}
 
 	allocated := crd.Spec.AllocatedClaims[string(claim.UID)]
-	allocated.ClaimInfo = &nascrd.ClaimInfo{
+	allocated.ClaimInfo = &types.ClaimInfo{
 		Namespace: claim.Namespace,
 		Name:      claim.Name,
 		UID:       string(claim.UID),

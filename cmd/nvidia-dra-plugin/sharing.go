@@ -72,7 +72,7 @@ type MpsControlDaemon struct {
 	pipeDir   string
 	shmDir    string
 	logDir    string
-	claim     *nascrd.ClaimInfo
+	claim     *types.ClaimInfo
 	devices   *PreparedDevices
 	config    *nascrd.MpsConfig
 	manager   *MpsManager
@@ -130,7 +130,7 @@ func NewMpsManager(config *Config, deviceLib *deviceLib, controlFilesRoot, hostD
 	}
 }
 
-func (m *MpsManager) NewMpsControlDaemon(claim *nascrd.ClaimInfo, devices *PreparedDevices, config *nascrd.MpsConfig) *MpsControlDaemon {
+func (m *MpsManager) NewMpsControlDaemon(claim *types.ClaimInfo, devices *PreparedDevices, config *nascrd.MpsConfig) *MpsControlDaemon {
 	return &MpsControlDaemon{
 		nodeName:  m.config.nascr.Name,
 		namespace: m.config.nascr.Namespace,
@@ -146,7 +146,7 @@ func (m *MpsManager) NewMpsControlDaemon(claim *nascrd.ClaimInfo, devices *Prepa
 	}
 }
 
-func (m *MpsManager) IsControlDaemonStarted(ctx context.Context, claim *nascrd.ClaimInfo) (bool, error) {
+func (m *MpsManager) IsControlDaemonStarted(ctx context.Context, claim *types.ClaimInfo) (bool, error) {
 	name := fmt.Sprintf(MpsControlDaemonNameFmt, claim.UID)
 	_, err := m.config.clientsets.Core.AppsV1().Deployments(m.config.nascr.Namespace).Get(ctx, name, metav1.GetOptions{})
 	if errors.IsNotFound(err) {
@@ -158,7 +158,7 @@ func (m *MpsManager) IsControlDaemonStarted(ctx context.Context, claim *nascrd.C
 	return true, nil
 }
 
-func (m *MpsManager) IsControlDaemonStopped(ctx context.Context, claim *nascrd.ClaimInfo) (bool, error) {
+func (m *MpsManager) IsControlDaemonStopped(ctx context.Context, claim *types.ClaimInfo) (bool, error) {
 	name := fmt.Sprintf(MpsControlDaemonNameFmt, claim.UID)
 	_, err := m.config.clientsets.Core.AppsV1().Deployments(m.config.nascr.Namespace).Get(ctx, name, metav1.GetOptions{})
 	if errors.IsNotFound(err) {

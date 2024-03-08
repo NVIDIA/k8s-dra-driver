@@ -21,3 +21,10 @@ const (
 	MigDeviceType     = "mig"
 	UnknownDeviceType = "unknown"
 )
+
+// ClaimInfo holds the identifying information about a claim.
+type ClaimInfo struct {
+	Namespace string `json:"namespace"`
+	Name      string `json:"name"`
+	UID       string `json:"uid"`
+}

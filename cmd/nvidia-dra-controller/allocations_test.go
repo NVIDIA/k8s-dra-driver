@@ -22,6 +22,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	nascrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1"
+	"github.com/NVIDIA/k8s-dra-driver/api/utils/types"
 )
 
 func Test_PerNodeAllocatedClaims(t *testing.T) {
@@ -34,8 +35,8 @@ func Test_PerNodeAllocatedClaims(t *testing.T) {
 	assert.Equal(t, false, exists)
 
 	// Test Set()
-	device1 := nascrd.AllocatedDevices{ClaimInfo: &nascrd.ClaimInfo{Namespace: "default", Name: "device1"}}
-	device2 := nascrd.AllocatedDevices{ClaimInfo: &nascrd.ClaimInfo{Namespace: "default", Name: "device2"}}
+	device1 := nascrd.AllocatedDevices{ClaimInfo: &types.ClaimInfo{Namespace: "default", Name: "device1"}}
+	device2 := nascrd.AllocatedDevices{ClaimInfo: &types.ClaimInfo{Namespace: "default", Name: "device2"}}
 	allocationClaims.Set("fake-claim", "fake-node", device1)
 	allocationClaims.Set("fake-claim", "fake-node", device2)
 

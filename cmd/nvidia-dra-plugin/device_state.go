@@ -336,7 +336,7 @@ func (s *DeviceState) unprepareMigDevices(claimUID string, devices *PreparedDevi
 	return nil
 }
 
-func (s *DeviceState) setupSharing(ctx context.Context, sharing nascrd.Sharing, claim *nascrd.ClaimInfo, devices *PreparedDevices) error {
+func (s *DeviceState) setupSharing(ctx context.Context, sharing nascrd.Sharing, claim *types.ClaimInfo, devices *PreparedDevices) error {
 	if sharing.IsTimeSlicing() {
 		config, err := sharing.GetTimeSlicingConfig()
 		if err != nil {
