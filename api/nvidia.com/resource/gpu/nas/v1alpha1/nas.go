@@ -17,6 +17,8 @@
 package v1alpha1
 
 import (
+	"github.com/NVIDIA/k8s-dra-driver/api/utils/types"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -61,12 +63,12 @@ type AllocatableDevice struct {
 // Type returns the type of AllocatableDevice this represents.
 func (d AllocatableDevice) Type() string {
 	if d.Gpu != nil {
-		return GpuDeviceType
+		return types.GpuDeviceType
 	}
 	if d.Mig != nil {
-		return MigDeviceType
+		return types.MigDeviceType
 	}
-	return UnknownDeviceType
+	return types.UnknownDeviceType
 }
 
 // AllocatedGpu represents an allocated GPU.
@@ -103,12 +105,12 @@ type AllocatedDevices struct {
 // Type returns the type of AllocatedDevices this represents.
 func (r AllocatedDevices) Type() string {
 	if r.Gpu != nil {
-		return GpuDeviceType
+		return types.GpuDeviceType
 	}
 	if r.Mig != nil {
-		return MigDeviceType
+		return types.MigDeviceType
 	}
-	return UnknownDeviceType
+	return types.UnknownDeviceType
 }
 
 // PreparedGpu represents a prepared GPU on a node.
@@ -143,12 +145,12 @@ type PreparedDevices struct {
 // Type returns the type of PreparedDevices this represents.
 func (d PreparedDevices) Type() string {
 	if d.Gpu != nil {
-		return GpuDeviceType
+		return types.GpuDeviceType
 	}
 	if d.Mig != nil {
-		return MigDeviceType
+		return types.MigDeviceType
 	}
-	return UnknownDeviceType
+	return types.UnknownDeviceType
 }
 
 // NodeAllocationStateSpec is the spec for the NodeAllocationState CRD.

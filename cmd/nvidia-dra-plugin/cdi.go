@@ -32,7 +32,7 @@ import (
 	cdiparser "tags.cncf.io/container-device-interface/pkg/parser"
 	cdispec "tags.cncf.io/container-device-interface/specs-go"
 
-	nascrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1"
+	"github.com/NVIDIA/k8s-dra-driver/api/utils/types"
 )
 
 const (
@@ -133,7 +133,7 @@ func (cdi *CDIHandler) CreateClaimSpecFile(claimUID string, devices *PreparedDev
 	claimEdits := cdiapi.ContainerEdits{}
 
 	switch devices.Type() {
-	case nascrd.GpuDeviceType:
+	case types.GpuDeviceType:
 		for _, device := range devices.Gpu.Devices {
 			nvmlDevice, ret := cdi.nvml.DeviceGetHandleByUUID(device.uuid)
 			if ret != nvml.SUCCESS {
@@ -149,7 +149,7 @@ func (cdi *CDIHandler) CreateClaimSpecFile(claimUID string, devices *PreparedDev
 			}
 			claimEdits.Append(gpuEdits)
 		}
-	case nascrd.MigDeviceType:
+	case types.MigDeviceType:
 		for _, device := range devices.Mig.Devices {
 			nvmlParentDevice, ret := cdi.nvml.DeviceGetHandleByUUID(device.parent.uuid)
 			if ret != nvml.SUCCESS {

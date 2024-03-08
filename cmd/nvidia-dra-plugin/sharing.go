@@ -42,6 +42,7 @@ import (
 	cdispec "tags.cncf.io/container-device-interface/specs-go"
 
 	nascrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1"
+	"github.com/NVIDIA/k8s-dra-driver/api/utils/types"
 )
 
 const (
@@ -256,7 +257,7 @@ func (m *MpsControlDaemon) Start(ctx context.Context) error {
 		return fmt.Errorf("error mounting %v as tmpfs: %w", m.shmDir, err)
 	}
 
-	if m.devices.Type() == nascrd.GpuDeviceType {
+	if m.devices.Type() == types.GpuDeviceType {
 		err = m.manager.nvdevlib.setComputeMode(m.devices.UUIDs(), "EXCLUSIVE_PROCESS")
 		if err != nil {
 			return fmt.Errorf("error setting compute mode: %w", err)
