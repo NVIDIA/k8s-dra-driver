@@ -3,8 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.9.2
-  creationTimestamp: null
+    controller-gen.kubebuilder.io/version: v0.14.0
   name: gpuclaimparameters.gpu.resource.nvidia.com
 spec:
   group: gpu.resource.nvidia.com
@@ -22,14 +21,19 @@ spec:
           creating a resource claim for a GPU.
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
             type: string
           metadata:
             type: object
@@ -43,13 +47,16 @@ spec:
                 allOf:
                 - maxProperties: 1
                 - maxProperties: 1
-                description: "GpuSelector defines the set of conditions that can be
-                  used to select a specific GPU. This condition can either be a single
-                  property from the set of available GpuSelectorProperties or a nested
-                  list of GpuSelectors that are 'anded' or 'ored' together. \n NOTE:
-                  Because CRDs do not allow recursively defined structs, we explicitly
-                  define up to 3 levels of nesting. This is done by defining new types
-                  with the same fields as this struct, up to 3 levels deep."
+                description: |-
+                  GpuSelector defines the set of conditions that can be used to select a
+                  specific GPU. This condition can either be a single property from the set
+                  of available GpuSelectorProperties or a nested list of GpuSelectors that are
+                  'anded' or 'ored' together.
+
+
+                  NOTE: Because CRDs do not allow recursively defined structs, we explicitly
+                  define up to 3 levels of nesting. This is done by defining new types with
+                  the same fields as this struct, up to 3 levels deep.
                 properties:
                   andExpression:
                     items:
@@ -1650,21 +1657,17 @@ spec:
                           - type: string
                           pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                           x-kubernetes-int-or-string: true
-                        description: DefaultPerDevicePinnedMemoryLimit represents
-                          the pinned memory limit per device associated with an MPS
-                          daemon. This is defined as a map of device index or UUI
-                          to a memory limit and overrides a setting applied using
-                          DefaultPinnedDeviceMemoryLimit.
+                        description: |-
+                          DefaultPerDevicePinnedMemoryLimit represents the pinned memory limit per device associated with an MPS daemon.
+                          This is defined as a map of device index or UUI to a memory limit and overrides a setting applied using DefaultPinnedDeviceMemoryLimit.
                         type: object
                       defaultPinnedDeviceMemoryLimit:
                         anyOf:
                         - type: integer
                         - type: string
-                        description: DefaultPinnedDeviceMemoryLimit represents the
-                          pinned memory limit to be applied for all devices. This
-                          can be overridden for specific devices by specifying an
-                          associated entry DefaultPerDevicePinnedMemoryLimit for the
-                          device.
+                        description: |-
+                          DefaultPinnedDeviceMemoryLimit represents the pinned memory limit to be applied for all devices.
+                          This can be overridden for specific devices by specifying an associated entry DefaultPerDevicePinnedMemoryLimit for the device.
                         pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                         x-kubernetes-int-or-string: true
                     type: object

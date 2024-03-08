@@ -24,7 +24,6 @@ import (
 	v1alpha1 "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
-	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	testing "k8s.io/client-go/testing"
@@ -36,9 +35,9 @@ type FakeNodeAllocationStates struct {
 	ns   string
 }
 
-var nodeallocationstatesResource = schema.GroupVersionResource{Group: "nas.gpu.resource.nvidia.com", Version: "v1alpha1", Resource: "nodeallocationstates"}
+var nodeallocationstatesResource = v1alpha1.SchemeGroupVersion.WithResource("nodeallocationstates")
 
-var nodeallocationstatesKind = schema.GroupVersionKind{Group: "nas.gpu.resource.nvidia.com", Version: "v1alpha1", Kind: "NodeAllocationState"}
+var nodeallocationstatesKind = v1alpha1.SchemeGroupVersion.WithKind("NodeAllocationState")
 
 // Get takes name of the nodeAllocationState, and returns the corresponding nodeAllocationState object, and an error if there is any.
 func (c *FakeNodeAllocationStates) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.NodeAllocationState, err error) {

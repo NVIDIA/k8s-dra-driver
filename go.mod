@@ -1,6 +1,6 @@
 module github.com/NVIDIA/k8s-dra-driver
 
-go 1.20
+go 1.22
 
 require (
 	github.com/NVIDIA/go-nvlib v0.0.0-20231116150931-9fd385bace0d

@@ -24,7 +24,6 @@ import (
 	v1alpha1 "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
-	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	testing "k8s.io/client-go/testing"
@@ -36,9 +35,9 @@ type FakeComputeInstanceClaimParameterses struct {
 	ns   string
 }
 
-var computeinstanceclaimparametersesResource = schema.GroupVersionResource{Group: "gpu.resource.nvidia.com", Version: "v1alpha1", Resource: "computeinstanceclaimparameterses"}
+var computeinstanceclaimparametersesResource = v1alpha1.SchemeGroupVersion.WithResource("computeinstanceclaimparameterses")
 
-var computeinstanceclaimparametersesKind = schema.GroupVersionKind{Group: "gpu.resource.nvidia.com", Version: "v1alpha1", Kind: "ComputeInstanceClaimParameters"}
+var computeinstanceclaimparametersesKind = v1alpha1.SchemeGroupVersion.WithKind("ComputeInstanceClaimParameters")
 
 // Get takes name of the computeInstanceClaimParameters, and returns the corresponding computeInstanceClaimParameters object, and an error if there is any.
 func (c *FakeComputeInstanceClaimParameterses) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.ComputeInstanceClaimParameters, err error) {
