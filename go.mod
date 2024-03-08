@@ -15,6 +15,7 @@ replace (
 )
 
 require (
+	github.com/Masterminds/semver v1.5.0
 	github.com/NVIDIA/go-nvlib v0.0.0-20231116150931-9fd385bace0d
 	github.com/NVIDIA/go-nvml v0.12.0-2
 	github.com/NVIDIA/nvidia-container-toolkit v1.14.4-0.20231120225202-039d7fd32429

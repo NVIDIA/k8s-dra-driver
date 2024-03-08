@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022-2023, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2022-2024, NVIDIA CORPORATION.  All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,6 +38,7 @@ const (
 
 type driver struct {
 	sync.Mutex
+	doneCh    chan struct{}
 	nascr     *nascrd.NodeAllocationState
 	nasclient *nasclient.Client
 	state     *DeviceState
@@ -90,6 +91,8 @@ func NewDriver(ctx context.Context, config *Config) (*driver, error) {
 }
 
 func (d *driver) Shutdown(ctx context.Context) error {
+	defer close(d.doneCh)
+
 	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		err := d.nasclient.Get(ctx)
 		if err != nil {
@@ -99,8 +102,26 @@ func (d *driver) Shutdown(ctx context.Context) error {
 	})
 }
 
-func (d *driver) NodePrepareResources(ctx context.Context, req *drapbv1.NodePrepareResourcesRequest) (*drapbv1.NodePrepareResourcesResponse, error) {
+func (d *driver) NodeListAndWatchResources(req *drapbv1.NodeListAndWatchResourcesRequest, stream drapbv1.Node_NodeListAndWatchResourcesServer) error {
+	model := d.state.getResourceModelFromAllocatableDevices()
+	resp := &drapbv1.NodeListAndWatchResourcesResponse{
+		Resources: []*resourceapi.ResourceModel{&model},
+	}
 
+	if err := stream.Send(resp); err != nil {
+		return err
+	}
+
+	for {
+		select {
+		case <-d.doneCh:
+			return nil
+		}
+		// TODO: Update with case for when GPUs go unhealthy
+	}
+}
+
+func (d *driver) NodePrepareResources(ctx context.Context, req *drapbv1.NodePrepareResourcesRequest) (*drapbv1.NodePrepareResourcesResponse, error) {
 	klog.Infof("NodePrepareResource is called: number of claims: %d", len(req.Claims))
 	preparedResources := &drapbv1.NodePrepareResourcesResponse{Claims: map[string]*drapbv1.NodePrepareResourceResponse{}}
 
