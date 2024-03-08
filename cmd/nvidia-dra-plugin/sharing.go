@@ -41,7 +41,7 @@ import (
 	cdiapi "tags.cncf.io/container-device-interface/pkg/cdi"
 	cdispec "tags.cncf.io/container-device-interface/specs-go"
 
-	nascrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1"
+	"github.com/NVIDIA/k8s-dra-driver/api/utils/sharing"
 	"github.com/NVIDIA/k8s-dra-driver/api/utils/types"
 )
 
@@ -74,7 +74,7 @@ type MpsControlDaemon struct {
 	logDir    string
 	claim     *types.ClaimInfo
 	devices   *PreparedDevices
-	config    *nascrd.MpsConfig
+	config    *sharing.MpsConfig
 	manager   *MpsManager
 }
 
@@ -97,12 +97,12 @@ func NewTimeSlicingManager(deviceLib *deviceLib) *TimeSlicingManager {
 	}
 }
 
-func (t *TimeSlicingManager) SetTimeSlice(devices *PreparedDevices, config *nascrd.TimeSlicingConfig) error {
+func (t *TimeSlicingManager) SetTimeSlice(devices *PreparedDevices, config *sharing.TimeSlicingConfig) error {
 	if devices.Mig != nil {
 		return fmt.Errorf("setting a TimeSlice duration on MIG devices is unsupported")
 	}
 
-	timeSlice := nascrd.DefaultTimeSlice
+	timeSlice := sharing.DefaultTimeSlice
 	if config != nil && config.TimeSlice != nil {
 		timeSlice = *config.TimeSlice
 	}
@@ -130,7 +130,7 @@ func NewMpsManager(config *Config, deviceLib *deviceLib, controlFilesRoot, hostD
 	}
 }
 
-func (m *MpsManager) NewMpsControlDaemon(claim *types.ClaimInfo, devices *PreparedDevices, config *nascrd.MpsConfig) *MpsControlDaemon {
+func (m *MpsManager) NewMpsControlDaemon(claim *types.ClaimInfo, devices *PreparedDevices, config *sharing.MpsConfig) *MpsControlDaemon {
 	return &MpsControlDaemon{
 		nodeName:  m.config.nascr.Name,
 		namespace: m.config.nascr.Namespace,

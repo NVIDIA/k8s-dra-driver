@@ -17,6 +17,7 @@
 package v1alpha1
 
 import (
+	"github.com/NVIDIA/k8s-dra-driver/api/utils/sharing"
 	"github.com/NVIDIA/k8s-dra-driver/api/utils/types"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -78,14 +79,14 @@ type AllocatedMigDevice struct {
 
 // AllocatedGpus represents a set of allocated GPUs.
 type AllocatedGpus struct {
-	Devices []AllocatedGpu `json:"devices"`
-	Sharing *GpuSharing    `json:"sharing,omitempty"`
+	Devices []AllocatedGpu      `json:"devices"`
+	Sharing *sharing.GpuSharing `json:"sharing,omitempty"`
 }
 
 // AllocatedMigDevices represents a set of allocated MIG devices.
 type AllocatedMigDevices struct {
-	Devices []AllocatedMigDevice `json:"devices"`
-	Sharing *MigDeviceSharing    `json:"sharing,omitempty"`
+	Devices []AllocatedMigDevice      `json:"devices"`
+	Sharing *sharing.MigDeviceSharing `json:"sharing,omitempty"`
 }
 
 // AllocatedDevices represents a set of allocated devices.

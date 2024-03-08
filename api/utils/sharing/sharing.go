@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package v1alpha1
+package sharing
 
 import (
 	"errors"
@@ -40,7 +40,7 @@ const (
 
 // Sharing provides methods to check if a given sharing strategy is selected and grab its configuration.
 // +k8s:deepcopy-gen=false
-type Sharing interface {
+type Interface interface {
 	IsTimeSlicing() bool
 	IsMps() bool
 	GetTimeSlicingConfig() (*TimeSlicingConfig, error)

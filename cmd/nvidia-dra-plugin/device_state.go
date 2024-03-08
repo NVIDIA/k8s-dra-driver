@@ -25,6 +25,7 @@ import (
 	"k8s.io/klog/v2"
 
 	nascrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1"
+	"github.com/NVIDIA/k8s-dra-driver/api/utils/sharing"
 	"github.com/NVIDIA/k8s-dra-driver/api/utils/types"
 )
 
@@ -336,7 +337,7 @@ func (s *DeviceState) unprepareMigDevices(claimUID string, devices *PreparedDevi
 	return nil
 }
 
-func (s *DeviceState) setupSharing(ctx context.Context, sharing nascrd.Sharing, claim *types.ClaimInfo, devices *PreparedDevices) error {
+func (s *DeviceState) setupSharing(ctx context.Context, sharing sharing.Interface, claim *types.ClaimInfo, devices *PreparedDevices) error {
 	if sharing.IsTimeSlicing() {
 		config, err := sharing.GetTimeSlicingConfig()
 		if err != nil {
