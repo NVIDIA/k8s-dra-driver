@@ -22,6 +22,7 @@ import (
 	"sync"
 	"time"
 
+	resourceapi "k8s.io/api/resource/v1alpha2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/util/retry"
@@ -30,6 +31,7 @@ import (
 
 	nascrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1"
 	nasclient "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1/client"
+	"github.com/NVIDIA/k8s-dra-driver/api/utils/types"
 )
 
 const (
@@ -151,6 +153,15 @@ func (d *driver) nodePrepareResource(ctx context.Context, claim *drapbv1.Claim) 
 		return &drapbv1.NodePrepareResourceResponse{CDIDevices: prepared}
 	}
 
+	if len(claim.StructuredResourceHandle) > 0 {
+		err = d.allocateDevices(ctx, claim)
+		if err != nil {
+			return &drapbv1.NodePrepareResourceResponse{
+				Error: fmt.Sprintf("error allocating devices for claim %v: %v", claim.Uid, err),
+			}
+		}
+	}
+
 	prepared, err = d.prepare(ctx, claim.Uid)
 	if err != nil {
 		return &drapbv1.NodePrepareResourceResponse{
@@ -163,10 +174,49 @@ func (d *driver) nodePrepareResource(ctx context.Context, claim *drapbv1.Claim) 
 }
 
 func (d *driver) NodeUnprepareResources(ctx context.Context, req *drapbv1.NodeUnprepareResourcesRequest) (*drapbv1.NodeUnprepareResourcesResponse, error) {
-	// We don't upprepare as part of NodeUnprepareResource, we do it
-	// asynchronously when the claims themselves are deleted and the
-	// AllocatedClaim has been removed.
-	return &drapbv1.NodeUnprepareResourcesResponse{}, nil
+	klog.Infof("NodeUnPrepareResource is called: number of claims: %d", len(req.Claims))
+	unpreparedResources := &drapbv1.NodeUnprepareResourcesResponse{Claims: map[string]*drapbv1.NodeUnprepareResourceResponse{}}
+
+	for _, claim := range req.Claims {
+		unpreparedResources.Claims[claim.Uid] = d.nodeUnprepareResource(ctx, claim)
+	}
+
+	return unpreparedResources, nil
+}
+
+func (d *driver) nodeUnprepareResource(ctx context.Context, claim *drapbv1.Claim) *drapbv1.NodeUnprepareResourceResponse {
+	d.Lock()
+	defer d.Unlock()
+
+	isUnprepared, err := d.isUnprepared(ctx, claim.Uid)
+	if err != nil {
+		return &drapbv1.NodeUnprepareResourceResponse{
+			Error: fmt.Sprintf("error checking if claim is already unprepared: %v", err),
+		}
+	}
+
+	if isUnprepared {
+		klog.Infof("Already unprepared, nothing to do for claim '%v'", claim.Uid)
+		return &drapbv1.NodeUnprepareResourceResponse{}
+	}
+
+	if len(claim.StructuredResourceHandle) > 0 {
+		err = d.deallocateDevices(ctx, claim)
+		if err != nil {
+			return &drapbv1.NodeUnprepareResourceResponse{
+				Error: fmt.Sprintf("error deallocating devices for claim %v: %v", claim.Uid, err),
+			}
+		}
+	}
+
+	err = d.unprepare(ctx, claim.Uid)
+	if err != nil {
+		return &drapbv1.NodeUnprepareResourceResponse{
+			Error: fmt.Sprintf("error unpreparing devices for claim %v: %v", claim.Uid, err),
+		}
+	}
+
+	return &drapbv1.NodeUnprepareResourceResponse{}
 }
 
 func (d *driver) isPrepared(ctx context.Context, claimUID string) (bool, []string, error) {
@@ -178,6 +228,17 @@ func (d *driver) isPrepared(ctx context.Context, claimUID string) (bool, []strin
 		return true, d.state.cdi.GetClaimDevices(claimUID), nil
 	}
 	return false, nil, nil
+}
+
+func (d *driver) isUnprepared(ctx context.Context, claimUID string) (bool, error) {
+	err := d.nasclient.Get(ctx)
+	if err != nil {
+		return false, err
+	}
+	if _, exists := d.nascr.Spec.PreparedClaims[claimUID]; !exists {
+		return true, nil
+	}
+	return false, nil
 }
 
 func (d *driver) prepare(ctx context.Context, claimUID string) ([]string, error) {
@@ -220,6 +281,69 @@ func (d *driver) unprepare(ctx context.Context, claimUID string) error {
 		}
 
 		err = d.nasclient.Update(ctx, d.state.GetUpdatedSpec(&d.nascr.Spec))
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (d *driver) allocateDevices(ctx context.Context, claim *drapbv1.Claim) error {
+	allocated := nascrd.AllocatedDevices{
+		ClaimInfo: &types.ClaimInfo{
+			Namespace: claim.Namespace,
+			Name:      claim.Name,
+			UID:       claim.Uid,
+		},
+		Gpu: &nascrd.AllocatedGpus{},
+	}
+	for _, r := range claim.StructuredResourceHandle[0].Results {
+		name := r.AllocationResultModel.NamedResources.Name
+		gpu := nascrd.AllocatedGpu{
+			UUID: fmt.Sprintf("GPU-%s", name[4:]),
+		}
+		allocated.Gpu.Devices = append(allocated.Gpu.Devices, gpu)
+	}
+
+	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		err := d.nasclient.Get(ctx)
+		if err != nil {
+			return err
+		}
+
+		if len(d.nascr.Spec.AllocatedClaims) == 0 {
+			d.nascr.Spec.AllocatedClaims = make(map[string]nascrd.AllocatedDevices)
+		}
+		d.nascr.Spec.AllocatedClaims[claim.Uid] = allocated
+
+		err = d.nasclient.Update(ctx, &d.nascr.Spec)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (d *driver) deallocateDevices(ctx context.Context, claim *drapbv1.Claim) error {
+	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		err := d.nasclient.Get(ctx)
+		if err != nil {
+			return err
+		}
+
+		delete(d.nascr.Spec.AllocatedClaims, claim.Uid)
+
+		err = d.nasclient.Update(ctx, &d.nascr.Spec)
 		if err != nil {
 			return err
 		}
