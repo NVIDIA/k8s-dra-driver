@@ -18,6 +18,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"sync"
 	"time"
@@ -31,6 +32,7 @@ import (
 
 	nascrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1"
 	nasclient "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1/client"
+	gpucrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/v1alpha1"
 	"github.com/NVIDIA/k8s-dra-driver/api/utils/types"
 )
 
@@ -302,6 +304,16 @@ func (d *driver) allocateDevices(ctx context.Context, claim *drapbv1.Claim) erro
 		},
 		Gpu: &nascrd.AllocatedGpus{},
 	}
+
+	vendorClaimParameters := claim.StructuredResourceHandle[0].VendorClaimParameters
+	if len(vendorClaimParameters.Raw) > 0 {
+		var claimParams gpucrd.GpuClaimParametersSpec
+		if err := json.Unmarshal(vendorClaimParameters.Raw, &claimParams); err != nil {
+			return fmt.Errorf("decoding claim parameters: %v", err)
+		}
+		allocated.Gpu.Sharing = claimParams.Sharing
+	}
+
 	for _, r := range claim.StructuredResourceHandle[0].Results {
 		name := r.AllocationResultModel.NamedResources.Name
 		gpu := nascrd.AllocatedGpu{
