@@ -17,18 +17,27 @@
 package selector
 
 import (
+	"fmt"
 	"regexp"
 	"strings"
 
-	"golang.org/x/mod/semver"
+	"github.com/Masterminds/semver"
+	"github.com/go-godo/godo/glob"
 	"k8s.io/apimachinery/pkg/api/resource"
 )
+
+// Properties defines the interface that properties available for
+// selection must implement.
+// +k8s:deepcopy-gen=false
+type Properties interface {
+	ToNamedResourcesSelector() string
+}
 
 // Selector defines the set of conditions that can be used to select on a set of properties
 // As a first level of nesting, either a single property can be selected or the
 // conditions can be 'anded' or 'ored' together
 // +k8s:deepcopy-gen=false
-type Selector[T any] struct {
+type Selector[T Properties] struct {
 	Properties    *T
 	AndExpression []Selector[T]
 	OrExpression  []Selector[T]
@@ -36,7 +45,7 @@ type Selector[T any] struct {
 
 // SelectorList is a list of Selectors
 // +k8s:deepcopy-gen=false
-type SelectorList[T any] []Selector[T]
+type SelectorList[T Properties] []Selector[T]
 
 // IntProperty defines an int type that methods can hang off of.
 type IntProperty int
@@ -68,6 +77,29 @@ type QuantityComparator struct {
 type VersionComparator struct {
 	Value    string                    `json:"value,omitempty"`
 	Operator VersionComparatorOperator `json:"operator,omitempty"`
+}
+
+// ToNamedResourcesSelector defines the translation of a Selector[T] to the
+// selector format required by the NamedResources structured model
+func (s Selector[T]) ToNamedResourcesSelector() string {
+	if s.Properties != nil {
+		return fmt.Sprintf("(%v)", (*s.Properties).ToNamedResourcesSelector())
+	}
+	if s.AndExpression != nil {
+		var exprs []string
+		for _, e := range s.AndExpression {
+			exprs = append(exprs, e.ToNamedResourcesSelector())
+		}
+		return fmt.Sprintf("(%v)", strings.Join(exprs, " && "))
+	}
+	if s.OrExpression != nil {
+		var exprs []string
+		for _, e := range s.OrExpression {
+			exprs = append(exprs, e.ToNamedResourcesSelector())
+		}
+		return fmt.Sprintf("(%v)", strings.Join(exprs, " || "))
+	}
+	return "()"
 }
 
 // Matches evaluates a Selector to see if it matches the boolean expression it represents.
@@ -113,14 +145,32 @@ func (p IntProperty) Matches(i int) bool {
 	return int(p) == i
 }
 
+// ToNamedResourcesSelector converts an IntProperty to a NamedResources
+// selector with the given name as the atrribute field name
+func (p IntProperty) ToNamedResourcesSelector(name string) string {
+	return fmt.Sprintf(`attributes.int["%v"] == %v`, name, p)
+}
+
 // Matches checks if the provided string matches the StringProperty.
 func (p StringProperty) Matches(s string) bool {
 	return string(p) == s
 }
 
+// ToNamedResourcesSelector converts a StringProperty to a NamedResources
+// selector with the given name as the atrribute field name
+func (p StringProperty) ToNamedResourcesSelector(name string) string {
+	return fmt.Sprintf(`attributes.string["%v"] == %v`, name, p)
+}
+
 // Matches checks if the provided bool matches the BoolProperty.
 func (p BoolProperty) Matches(b bool) bool {
 	return bool(p) == b
+}
+
+// ToNamedResourcesSelector converts a BoolProperty to a NamedResources
+// selector with the given name as the atrribute field name
+func (p BoolProperty) ToNamedResourcesSelector(name string) string {
+	return fmt.Sprintf(`attributes.bool["%v"] == %v`, name, p)
 }
 
 // Matches checks if the provided string matches the GlobProperty.
@@ -131,16 +181,35 @@ func (g GlobProperty) Matches(s string) bool {
 	return result
 }
 
+// ToNamedResourcesSelector converts a GlobProperty to a NamedResources
+// selector with the given name as the atrribute field name
+func (p GlobProperty) ToNamedResourcesSelector(name string) string {
+	regex := glob.Globexp(strings.ToLower(string(p)))
+	return fmt.Sprintf(`attributes.string["%v"].lowerAscii().matches("%v")`, name, regex.String())
+}
+
 // Matches checks if 'version' matches the semantics of the QuantityComparator.
 func (c *QuantityComparator) Matches(quantity *resource.Quantity) bool {
 	compare := quantity.Cmp(c.Value)
 	return checkCompareValue(compare, string(c.Operator))
 }
 
+// ToNamedResourcesSelector converts a QuantityComparator to a NamedResources
+// selector with the given name as the atrribute field name
+func (c *QuantityComparator) ToNamedResourcesSelector(name string) string {
+	return comparatorToNamedResourcesSelector("quantity", name, "quantity", string(c.Operator), c.Value.String())
+}
+
 // Matches checks if a 'version' matches the semantics of the VersionComparator.
 func (c *VersionComparator) Matches(version string) bool {
-	compare := semver.Compare(vVersion(version), vVersion(c.Value))
+	compare := semver.MustParse(vVersion(version)).Compare(semver.MustParse(vVersion(c.Value)))
 	return checkCompareValue(compare, string(c.Operator))
+}
+
+// ToNamedResourcesSelector converts a VersionComparator to a NamedResources
+// selector with the given name as the atrribute field name
+func (c *VersionComparator) ToNamedResourcesSelector(name string) string {
+	return comparatorToNamedResourcesSelector("version", name, "semver", string(c.Operator), semver.MustParse(c.Value).String())
 }
 
 // vVersion prepends a 'v' to the version string if one is missing.
@@ -168,6 +237,25 @@ func checkCompareValue(value int, operator string) bool {
 		return value == 0 || value == 1
 	}
 	return false
+}
+
+// comparatorToNamedResourcesSelector converts a Comparator to a NamedResources
+// selctor using the fields passed in
+func comparatorToNamedResourcesSelector(kind string, name string, method string, operator string, value string) string {
+	expression := fmt.Sprintf(`attributes.%v["%v"].compareTo(%v("%v"))`, kind, name, method, value)
+	switch operator {
+	case "Equals":
+		return fmt.Sprintf("%v == 0", expression)
+	case "LessThan":
+		return fmt.Sprintf("%v == -1", expression)
+	case "LessThanOrEqualTo":
+		return fmt.Sprintf(`(%v == -1) || (%v == 0)`, expression, expression)
+	case "GreaterThan":
+		return fmt.Sprintf(`(%v == 1)`, expression)
+	case "GreaterThanOrEqualTo":
+		return fmt.Sprintf(`(%v == 1) || (%v == 0)`, expression, expression)
+	}
+	return "()"
 }
 
 // wildCardToRegexp converts a wildcard pattern to a regular expression pattern.
