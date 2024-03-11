@@ -69,7 +69,7 @@ type GpuSelectorProperties struct {
 	Architecture          *selector.GlobProperty       `json:"architecture,omitempty"`
 	CUDAComputeCapability *selector.VersionComparator  `json:"cudaComputeCapability,omitempty"`
 	DriverVersion         *selector.VersionComparator  `json:"driverVersion,omitempty"`
-	CUDARuntimeVersion    *selector.VersionComparator  `json:"cudaRuntimeVersion,omitempty"`
+	CUDADriverVersion     *selector.VersionComparator  `json:"cudaDriverVersion,omitempty"`
 }
 
 // Matches evaluates a GpuSelector to see if it matches the boolean expression it represents

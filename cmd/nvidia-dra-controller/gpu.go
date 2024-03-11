@@ -196,6 +196,12 @@ func selectorMatchesGpu(selector *gpucrd.GpuSelector, gpu *nascrd.AllocatableGpu
 		if p.CUDAComputeCapability != nil {
 			return p.CUDAComputeCapability.Matches(gpu.CUDAComputeCapability)
 		}
+		if p.DriverVersion != nil {
+			return p.DriverVersion.Matches(gpu.DriverVersion)
+		}
+		if p.CUDADriverVersion != nil {
+			return p.CUDADriverVersion.Matches(gpu.CUDADriverVersion)
+		}
 		return false
 	})
 	if matches && !checkedMigEnabled {

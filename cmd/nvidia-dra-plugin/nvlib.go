@@ -156,6 +156,14 @@ func (l deviceLib) getGpuInfo(index int, device nvdev.Device) (*GpuInfo, error) 
 	if err != nil {
 		return nil, fmt.Errorf("error getting CUDA compute capability for device %d: %w", index, err)
 	}
+	driverVersion, ret := l.nvmllib.SystemGetDriverVersion()
+	if ret != nvml.SUCCESS {
+		return nil, fmt.Errorf("error getting driver version: %w", err)
+	}
+	cudaDriverVersion, ret := l.nvmllib.SystemGetCudaDriverVersion()
+	if ret != nvml.SUCCESS {
+		return nil, fmt.Errorf("error getting CUDA driver version: %w", err)
+	}
 
 	gpuInfo := &GpuInfo{
 		minor:                 minor,
@@ -167,6 +175,8 @@ func (l deviceLib) getGpuInfo(index int, device nvdev.Device) (*GpuInfo, error) 
 		brand:                 brand,
 		architecture:          architecture,
 		cudaComputeCapability: cudaComputeCapability,
+		driverVersion:         driverVersion,
+		cudaDriverVersion:     fmt.Sprintf("%v.%v", cudaDriverVersion/1000, (cudaDriverVersion%1000)/10),
 	}
 
 	return gpuInfo, nil

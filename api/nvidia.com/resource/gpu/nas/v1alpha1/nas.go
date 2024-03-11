@@ -39,6 +39,8 @@ type AllocatableGpu struct {
 	Brand                 string `json:"brand"`
 	Architecture          string `json:"architecture"`
 	CUDAComputeCapability string `json:"cudaComputeCapability"`
+	DriverVersion         string `json:"driverVersion"`
+	CUDADriverVersion     string `json:"cudaDriverVersion"`
 }
 
 // AllocatableMigDevice represents an allocatable MIG device (and its possible placements) on a given type of GPU.

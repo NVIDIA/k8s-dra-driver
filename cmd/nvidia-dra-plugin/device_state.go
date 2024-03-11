@@ -42,6 +42,8 @@ type GpuInfo struct {
 	brand                 string
 	architecture          string
 	cudaComputeCapability string
+	driverVersion         string
+	cudaDriverVersion     string
 }
 
 type MigDeviceInfo struct {
@@ -383,6 +385,8 @@ func (s *DeviceState) syncAllocatableDevicesToCRDSpec(spec *nascrd.NodeAllocatio
 				Brand:                 device.brand,
 				Architecture:          device.architecture,
 				CUDAComputeCapability: device.cudaComputeCapability,
+				DriverVersion:         device.driverVersion,
+				CUDADriverVersion:     device.cudaDriverVersion,
 			},
 		}
 

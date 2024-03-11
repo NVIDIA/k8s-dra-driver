@@ -52,6 +52,10 @@ spec:
                           type: string
                         cudaComputeCapability:
                           type: string
+                        cudaDriverVersion:
+                          type: string
+                        driverVersion:
+                          type: string
                         index:
                           type: integer
                         memoryBytes:
@@ -67,6 +71,8 @@ spec:
                       - architecture
                       - brand
                       - cudaComputeCapability
+                      - cudaDriverVersion
+                      - driverVersion
                       - index
                       - memoryBytes
                       - migEnabled

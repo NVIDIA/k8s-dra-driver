@@ -436,8 +436,8 @@ func (in *GpuSelectorProperties) DeepCopyInto(out *GpuSelectorProperties) {
 		*out = new(selector.VersionComparator)
 		**out = **in
 	}
-	if in.CUDARuntimeVersion != nil {
-		in, out := &in.CUDARuntimeVersion, &out.CUDARuntimeVersion
+	if in.CUDADriverVersion != nil {
+		in, out := &in.CUDADriverVersion, &out.CUDADriverVersion
 		*out = new(selector.VersionComparator)
 		**out = **in
 	}
