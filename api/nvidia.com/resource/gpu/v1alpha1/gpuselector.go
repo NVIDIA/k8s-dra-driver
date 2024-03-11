@@ -79,10 +79,20 @@ func (s GpuSelector) Matches(compare func(*GpuSelectorProperties) bool) bool {
 	return s.convert().Matches(compare)
 }
 
+// ToNamedResourcesSelector converts a GpuSelector into a selector for use with
+// the NamedResources structured model
+func (s GpuSelector) ToNamedResourcesSelector() string {
+	return s.convert().ToNamedResourcesSelector()
+}
+
 // convert converts a GpuSelector into a generic Selector.
 func (s GpuSelector) convert() selector.Selector[GpuSelectorProperties] {
+	properties := s.GpuSelectorProperties
+	if (properties != nil) && (*properties == GpuSelectorProperties{}) {
+		properties = nil
+	}
 	ns := selector.Selector[GpuSelectorProperties]{
-		Properties: s.GpuSelectorProperties,
+		Properties: properties,
 	}
 	for _, e := range s.AndExpression {
 		ns.AndExpression = append(ns.AndExpression, e.convert())
@@ -95,8 +105,12 @@ func (s GpuSelector) convert() selector.Selector[GpuSelectorProperties] {
 
 // convert converts a GpuSelector1 into a generic Selector.
 func (s GpuSelector1) convert() selector.Selector[GpuSelectorProperties] {
+	properties := s.GpuSelectorProperties
+	if (properties != nil) && (*properties == GpuSelectorProperties{}) {
+		properties = nil
+	}
 	ns := selector.Selector[GpuSelectorProperties]{
-		Properties: s.GpuSelectorProperties,
+		Properties: properties,
 	}
 	for _, e := range s.AndExpression {
 		ns.AndExpression = append(ns.AndExpression, e.convert())
@@ -109,8 +123,12 @@ func (s GpuSelector1) convert() selector.Selector[GpuSelectorProperties] {
 
 // convert converts a GpuSelector2 into a generic Selector.
 func (s GpuSelector2) convert() selector.Selector[GpuSelectorProperties] {
+	properties := s.GpuSelectorProperties
+	if (properties != nil) && (*properties == GpuSelectorProperties{}) {
+		properties = nil
+	}
 	ns := selector.Selector[GpuSelectorProperties]{
-		Properties: s.GpuSelectorProperties,
+		Properties: properties,
 	}
 	for _, e := range s.AndExpression {
 		ns.AndExpression = append(ns.AndExpression, e.convert())
@@ -123,8 +141,49 @@ func (s GpuSelector2) convert() selector.Selector[GpuSelectorProperties] {
 
 // convert converts a GpuSelector3 into a generic Selector.
 func (s GpuSelector3) convert() selector.Selector[GpuSelectorProperties] {
+	properties := s.GpuSelectorProperties
+	if (properties != nil) && (*properties == GpuSelectorProperties{}) {
+		properties = nil
+	}
 	ns := selector.Selector[GpuSelectorProperties]{
-		Properties: s.GpuSelectorProperties,
+		Properties: properties,
 	}
 	return ns
+}
+
+// ToNamedResourcesSelector defines the process of converting
+// GpuSelectorProperties into a selector for use with the NamedResources
+// structured model
+func (p GpuSelectorProperties) ToNamedResourcesSelector() string {
+	if p.Index != nil {
+		return p.Index.ToNamedResourcesSelector("index")
+	}
+	if p.UUID != nil {
+		return p.UUID.ToNamedResourcesSelector("uuid")
+	}
+	if p.MigEnabled != nil {
+		return p.MigEnabled.ToNamedResourcesSelector("mig-enabled")
+	}
+	if p.Memory != nil {
+		return p.Memory.ToNamedResourcesSelector("memory")
+	}
+	if p.ProductName != nil {
+		return p.ProductName.ToNamedResourcesSelector("product-name")
+	}
+	if p.Brand != nil {
+		return p.Brand.ToNamedResourcesSelector("brand")
+	}
+	if p.Architecture != nil {
+		return p.Architecture.ToNamedResourcesSelector("architecture")
+	}
+	if p.CUDAComputeCapability != nil {
+		return p.CUDAComputeCapability.ToNamedResourcesSelector("cuda-compute-capability")
+	}
+	if p.DriverVersion != nil {
+		return p.DriverVersion.ToNamedResourcesSelector("driver-version")
+	}
+	if p.CUDADriverVersion != nil {
+		return p.CUDADriverVersion.ToNamedResourcesSelector("cuda-driver-version")
+	}
+	return "()"
 }
