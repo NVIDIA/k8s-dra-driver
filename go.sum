@@ -1,9 +1,9 @@
-github.com/NVIDIA/go-nvlib v0.0.0-20231116150931-9fd385bace0d h1:XxRHS7eNkZVcPpZZmUcoT4oO8FEcoYKn06sooQh5niU=
-github.com/NVIDIA/go-nvlib v0.0.0-20231116150931-9fd385bace0d/go.mod h1:HPFNPAYqQeoos58MKUboWsdZMu71EzSQrbmd+QBRD40=
+github.com/NVIDIA/go-nvlib v0.0.0-20231212194527-f3264c8a6a7a h1:aHaNKihxpWzWnV3yoVkit3bhOF7cg2ScCbzW+gepQ/E=
+github.com/NVIDIA/go-nvlib v0.0.0-20231212194527-f3264c8a6a7a/go.mod h1:U82N6/xKp6OnoqpALBH0C5SO59Buu4sX1Z3rQtBsBKQ=
 github.com/NVIDIA/go-nvml v0.12.0-2 h1:Sg239yy7jmopu/cuvYauoMj9fOpcGMngxVxxS1EBXeY=
 github.com/NVIDIA/go-nvml v0.12.0-2/go.mod h1:7ruy85eOM73muOc/I37euONSwEyFqZsv5ED9AogD4G0=
-github.com/NVIDIA/nvidia-container-toolkit v1.14.4-0.20231120225202-039d7fd32429 h1:+iGAHhhsREKFiJb1A+txLMVi3oPAoNC2kH8AtQsbzRc=
-github.com/NVIDIA/nvidia-container-toolkit v1.14.4-0.20231120225202-039d7fd32429/go.mod h1:yd+UnaIUSX3vjLVfewaDQ+R7XrgG38+hMZZXrygK3w0=
+github.com/NVIDIA/nvidia-container-toolkit v1.15.0-rc.3 h1:885jKnuAY794tMptJBbqxIuM3PzsrD4s91wtpH/pu+g=
+github.com/NVIDIA/nvidia-container-toolkit v1.15.0-rc.3/go.mod h1:CPmY/nn1QKXJsh71y8FdQiZW41FH2YLVzgcKD5Vrc+0=
 github.com/benbjohnson/clock v1.1.0 h1:Q92kusRqC1XV2MjkWETPvjJVqKetz1OzxZB7mHJLju8=
 github.com/benbjohnson/clock v1.1.0/go.mod h1:J11/hYXuz8f4ySSvYwY0FKfm+ezbsZBKZxNJlLklBHA=
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=
@@ -54,8 +54,9 @@ github.com/google/gofuzz v1.0.0/go.mod h1:dBl0BpW6vV/+mYPU4Po3pmUjxk6FQPldtuIdl/
 github.com/google/gofuzz v1.2.0 h1:xRy4A+RhZaiKjJ1bPfwQ8sedCA+YS2YcCHW6ec7JMi0=
 github.com/google/gofuzz v1.2.0/go.mod h1:dBl0BpW6vV/+mYPU4Po3pmUjxk6FQPldtuIdl/M65Eg=
 github.com/google/pprof v0.0.0-20210720184732-4bb14d4b1be1 h1:K6RDEckDVWvDI9JAJYCmNdQXq6neHJOYx3V6jnqNEec=
-github.com/google/uuid v1.3.0 h1:t6JiXgmwXMjEs8VusXIJk2BXHsn+wx8BZdTaoZ5fu7I=
 github.com/google/uuid v1.3.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
+github.com/google/uuid v1.4.0 h1:MtMxsa51/r9yyhkyLsVeVt0B+BGQZzpQiTQ4eHZ8bc4=
+github.com/google/uuid v1.4.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
 github.com/hashicorp/errwrap v1.0.0/go.mod h1:YH+1FKiLXxHSkmPseP+kNlulaMuP3n2brvKWEqk/Jc4=
 github.com/hashicorp/errwrap v1.1.0 h1:OxrOeh75EUXMY8TBjag2fzXGZ40LB6IKw45YeGUDY2I=
 github.com/hashicorp/go-multierror v1.1.1 h1:H5DkEtf6CXdFp0N0Em5UCwQpXMWke8IA0+lD48awMYo=

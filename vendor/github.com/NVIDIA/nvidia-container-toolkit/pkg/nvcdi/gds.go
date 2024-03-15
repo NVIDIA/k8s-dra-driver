@@ -20,11 +20,12 @@ import (
 	"fmt"
 
 	"github.com/NVIDIA/go-nvlib/pkg/nvlib/device"
+	"tags.cncf.io/container-device-interface/pkg/cdi"
+	"tags.cncf.io/container-device-interface/specs-go"
+
 	"github.com/NVIDIA/nvidia-container-toolkit/internal/discover"
 	"github.com/NVIDIA/nvidia-container-toolkit/internal/edits"
 	"github.com/NVIDIA/nvidia-container-toolkit/pkg/nvcdi/spec"
-	"tags.cncf.io/container-device-interface/pkg/cdi"
-	"tags.cncf.io/container-device-interface/specs-go"
 )
 
 type gdslib nvcdilib
@@ -79,4 +80,11 @@ func (l *gdslib) GetMIGDeviceEdits(device.Device, device.MigDevice) (*cdi.Contai
 // GetMIGDeviceSpecs is unsupported for the gdslib specs
 func (l *gdslib) GetMIGDeviceSpecs(int, device.Device, int, device.MigDevice) (*specs.Device, error) {
 	return nil, fmt.Errorf("GetMIGDeviceSpecs is not supported")
+}
+
+// GetDeviceSpecsByID returns the CDI device specs for the GPU(s) represented by
+// the provided identifiers, where an identifier is an index or UUID of a valid
+// GPU device.
+func (l *gdslib) GetDeviceSpecsByID(...string) ([]specs.Device, error) {
+	return nil, fmt.Errorf("GetDeviceSpecsByID is not supported")
 }

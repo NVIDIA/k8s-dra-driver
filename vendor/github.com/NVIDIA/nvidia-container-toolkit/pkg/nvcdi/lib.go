@@ -22,7 +22,9 @@ import (
 	"github.com/NVIDIA/go-nvlib/pkg/nvlib/device"
 	"github.com/NVIDIA/go-nvlib/pkg/nvlib/info"
 	"github.com/NVIDIA/go-nvlib/pkg/nvml"
+
 	"github.com/NVIDIA/nvidia-container-toolkit/internal/logger"
+	"github.com/NVIDIA/nvidia-container-toolkit/internal/lookup/root"
 	"github.com/NVIDIA/nvidia-container-toolkit/internal/platform-support/tegra/csv"
 	"github.com/NVIDIA/nvidia-container-toolkit/pkg/nvcdi/spec"
 	"github.com/NVIDIA/nvidia-container-toolkit/pkg/nvcdi/transform"
@@ -46,6 +48,7 @@ type nvcdilib struct {
 	driverRoot         string
 	devRoot            string
 	nvidiaCTKPath      string
+	ldconfigPath       string
 	librarySearchPaths []string
 
 	csvFiles          []string
@@ -54,6 +57,7 @@ type nvcdilib struct {
 	vendor string
 	class  string
 
+	driver  *root.Driver
 	infolib info.Interface
 
 	mergedDeviceOptions []transform.MergedDeviceOption
@@ -86,6 +90,9 @@ func New(opts ...Option) (Interface, error) {
 	if l.infolib == nil {
 		l.infolib = info.New()
 	}
+
+	// TODO: We need to improve the construction of this driver root.
+	l.driver = root.New(l.logger, l.driverRoot, l.librarySearchPaths)
 
 	var lib Interface
 	switch l.resolveMode() {
