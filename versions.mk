@@ -21,12 +21,12 @@ VERSION  ?= v0.1.0
 # vVERSION represents the version with a guaranteed v-prefix
 vVERSION := v$(VERSION:v%=%)
 
-GOLANG_VERSION ?= 1.20.4
+GOLANG_VERSION ?= 1.22.1
 CUDA_VERSION ?= 11.8.0
 
-# these variables are only needed when building a local image
-CLIENT_GEN_VERSION ?= v0.26.1
-CONTROLLER_GEN_VERSION ?= v0.9.2
+# These variables are only needed when building a local image
+CLIENT_GEN_VERSION ?= v0.29.2
+CONTROLLER_GEN_VERSION ?= v0.14.0
 GOLANGCI_LINT_VERSION ?= v1.52.0
 MOQ_VERSION ?= v0.3.4
 

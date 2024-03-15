@@ -24,7 +24,6 @@ import (
 	v1alpha1 "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
-	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	testing "k8s.io/client-go/testing"
@@ -35,9 +34,9 @@ type FakeDeviceClassParameters struct {
 	Fake *FakeGpuV1alpha1
 }
 
-var deviceclassparametersResource = schema.GroupVersionResource{Group: "gpu.resource.nvidia.com", Version: "v1alpha1", Resource: "deviceclassparameters"}
+var deviceclassparametersResource = v1alpha1.SchemeGroupVersion.WithResource("deviceclassparameters")
 
-var deviceclassparametersKind = schema.GroupVersionKind{Group: "gpu.resource.nvidia.com", Version: "v1alpha1", Kind: "DeviceClassParameters"}
+var deviceclassparametersKind = v1alpha1.SchemeGroupVersion.WithKind("DeviceClassParameters")
 
 // Get takes name of the deviceClassParameters, and returns the corresponding deviceClassParameters object, and an error if there is any.
 func (c *FakeDeviceClassParameters) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.DeviceClassParameters, err error) {
