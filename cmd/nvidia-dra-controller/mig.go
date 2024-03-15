@@ -25,6 +25,7 @@ import (
 
 	nascrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1"
 	gpucrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/v1alpha1"
+	"github.com/NVIDIA/k8s-dra-driver/api/utils/types"
 )
 
 type migdriver struct {
@@ -124,7 +125,7 @@ func (m *migdriver) available(crd *nascrd.NodeAllocationState) MigDevicePlacemen
 	placements := make(MigDevicePlacements)
 
 	for _, device := range crd.Spec.AllocatableDevices {
-		if device.Type() != nascrd.GpuDeviceType {
+		if device.Type() != types.GpuDeviceType {
 			continue
 		}
 		if !device.Gpu.MigEnabled {
@@ -134,7 +135,7 @@ func (m *migdriver) available(crd *nascrd.NodeAllocationState) MigDevicePlacemen
 	}
 
 	for _, device := range crd.Spec.AllocatableDevices {
-		if device.Type() != nascrd.MigDeviceType {
+		if device.Type() != types.MigDeviceType {
 			continue
 		}
 		var pps []MigDevicePlacement
@@ -153,7 +154,7 @@ func (m *migdriver) available(crd *nascrd.NodeAllocationState) MigDevicePlacemen
 	}
 
 	for _, allocated := range crd.Spec.AllocatedClaims {
-		if allocated.Type() != nascrd.MigDeviceType {
+		if allocated.Type() != types.MigDeviceType {
 			continue
 		}
 		for _, device := range allocated.Mig.Devices {
@@ -273,7 +274,7 @@ func (m *migdriver) gpuClaimInfo(crd *nascrd.NodeAllocationState, cas []*control
 
 		allocated := crd.Spec.AllocatedClaims[claimUID]
 
-		if allocated.Type() != nascrd.GpuDeviceType {
+		if allocated.Type() != types.GpuDeviceType {
 			continue
 		}
 		for _, device := range allocated.Gpu.Devices {

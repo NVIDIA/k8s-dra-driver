@@ -26,6 +26,7 @@ import (
 
 	nascrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1"
 	gpucrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/v1alpha1"
+	"github.com/NVIDIA/k8s-dra-driver/api/utils/types"
 )
 
 type gpudriver struct {
@@ -115,7 +116,7 @@ func (g *gpudriver) allocate(crd *nascrd.NodeAllocationState, pod *corev1.Pod, g
 	available := make(map[string]*nascrd.AllocatableGpu)
 
 	for _, device := range crd.Spec.AllocatableDevices {
-		if device.Type() != nascrd.GpuDeviceType {
+		if device.Type() != types.GpuDeviceType {
 			continue
 		}
 		available[device.Gpu.UUID] = device.Gpu
@@ -123,11 +124,11 @@ func (g *gpudriver) allocate(crd *nascrd.NodeAllocationState, pod *corev1.Pod, g
 
 	for _, allocated := range crd.Spec.AllocatedClaims {
 		switch allocated.Type() {
-		case nascrd.GpuDeviceType:
+		case types.GpuDeviceType:
 			for _, device := range allocated.Gpu.Devices {
 				delete(available, device.UUID)
 			}
-		case nascrd.MigDeviceType:
+		case types.MigDeviceType:
 			for _, device := range allocated.Mig.Devices {
 				delete(available, device.ParentUUID)
 			}
@@ -194,6 +195,12 @@ func selectorMatchesGpu(selector *gpucrd.GpuSelector, gpu *nascrd.AllocatableGpu
 		}
 		if p.CUDAComputeCapability != nil {
 			return p.CUDAComputeCapability.Matches(gpu.CUDAComputeCapability)
+		}
+		if p.DriverVersion != nil {
+			return p.DriverVersion.Matches(gpu.DriverVersion)
+		}
+		if p.CUDADriverVersion != nil {
+			return p.CUDADriverVersion.Matches(gpu.CUDADriverVersion)
 		}
 		return false
 	})

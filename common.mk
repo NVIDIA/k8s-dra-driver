@@ -21,6 +21,7 @@ CLIENT_APIS := gpu/nas/v1alpha1 gpu/v1alpha1
 CLIENT_SOURCES += $(patsubst %, $(API_BASE)/%, $(CLIENT_APIS))
 
 DEEPCOPY_SOURCES  = api/utils/selector
+DEEPCOPY_SOURCES += api/utils/sharing
 DEEPCOPY_SOURCES += $(CLIENT_SOURCES)
 
 PLURAL_EXCEPTIONS  = DeviceClassParameters:DeviceClassParameters

@@ -17,15 +17,11 @@
 package v1alpha1
 
 import (
+	"github.com/NVIDIA/k8s-dra-driver/api/utils/sharing"
+	"github.com/NVIDIA/k8s-dra-driver/api/utils/types"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
-
-// ClaimInfo holds the identifying information about a claim.
-type ClaimInfo struct {
-	Namespace string `json:"namespace"`
-	Name      string `json:"name"`
-	UID       string `json:"uid"`
-}
 
 // MigDevicePlacement represents the placement of a MIG device within a GPU.
 type MigDevicePlacement struct {
@@ -43,6 +39,8 @@ type AllocatableGpu struct {
 	Brand                 string `json:"brand"`
 	Architecture          string `json:"architecture"`
 	CUDAComputeCapability string `json:"cudaComputeCapability"`
+	DriverVersion         string `json:"driverVersion"`
+	CUDADriverVersion     string `json:"cudaDriverVersion"`
 }
 
 // AllocatableMigDevice represents an allocatable MIG device (and its possible placements) on a given type of GPU.
@@ -61,12 +59,12 @@ type AllocatableDevice struct {
 // Type returns the type of AllocatableDevice this represents.
 func (d AllocatableDevice) Type() string {
 	if d.Gpu != nil {
-		return GpuDeviceType
+		return types.GpuDeviceType
 	}
 	if d.Mig != nil {
-		return MigDeviceType
+		return types.MigDeviceType
 	}
-	return UnknownDeviceType
+	return types.UnknownDeviceType
 }
 
 // AllocatedGpu represents an allocated GPU.
@@ -83,19 +81,19 @@ type AllocatedMigDevice struct {
 
 // AllocatedGpus represents a set of allocated GPUs.
 type AllocatedGpus struct {
-	Devices []AllocatedGpu `json:"devices"`
-	Sharing *GpuSharing    `json:"sharing,omitempty"`
+	Devices []AllocatedGpu      `json:"devices"`
+	Sharing *sharing.GpuSharing `json:"sharing,omitempty"`
 }
 
 // AllocatedMigDevices represents a set of allocated MIG devices.
 type AllocatedMigDevices struct {
-	Devices []AllocatedMigDevice `json:"devices"`
-	Sharing *MigDeviceSharing    `json:"sharing,omitempty"`
+	Devices []AllocatedMigDevice      `json:"devices"`
+	Sharing *sharing.MigDeviceSharing `json:"sharing,omitempty"`
 }
 
 // AllocatedDevices represents a set of allocated devices.
 type AllocatedDevices struct {
-	ClaimInfo *ClaimInfo           `json:"claimInfo"`
+	ClaimInfo *types.ClaimInfo     `json:"claimInfo"`
 	Gpu       *AllocatedGpus       `json:"gpu,omitempty"`
 	Mig       *AllocatedMigDevices `json:"mig,omitempty"`
 }
@@ -103,12 +101,12 @@ type AllocatedDevices struct {
 // Type returns the type of AllocatedDevices this represents.
 func (r AllocatedDevices) Type() string {
 	if r.Gpu != nil {
-		return GpuDeviceType
+		return types.GpuDeviceType
 	}
 	if r.Mig != nil {
-		return MigDeviceType
+		return types.MigDeviceType
 	}
-	return UnknownDeviceType
+	return types.UnknownDeviceType
 }
 
 // PreparedGpu represents a prepared GPU on a node.
@@ -143,12 +141,12 @@ type PreparedDevices struct {
 // Type returns the type of PreparedDevices this represents.
 func (d PreparedDevices) Type() string {
 	if d.Gpu != nil {
-		return GpuDeviceType
+		return types.GpuDeviceType
 	}
 	if d.Mig != nil {
-		return MigDeviceType
+		return types.MigDeviceType
 	}
-	return UnknownDeviceType
+	return types.UnknownDeviceType
 }
 
 // NodeAllocationStateSpec is the spec for the NodeAllocationState CRD.

@@ -28,6 +28,7 @@ import (
 	nascrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1"
 	nasclient "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1/client"
 	gpucrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/v1alpha1"
+	"github.com/NVIDIA/k8s-dra-driver/api/utils/types"
 	nvclientset "github.com/NVIDIA/k8s-dra-driver/pkg/nvidia.com/resource/clientset/versioned"
 )
 
@@ -166,7 +167,7 @@ func (d driver) allocate(ctx context.Context, claim *resourcev1.ResourceClaim, c
 	}
 
 	allocated := crd.Spec.AllocatedClaims[string(claim.UID)]
-	allocated.ClaimInfo = &nascrd.ClaimInfo{
+	allocated.ClaimInfo = &types.ClaimInfo{
 		Namespace: claim.Namespace,
 		Name:      claim.Name,
 		UID:       string(claim.UID),
@@ -214,9 +215,9 @@ func (d driver) Deallocate(ctx context.Context, claim *resourcev1.ResourceClaim)
 
 	devices := crd.Spec.AllocatedClaims[string(claim.UID)]
 	switch devices.Type() {
-	case nascrd.GpuDeviceType:
+	case types.GpuDeviceType:
 		err = d.gpu.Deallocate(crd, claim)
-	case nascrd.MigDeviceType:
+	case types.MigDeviceType:
 		err = d.mig.Deallocate(crd, claim)
 	default:
 		err = fmt.Errorf("unknown AllocatedDevices.Type(): %v", devices.Type())

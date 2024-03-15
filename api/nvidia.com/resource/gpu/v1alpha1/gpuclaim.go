@@ -19,14 +19,14 @@ package v1alpha1
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	nascrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1"
+	"github.com/NVIDIA/k8s-dra-driver/api/utils/sharing"
 )
 
 // GpuClaimParametersSpec is the spec for the GpuClaimParameters CRD.
 type GpuClaimParametersSpec struct {
-	Count    *int               `json:"count,omitempty"`
-	Selector *GpuSelector       `json:"selector,omitempty"`
-	Sharing  *nascrd.GpuSharing `json:"sharing,omitempty"`
+	Count    *int                `json:"count,omitempty"`
+	Selector *GpuSelector        `json:"selector,omitempty"`
+	Sharing  *sharing.GpuSharing `json:"sharing,omitempty"`
 }
 
 // +genclient

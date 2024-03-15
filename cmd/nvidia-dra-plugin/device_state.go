@@ -25,6 +25,8 @@ import (
 	"k8s.io/klog/v2"
 
 	nascrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1"
+	"github.com/NVIDIA/k8s-dra-driver/api/utils/sharing"
+	"github.com/NVIDIA/k8s-dra-driver/api/utils/types"
 )
 
 type AllocatableDevices map[string]*AllocatableDeviceInfo
@@ -40,6 +42,8 @@ type GpuInfo struct {
 	brand                 string
 	architecture          string
 	cudaComputeCapability string
+	driverVersion         string
+	cudaDriverVersion     string
 }
 
 type MigDeviceInfo struct {
@@ -66,12 +70,12 @@ type PreparedDevices struct {
 
 func (d PreparedDevices) Type() string {
 	if d.Gpu != nil {
-		return nascrd.GpuDeviceType
+		return types.GpuDeviceType
 	}
 	if d.Mig != nil {
-		return nascrd.MigDeviceType
+		return types.MigDeviceType
 	}
-	return nascrd.UnknownDeviceType
+	return types.UnknownDeviceType
 }
 
 func (d PreparedDevices) Len() int {
@@ -87,11 +91,11 @@ func (d PreparedDevices) Len() int {
 func (d *PreparedDevices) UUIDs() []string {
 	var deviceStrings []string
 	switch d.Type() {
-	case nascrd.GpuDeviceType:
+	case types.GpuDeviceType:
 		for _, device := range d.Gpu.Devices {
 			deviceStrings = append(deviceStrings, device.uuid)
 		}
-	case nascrd.MigDeviceType:
+	case types.MigDeviceType:
 		for _, device := range d.Mig.Devices {
 			deviceStrings = append(deviceStrings, device.uuid)
 		}
@@ -189,7 +193,7 @@ func (s *DeviceState) Prepare(ctx context.Context, claimUID string, allocated na
 
 	var err error
 	switch allocated.Type() {
-	case nascrd.GpuDeviceType:
+	case types.GpuDeviceType:
 		prepared.Gpu, err = s.prepareGpus(claimUID, allocated.Gpu)
 		if err != nil {
 			return nil, fmt.Errorf("GPU allocation failed: %w", err)
@@ -198,7 +202,7 @@ func (s *DeviceState) Prepare(ctx context.Context, claimUID string, allocated na
 		if err != nil {
 			return nil, fmt.Errorf("error setting up sharing: %w", err)
 		}
-	case nascrd.MigDeviceType:
+	case types.MigDeviceType:
 		prepared.Mig, err = s.prepareMigDevices(claimUID, allocated.Mig)
 		if err != nil {
 			return nil, fmt.Errorf("MIG device allocation failed: %w", err)
@@ -235,12 +239,12 @@ func (s *DeviceState) Unprepare(ctx context.Context, claimUID string) error {
 	}
 
 	switch s.prepared[claimUID].Type() {
-	case nascrd.GpuDeviceType:
+	case types.GpuDeviceType:
 		err := s.unprepareGpus(claimUID, s.prepared[claimUID])
 		if err != nil {
 			return fmt.Errorf("unprepare failed: %w", err)
 		}
-	case nascrd.MigDeviceType:
+	case types.MigDeviceType:
 		err := s.unprepareMigDevices(claimUID, s.prepared[claimUID])
 		if err != nil {
 			return fmt.Errorf("unprepare failed: %w", err)
@@ -335,7 +339,7 @@ func (s *DeviceState) unprepareMigDevices(claimUID string, devices *PreparedDevi
 	return nil
 }
 
-func (s *DeviceState) setupSharing(ctx context.Context, sharing nascrd.Sharing, claim *nascrd.ClaimInfo, devices *PreparedDevices) error {
+func (s *DeviceState) setupSharing(ctx context.Context, sharing sharing.Interface, claim *types.ClaimInfo, devices *PreparedDevices) error {
 	if sharing.IsTimeSlicing() {
 		config, err := sharing.GetTimeSlicingConfig()
 		if err != nil {
@@ -381,6 +385,8 @@ func (s *DeviceState) syncAllocatableDevicesToCRDSpec(spec *nascrd.NodeAllocatio
 				Brand:                 device.brand,
 				Architecture:          device.architecture,
 				CUDAComputeCapability: device.cudaComputeCapability,
+				DriverVersion:         device.driverVersion,
+				CUDADriverVersion:     device.cudaDriverVersion,
 			},
 		}
 
@@ -453,7 +459,7 @@ func (s *DeviceState) syncPreparedDevicesFromCRDSpec(ctx context.Context, spec *
 		allocated := spec.AllocatedClaims[claim]
 		prepared[claim] = &PreparedDevices{}
 		switch devices.Type() {
-		case nascrd.GpuDeviceType:
+		case types.GpuDeviceType:
 			prepared[claim].Gpu = &PreparedGpus{}
 			for _, d := range devices.Gpu.Devices {
 				prepared[claim].Gpu.Devices = append(prepared[claim].Gpu.Devices, gpus[d.UUID].GpuInfo)
@@ -462,7 +468,7 @@ func (s *DeviceState) syncPreparedDevicesFromCRDSpec(ctx context.Context, spec *
 			if err != nil {
 				return fmt.Errorf("error setting up sharing: %w", err)
 			}
-		case nascrd.MigDeviceType:
+		case types.MigDeviceType:
 			prepared[claim].Mig = &PreparedMigDevices{}
 			for _, d := range devices.Mig.Devices {
 				migInfo := migs[d.ParentUUID][d.UUID]
@@ -507,7 +513,7 @@ func (s *DeviceState) syncPreparedDevicesToCRDSpec(spec *nascrd.NodeAllocationSt
 	for claim, devices := range s.prepared {
 		var prepared nascrd.PreparedDevices
 		switch devices.Type() {
-		case nascrd.GpuDeviceType:
+		case types.GpuDeviceType:
 			prepared.Gpu = &nascrd.PreparedGpus{}
 			for _, device := range devices.Gpu.Devices {
 				outdevice := nascrd.PreparedGpu{
@@ -515,7 +521,7 @@ func (s *DeviceState) syncPreparedDevicesToCRDSpec(spec *nascrd.NodeAllocationSt
 				}
 				prepared.Gpu.Devices = append(prepared.Gpu.Devices, outdevice)
 			}
-		case nascrd.MigDeviceType:
+		case types.MigDeviceType:
 			prepared.Mig = &nascrd.PreparedMigDevices{}
 			for _, device := range devices.Mig.Devices {
 				placement := nascrd.MigDevicePlacement{

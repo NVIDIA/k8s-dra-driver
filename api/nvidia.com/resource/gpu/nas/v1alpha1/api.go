@@ -24,10 +24,6 @@ const (
 	GroupName = "nas.gpu.resource.nvidia.com"
 	Version   = "v1alpha1"
 
-	GpuDeviceType     = "gpu"
-	MigDeviceType     = "mig"
-	UnknownDeviceType = "unknown"
-
 	NodeAllocationStateStatusReady    = "Ready"
 	NodeAllocationStateStatusNotReady = "NotReady"
 )
