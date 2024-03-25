@@ -7,7 +7,7 @@ github.com/NVIDIA/go-nvlib/pkg/nvml
 ## explicit; go 1.20
 github.com/NVIDIA/go-nvml/pkg/dl
 github.com/NVIDIA/go-nvml/pkg/nvml
-# github.com/NVIDIA/nvidia-container-toolkit v1.14.4-0.20231120225202-039d7fd32429
+# github.com/NVIDIA/nvidia-container-toolkit v1.15.0-rc.4
 ## explicit; go 1.20
 github.com/NVIDIA/nvidia-container-toolkit/internal/config/image
 github.com/NVIDIA/nvidia-container-toolkit/internal/discover
@@ -19,6 +19,7 @@ github.com/NVIDIA/nvidia-container-toolkit/internal/ldcache
 github.com/NVIDIA/nvidia-container-toolkit/internal/logger
 github.com/NVIDIA/nvidia-container-toolkit/internal/lookup
 github.com/NVIDIA/nvidia-container-toolkit/internal/lookup/cuda
+github.com/NVIDIA/nvidia-container-toolkit/internal/lookup/root
 github.com/NVIDIA/nvidia-container-toolkit/internal/lookup/symlinks
 github.com/NVIDIA/nvidia-container-toolkit/internal/nvcaps
 github.com/NVIDIA/nvidia-container-toolkit/internal/oci
@@ -27,6 +28,8 @@ github.com/NVIDIA/nvidia-container-toolkit/internal/platform-support/tegra/csv
 github.com/NVIDIA/nvidia-container-toolkit/pkg/nvcdi
 github.com/NVIDIA/nvidia-container-toolkit/pkg/nvcdi/spec
 github.com/NVIDIA/nvidia-container-toolkit/pkg/nvcdi/transform
+github.com/NVIDIA/nvidia-container-toolkit/pkg/nvcdi/transform/noop
+github.com/NVIDIA/nvidia-container-toolkit/pkg/nvcdi/transform/root
 # github.com/beorn7/perks v1.0.1
 ## explicit; go 1.11
 github.com/beorn7/perks/quantile
@@ -49,8 +52,8 @@ github.com/emicklei/go-restful/v3/log
 # github.com/evanphx/json-patch v4.12.0+incompatible
 ## explicit
 github.com/evanphx/json-patch
-# github.com/fsnotify/fsnotify v1.6.0
-## explicit; go 1.16
+# github.com/fsnotify/fsnotify v1.7.0
+## explicit; go 1.17
 github.com/fsnotify/fsnotify
 # github.com/go-logr/logr v1.3.0
 ## explicit; go 1.18
@@ -136,7 +139,7 @@ github.com/modern-go/reflect2
 # github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822
 ## explicit
 github.com/munnerz/goautoneg
-# github.com/opencontainers/runtime-spec v1.1.0
+# github.com/opencontainers/runtime-spec v1.2.0
 ## explicit
 github.com/opencontainers/runtime-spec/specs-go
 # github.com/opencontainers/runtime-tools v0.9.1-0.20221107090550-2e043c6bd626
@@ -224,7 +227,7 @@ golang.org/x/net/trace
 ## explicit; go 1.18
 golang.org/x/oauth2
 golang.org/x/oauth2/internal
-# golang.org/x/sys v0.16.0
+# golang.org/x/sys v0.18.0
 ## explicit; go 1.18
 golang.org/x/sys/plan9
 golang.org/x/sys/unix

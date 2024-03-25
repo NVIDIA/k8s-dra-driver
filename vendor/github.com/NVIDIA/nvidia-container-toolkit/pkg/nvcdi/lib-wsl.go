@@ -20,10 +20,11 @@ import (
 	"fmt"
 
 	"github.com/NVIDIA/go-nvlib/pkg/nvlib/device"
-	"github.com/NVIDIA/nvidia-container-toolkit/internal/edits"
-	"github.com/NVIDIA/nvidia-container-toolkit/pkg/nvcdi/spec"
 	"tags.cncf.io/container-device-interface/pkg/cdi"
 	"tags.cncf.io/container-device-interface/specs-go"
+
+	"github.com/NVIDIA/nvidia-container-toolkit/internal/edits"
+	"github.com/NVIDIA/nvidia-container-toolkit/pkg/nvcdi/spec"
 )
 
 type wsllib nvcdilib
@@ -53,7 +54,7 @@ func (l *wsllib) GetAllDeviceSpecs() ([]specs.Device, error) {
 
 // GetCommonEdits generates a CDI specification that can be used for ANY devices
 func (l *wsllib) GetCommonEdits() (*cdi.ContainerEdits, error) {
-	driver, err := newWSLDriverDiscoverer(l.logger, l.driverRoot, l.nvidiaCTKPath)
+	driver, err := newWSLDriverDiscoverer(l.logger, l.driverRoot, l.nvidiaCTKPath, l.ldconfigPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create discoverer for WSL driver: %v", err)
 	}
@@ -67,7 +68,7 @@ func (l *wsllib) GetGPUDeviceEdits(device.Device) (*cdi.ContainerEdits, error) {
 }
 
 // GetGPUDeviceSpecs returns the CDI device specs for the full GPU represented by 'device'.
-func (l *wsllib) GetGPUDeviceSpecs(i int, d device.Device) (*specs.Device, error) {
+func (l *wsllib) GetGPUDeviceSpecs(i int, d device.Device) ([]specs.Device, error) {
 	return nil, fmt.Errorf("GetGPUDeviceSpecs is not supported on WSL")
 }
 
@@ -77,6 +78,13 @@ func (l *wsllib) GetMIGDeviceEdits(device.Device, device.MigDevice) (*cdi.Contai
 }
 
 // GetMIGDeviceSpecs returns the CDI device specs for the full MIG represented by 'device'.
-func (l *wsllib) GetMIGDeviceSpecs(int, device.Device, int, device.MigDevice) (*specs.Device, error) {
+func (l *wsllib) GetMIGDeviceSpecs(int, device.Device, int, device.MigDevice) ([]specs.Device, error) {
 	return nil, fmt.Errorf("GetMIGDeviceSpecs is not supported on WSL")
+}
+
+// GetDeviceSpecsByID returns the CDI device specs for the GPU(s) represented by
+// the provided identifiers, where an identifier is an index or UUID of a valid
+// GPU device.
+func (l *wsllib) GetDeviceSpecsByID(...string) ([]specs.Device, error) {
+	return nil, fmt.Errorf("GetDeviceSpecsByID is not supported on WSL")
 }

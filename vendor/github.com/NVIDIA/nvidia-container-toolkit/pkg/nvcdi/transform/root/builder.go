@@ -1,5 +1,5 @@
 /**
-# Copyright (c) NVIDIA CORPORATION.  All rights reserved.
+# Copyright 2023 NVIDIA CORPORATION
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,22 +14,25 @@
 # limitations under the License.
 **/
 
-package transform
+package root
 
 import (
-	"tags.cncf.io/container-device-interface/specs-go"
+	"github.com/NVIDIA/nvidia-container-toolkit/pkg/nvcdi/transform"
+	"github.com/NVIDIA/nvidia-container-toolkit/pkg/nvcdi/transform/noop"
 )
 
-type noop struct{}
-
-var _ Transformer = (*noop)(nil)
-
-// NewNoopTransformer returns a no-op transformer
-func NewNoopTransformer() Transformer {
-	return noop{}
+type builder struct {
+	transformer
+	relativeTo string
 }
 
-// Transform is a no-op
-func (n noop) Transform(spec *specs.Spec) error {
-	return nil
+func (b *builder) build() transform.Transformer {
+	if b.root == b.targetRoot {
+		return noop.New()
+	}
+
+	if b.relativeTo == "container" {
+		return containerRootTransformer(b.transformer)
+	}
+	return hostRootTransformer(b.transformer)
 }
