@@ -24,32 +24,36 @@ import (
 
 	"github.com/NVIDIA/go-nvlib/pkg/nvlib/device"
 	"github.com/NVIDIA/go-nvlib/pkg/nvml"
+	"tags.cncf.io/container-device-interface/pkg/cdi"
+	"tags.cncf.io/container-device-interface/specs-go"
+
 	"github.com/NVIDIA/nvidia-container-toolkit/internal/discover"
 	"github.com/NVIDIA/nvidia-container-toolkit/internal/edits"
 	"github.com/NVIDIA/nvidia-container-toolkit/internal/info/drm"
 	"github.com/NVIDIA/nvidia-container-toolkit/internal/logger"
-	"tags.cncf.io/container-device-interface/pkg/cdi"
-	"tags.cncf.io/container-device-interface/specs-go"
 )
 
 // GetGPUDeviceSpecs returns the CDI device specs for the full GPU represented by 'device'.
-func (l *nvmllib) GetGPUDeviceSpecs(i int, d device.Device) (*specs.Device, error) {
+func (l *nvmllib) GetGPUDeviceSpecs(i int, d device.Device) ([]specs.Device, error) {
 	edits, err := l.GetGPUDeviceEdits(d)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get edits for device: %v", err)
 	}
 
-	name, err := l.deviceNamer.GetDeviceName(i, convert{d})
+	var deviceSpecs []specs.Device
+	names, err := l.deviceNamers.GetDeviceNames(i, convert{d})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get device name: %v", err)
 	}
-
-	spec := specs.Device{
-		Name:           name,
-		ContainerEdits: *edits.ContainerEdits,
+	for _, name := range names {
+		spec := specs.Device{
+			Name:           name,
+			ContainerEdits: *edits.ContainerEdits,
+		}
+		deviceSpecs = append(deviceSpecs, spec)
 	}
 
-	return &spec, nil
+	return deviceSpecs, nil
 }
 
 // GetGPUDeviceEdits returns the CDI edits for the full GPU represented by 'device'.
