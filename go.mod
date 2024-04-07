@@ -21,7 +21,7 @@ require (
 	k8s.io/kubelet v0.29.2
 	k8s.io/mount-utils v0.29.2
 	tags.cncf.io/container-device-interface v0.6.2
-	tags.cncf.io/container-device-interface/specs-go v0.6.0
+	tags.cncf.io/container-device-interface/specs-go v0.7.0
 )
 
 require (
