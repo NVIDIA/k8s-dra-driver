@@ -103,8 +103,7 @@ func NewCDIHandler(opts ...cdiOption) (*CDIHandler, error) {
 	}
 
 	if h.registry == nil {
-		// TODO: We should rather construct a cdi.CacheHere directly.
-		registry := cdiapi.GetRegistry(
+		registry, _ := cdiapi.NewCache(
 			cdiapi.WithSpecDirs(h.cdiRoot),
 		)
 		err := registry.Refresh()
