@@ -3,15 +3,15 @@ module github.com/NVIDIA/k8s-dra-driver
 go 1.22
 
 require (
-	github.com/NVIDIA/go-nvlib v0.2.0
-	github.com/NVIDIA/go-nvml v0.12.0-3
-	github.com/NVIDIA/nvidia-container-toolkit v1.15.0-rc.4
+	github.com/NVIDIA/go-nvlib v0.3.0
+	github.com/NVIDIA/go-nvml v0.12.0-4
+	github.com/NVIDIA/nvidia-container-toolkit v1.15.1-0.20240419094620-0aed9a16addf
 	github.com/prometheus/client_golang v1.19.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.9.0
 	github.com/urfave/cli/v2 v2.27.1
-	golang.org/x/mod v0.16.0
+	golang.org/x/mod v0.17.0
 	k8s.io/api v0.29.2
 	k8s.io/apimachinery v0.29.2
 	k8s.io/client-go v0.29.2
@@ -20,8 +20,8 @@ require (
 	k8s.io/klog/v2 v2.110.1
 	k8s.io/kubelet v0.29.2
 	k8s.io/mount-utils v0.29.2
-	tags.cncf.io/container-device-interface v0.6.2
-	tags.cncf.io/container-device-interface/specs-go v0.6.0
+	tags.cncf.io/container-device-interface v0.7.2
+	tags.cncf.io/container-device-interface/specs-go v0.7.0
 )
 
 require (
@@ -70,7 +70,7 @@ require (
 	go.uber.org/zap v1.21.0 // indirect
 	golang.org/x/net v0.20.0 // indirect
 	golang.org/x/oauth2 v0.16.0 // indirect
-	golang.org/x/sys v0.18.0 // indirect
+	golang.org/x/sys v0.19.0 // indirect
 	golang.org/x/term v0.16.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
