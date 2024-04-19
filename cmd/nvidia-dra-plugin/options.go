@@ -18,7 +18,7 @@ package main
 
 import (
 	nvdevice "github.com/NVIDIA/go-nvlib/pkg/nvlib/device"
-	"github.com/NVIDIA/go-nvlib/pkg/nvml"
+	"github.com/NVIDIA/go-nvml/pkg/nvml"
 )
 
 // cdiOption represents a functional option for constructing a CDI handler.

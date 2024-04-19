@@ -24,7 +24,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	nvdevice "github.com/NVIDIA/go-nvlib/pkg/nvlib/device"
-	"github.com/NVIDIA/go-nvlib/pkg/nvml"
+	"github.com/NVIDIA/go-nvml/pkg/nvml"
 	"github.com/NVIDIA/nvidia-container-toolkit/pkg/nvcdi"
 	"github.com/NVIDIA/nvidia-container-toolkit/pkg/nvcdi/spec"
 	transformroot "github.com/NVIDIA/nvidia-container-toolkit/pkg/nvcdi/transform/root"
@@ -48,7 +48,7 @@ type CDIHandler struct {
 	nvml             nvml.Interface
 	nvdevice         nvdevice.Interface
 	nvcdi            nvcdi.Interface
-	registry         cdiapi.Registry
+	cache            *cdiapi.Cache
 	driverRoot       string
 	devRoot          string
 	targetDriverRoot string
@@ -102,23 +102,21 @@ func NewCDIHandler(opts ...cdiOption) (*CDIHandler, error) {
 		h.cdiRoot = defaultCDIRoot
 	}
 
-	if h.registry == nil {
-		// TODO: We should rather construct a cdi.CacheHere directly.
-		registry := cdiapi.GetRegistry(
+	if h.cache == nil {
+		cache, err := cdiapi.NewCache(
 			cdiapi.WithSpecDirs(h.cdiRoot),
 		)
-		err := registry.Refresh()
 		if err != nil {
-			return nil, fmt.Errorf("unable to refresh the CDI registry: %w", err)
+			return nil, fmt.Errorf("unable to create a new CDI cache: %w", err)
 		}
-		h.registry = registry
+		h.cache = cache
 	}
 
 	return h, nil
 }
 
 func (cdi *CDIHandler) GetDevice(device string) *cdiapi.Device {
-	return cdi.registry.DeviceDB().GetDevice(device)
+	return cdi.cache.GetDevice(device)
 }
 
 func (cdi *CDIHandler) CreateClaimSpecFile(claimUID string, devices *PreparedDevices) error {
@@ -239,7 +237,7 @@ func (cdi *CDIHandler) DeleteClaimSpecFile(claimUID string) error {
 		return fmt.Errorf("failed to generate Spec name: %w", err)
 	}
 
-	return cdi.registry.SpecDB().RemoveSpec(specName + ".json")
+	return cdi.cache.RemoveSpec(specName + ".json")
 }
 
 func (cdi *CDIHandler) GetClaimDevices(claimUID string) []string {

@@ -1,5 +1,5 @@
 /**
-# Copyright 2023 NVIDIA CORPORATION
+# Copyright 2024 NVIDIA CORPORATION
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,19 +14,32 @@
 # limitations under the License.
 **/
 
-package nvml
+package root
 
-// options represents the options that could be passed to the nvml contructor.
-type options struct {
-	libraryPath string
+import "github.com/NVIDIA/nvidia-container-toolkit/internal/logger"
+
+type Option func(*Driver)
+
+func WithLogger(logger logger.Interface) Option {
+	return func(d *Driver) {
+		d.logger = logger
+	}
 }
 
-// Option represents a functional option to control behaviour.
-type Option func(*options)
+func WithDriverRoot(root string) Option {
+	return func(d *Driver) {
+		d.Root = root
+	}
+}
 
-// WithLibraryPath sets the NVML library name to use.
-func WithLibraryPath(libraryPath string) Option {
-	return func(o *options) {
-		o.libraryPath = libraryPath
+func WithLibrarySearchPaths(paths ...string) Option {
+	return func(d *Driver) {
+		d.librarySearchPaths = paths
+	}
+}
+
+func WithConfigSearchPaths(paths ...string) Option {
+	return func(d *Driver) {
+		d.configSearchPaths = paths
 	}
 }
