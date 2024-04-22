@@ -63,9 +63,17 @@ Here's a demo showing how to install and configure DRA, and run a pod in a `kind
 Below are the detailed, step-by-step instructions.
 
 First, create a `kind` cluster to run the demo:
-```console
-./demo/clusters/kind/create-cluster.sh
+```bash
+KUBE_GIT_VERSION=v1.30.0 KIND_K8S_REPO=https://github.com/kubernetes/kubernetes KIND_K8S_TAG=v1.30.0 ./demo/clusters/kind/create-cluster.sh
 ```
+
+**Note:** The environment variables in the command above allow us to build a local
+node image with support for Kubernetes v1.30.0. This is required to allow the
+DRA driver to function with the new StructuredParameters capabilities added in
+v1.30. Once kind releases a node image for v1.30 these extra environment
+variables will no longer be needed. If you only plan on running "classic" DRA
+without StructuredParameters, then you can just use the latest kind image for
+v1.29 and omit these extra environment variables.
 
 From here we will build the image for the example resource driver:
 ```console
