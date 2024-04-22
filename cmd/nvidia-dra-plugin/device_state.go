@@ -23,6 +23,7 @@ import (
 	"sync"
 
 	"github.com/Masterminds/semver"
+	nvdev "github.com/NVIDIA/go-nvlib/pkg/nvlib/device"
 	"github.com/NVIDIA/go-nvml/pkg/nvml"
 	resourceapi "k8s.io/api/resource/v1alpha2"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -54,7 +55,7 @@ type GpuInfo struct {
 type MigDeviceInfo struct {
 	uuid    string
 	parent  *GpuInfo
-	profile *MigProfile
+	profile nvdev.MigProfile
 	giInfo  *nvml.GpuInstanceInfo
 	ciInfo  *nvml.ComputeInstanceInfo
 }
@@ -109,7 +110,7 @@ func (d *PreparedDevices) UUIDs() []string {
 }
 
 type MigProfileInfo struct {
-	profile    *MigProfile
+	profile    nvdev.MigProfile
 	placements []*MigDevicePlacement
 }
 
@@ -556,7 +557,7 @@ func (s *DeviceState) syncPreparedDevicesFromCRDSpec(ctx context.Context, spec *
 			for _, d := range devices.Mig.Devices {
 				migInfo := migs[d.ParentUUID][d.UUID]
 				if migInfo == nil {
-					profile, err := ParseMigProfile(d.Profile)
+					profile, err := s.nvdevlib.ParseMigProfile(d.Profile)
 					if err != nil {
 						return fmt.Errorf("error parsing MIG profile for '%v': %w", d.Profile, err)
 					}
