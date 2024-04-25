@@ -4,7 +4,7 @@ go 1.22
 
 require (
 	github.com/NVIDIA/go-nvlib v0.3.0
-	github.com/NVIDIA/go-nvml v0.12.0-4
+	github.com/NVIDIA/go-nvml v0.12.0-5
 	github.com/NVIDIA/nvidia-container-toolkit v1.15.1-0.20240419094620-0aed9a16addf
 	github.com/prometheus/client_golang v1.19.0
 	github.com/sirupsen/logrus v1.9.3
