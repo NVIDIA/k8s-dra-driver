@@ -35,8 +35,8 @@ cd ${PROJECT_DIR}
 
 # Regenerate the CRDs and build the container image
 # TODO: This should be part of the image name
-make docker-generate
 make build-image
+make docker-generate
 make -f deployments/container/Makefile build
 
 cd ${CURRENT_DIR}
