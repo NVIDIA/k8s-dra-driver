@@ -20,51 +20,61 @@ First since we'll launch kind with GPU support, ensure that the following prereq
    can be done by following the instructions
    [here](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html).
 1. Configure the NVIDIA Container Runtime as the **default** Docker runtime:
-   ```bash
+   ```console
    sudo nvidia-ctk runtime configure --runtime=docker --set-as-default
    ```
 1. Restart Docker to apply the changes:
-   ```bash
+   ```console
    sudo systemctl restart docker
    ```
 1. Set the `accept-nvidia-visible-devices-as-volume-mounts` option to `true` in
    the `/etc/nvidia-container-runtime/config.toml` file to configure the NVIDIA
    Container Runtime to use volume mounts to select devices to inject into a
    container.
+   ``` console
+   sudo nvidia-ctk config --set accept-nvidia-visible-devices-as-volume-mounts=true --in-place
+   ```
+
+1. Show the current set of GPUs on the machine
+   ```console
+   nvidia-smi -L
+   ```
 
 We start by first cloning this repository and `cd`ing into it.
 All of the scripts and example Pod specs used in this demo are in the `demo`
 subdirectory, so take a moment to browse through the various files and see
 what's available:
 
-```
+```console
 git clone https://github.com/NVIDIA/k8s-dra-driver.git
 ```
-```
+```console
 cd k8s-dra-driver
 ```
 
 ### Setting up the infrastructure
 First, create a `kind` cluster to run the demo:
-```bash
+```console
 ./demo/clusters/kind/create-cluster.sh
 ```
 
 From here we will build the image for the example resource driver:
-```bash
+```console
 ./demo/clusters/kind/build-dra-driver.sh
 ```
 
 This also makes the built images available to the `kind` cluster.
 
 We now install the NVIDIA GPU DRA driver:
-```
+```console
 ./demo/clusters/kind/install-dra-driver.sh
 ```
 
 This should show two pods running in the `nvidia-dra-driver` namespace:
+```console
+kubectl get pods -n nvidia-dra-driver
 ```
-$ kubectl get pods -n nvidia-dra-driver
+```
 NAMESPACE           NAME                                       READY   STATUS    RESTARTS   AGE
 nvidia-dra-driver   nvidia-dra-controller-6bdf8f88cc-psb4r     1/1     Running   0          34s
 nvidia-dra-driver   nvidia-dra-plugin-lt7qh                    1/1     Running   0          32s
@@ -73,38 +83,47 @@ nvidia-dra-driver   nvidia-dra-plugin-lt7qh                    1/1     Running  
 ### Run the examples by following the steps in the demo script
 Finally, you can run the various examples contained in the `demo/specs/quickstart` folder.
 The `README` in that directory shows the full script of the demo you can walk through.
+
 ```console
 cat demo/specs/quickstart/README.md
-...
 ```
 
-Where the running the first three examples should produce output similar to the following:
+Deploy the example pods in the demo directory.
 ```console
-$ kubectl apply --filename=demo/specs/quickstart/gpu-test{1,2,3}.yaml
-...
-
+kubectl apply --filename=demo/specs/quickstart/gpu-test{1,2,3}.yaml
 ```
+
+Get the pods' statuses. Depending on which GPUs are available, running the first three examples will produce output similar to the following:
 ```console
-$ kubectl get pod -A
+kubectl get pod -A -l app=pod
+```
+```
 NAMESPACE           NAME                                       READY   STATUS    RESTARTS   AGE
 gpu-test1           pod1                                       1/1     Running   0          34s
 gpu-test1           pod2                                       1/1     Running   0          34s
 gpu-test2           pod                                        2/2     Running   0          34s
 gpu-test3           pod1                                       1/1     Running   0          34s
 gpu-test3           pod2                                       1/1     Running   0          34s
-...
-
 ```
 ```console
-$ kubectl logs -n gpu-test1 -l app=pod
+kubectl logs -n gpu-test1 -l app=pod
+```
+```
 GPU 0: A100-SXM4-40GB (UUID: GPU-662077db-fa3f-0d8f-9502-21ab0ef058a2)
 GPU 0: A100-SXM4-40GB (UUID: GPU-4cf8db2d-06c0-7d70-1a51-e59b25b2c16c)
-
-$ kubectl logs -n gpu-test2 pod --all-containers
+```
+```console
+kubectl logs -n gpu-test2 pod --all-containers
+```
+```
 GPU 0: A100-SXM4-40GB (UUID: GPU-79a2ba02-a537-ccbf-2965-8e9d90c0bd54)
 GPU 0: A100-SXM4-40GB (UUID: GPU-79a2ba02-a537-ccbf-2965-8e9d90c0bd54)
+```
 
-$ kubectl logs -n gpu-test3 -l app=pod
+```console
+kubectl logs -n gpu-test3 -l app=pod
+```
+```
 GPU 0: A100-SXM4-40GB (UUID: GPU-4404041a-04cf-1ccf-9e70-f139a9b1e23c)
 GPU 0: A100-SXM4-40GB (UUID: GPU-4404041a-04cf-1ccf-9e70-f139a9b1e23c)
 ```
@@ -112,8 +131,8 @@ GPU 0: A100-SXM4-40GB (UUID: GPU-4404041a-04cf-1ccf-9e70-f139a9b1e23c)
 ### Cleaning up the environment
 
 Running
-```
-$ ./demo/clusters/kind/delete-cluster.sh
+```console
+./demo/clusters/kind/delete-cluster.sh
 ```
 will remove the cluster created in the preceding steps.
 
