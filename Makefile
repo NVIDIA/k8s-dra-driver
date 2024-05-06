@@ -177,3 +177,15 @@ PHONY: .shell
 		-w /work \
 		--user $$(id -u):$$(id -g) \
 		$(BUILDIMAGE)
+
+.PRECIOUS: %.cast
+%.cast: %.demo
+	@WORK_DIR=$(shell dirname $<) \
+	./hack/democtl.sh "$<" "$@" \
+		--ps1='\033[1;96m~/nvidia/k8s-dra-driver\033[1;94m$$\033[0m '
+
+.PRECIOUS: %.svg
+%.svg: %.cast
+	@./hack/democtl.sh "$<" "$@" \
+		--term xresources \
+	  	--profile ./.xresources
