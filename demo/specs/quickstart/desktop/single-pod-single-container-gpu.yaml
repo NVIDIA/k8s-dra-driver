@@ -1,0 +1,50 @@
+# SPSC-GPU: a single pod wth a single container accesses a GPU via ResourceClaimTemplate.
+
+# $ kubectl get pods -n spsc-gpu-test
+# NAME      READY   STATUS    RESTARTS   AGE
+# gpu-pod   1/1     Running   0          6s
+
+# Run `nvidia-smi` shoud show something like the following
+# +---------------------------------------------------------------------------------------+
+# | Processes:                                                                            |
+# |  GPU   GI   CI        PID   Type   Process name                            GPU Memory |
+# |        ID   ID                                                             Usage      |
+# |=======================================================================================|
+# |    0   N/A  N/A   1474787      C   /cuda-samples/sample                    746MiB     |
+# +---------------------------------------------------------------------------------------+
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: spsc-gpu-test
+
+---
+apiVersion: resource.k8s.io/v1alpha2
+kind: ResourceClaimTemplate
+metadata:
+  namespace: spsc-gpu-test
+  name: gpu.nvidia.com
+spec:
+  spec:
+    resourceClassName: gpu.nvidia.com
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  namespace: spsc-gpu-test
+  name: gpu-pod
+spec:
+  containers:
+  - name: ctr
+    image: nvcr.io/nvidia/k8s/cuda-sample:nbody-cuda11.7.1-ubuntu18.04
+    args: ["--benchmark", "--numbodies=2560000"]
+    resources:
+      claims:
+      - name: single-gpu
+  resourceClaims:
+  - name: single-gpu
+    source:
+      resourceClaimTemplateName: gpu.nvidia.com
+  restartPolicy: Never

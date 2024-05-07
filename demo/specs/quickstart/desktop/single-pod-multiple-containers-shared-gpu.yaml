@@ -1,0 +1,58 @@
+# SPMC-Shared-GPU: a single pod's multiple containers share access to a GPU via ResourceClaimTemplate.
+#
+# The pod will be running.
+# $ kubectl get pods -n spmc-shared-gpu-test
+# NAME      READY   STATUS    RESTARTS      AGE
+# gpu-pod   2/2     Running   2 (55s ago)   2m13s
+
+# Run `nvidia-smi` will show something like the following:
+# +---------------------------------------------------------------------------------------+
+# | Processes:                                                                            |
+# |  GPU   GI   CI        PID   Type   Process name                            GPU Memory |
+# |        ID   ID                                                             Usage      |
+# |=======================================================================================|
+# |    0   N/A  N/A   1514114      C   /cuda-samples/sample                        746MiB |
+# |    0   N/A  N/A   1514167      C   /cuda-samples/sample                        746MiB |
+# +---------------------------------------------------------------------------------------+
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: spmc-shared-gpu-test 
+
+---
+apiVersion: resource.k8s.io/v1alpha2
+kind: ResourceClaimTemplate
+metadata:
+  namespace: spmc-shared-gpu-test 
+  name: gpu.nvidia.com
+spec:
+  spec:
+    resourceClassName: gpu.nvidia.com
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  namespace: spmc-shared-gpu-test
+  name: gpu-pod
+spec:
+  containers:
+  - name: ctr0
+    image: nvcr.io/nvidia/k8s/cuda-sample:nbody-cuda11.7.1-ubuntu18.04
+    args: ["--benchmark", "--numbodies=2560000"]
+    resources:
+      claims:
+      - name: shared-gpu
+  - name: ctr1
+    image: nvcr.io/nvidia/k8s/cuda-sample:nbody-cuda11.7.1-ubuntu18.04
+    args: ["--benchmark", "--numbodies=2560000"]
+    resources:
+      claims:
+      - name: shared-gpu
+  resourceClaims:
+  - name: shared-gpu
+    source:
+      resourceClaimTemplateName: gpu.nvidia.com
+  restartPolicy: Never

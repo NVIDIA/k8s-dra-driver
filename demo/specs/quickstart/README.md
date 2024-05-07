@@ -1,3 +1,5 @@
+You can run basic examples on a Linux desktop by following the instructions in the [desktop folder](desktop/README.md) as well.
+
 #### Show current state of the cluster
 ```console
 kubectl get pod -A
