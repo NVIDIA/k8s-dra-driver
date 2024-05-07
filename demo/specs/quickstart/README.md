@@ -76,3 +76,19 @@ kubectl get pod -A
 ```console
 nvidia-smi -L
 ```
+
+#### Show the TimeSlicing example
+
+```console
+vim -O gpu-test-timeslicing.yaml
+```
+
+#### Deploy the MPS example
+```console
+kubectl apply -f gpu-test-timeslicing.yaml
+```
+
+#### Show the pod running
+```console
+kubectl get pod -n test-timeslicing -l app=pod
+```

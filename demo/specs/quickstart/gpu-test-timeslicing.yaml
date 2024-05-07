@@ -1,0 +1,75 @@
+# Two pods share GPU via TimeSlicing
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: timeslicing-gpu-test
+
+---
+apiVersion: resource.k8s.io/v1alpha2
+kind: ResourceClaimTemplate
+metadata:
+  namespace: timeslicing-gpu-test 
+  name: timeslicing-gpu-test 
+spec:
+  spec:
+    resourceClassName: gpu.nvidia.com
+    parametersRef:
+      apiGroup: gpu.resource.nvidia.com
+      kind: GpuClaimParameters
+      name: timeslicing-gpu-test
+---
+apiVersion: gpu.resource.nvidia.com/v1alpha1
+kind: GpuClaimParameters
+metadata:
+  namespace: timeslicing-gpu-test 
+  name: timeslicing-gpu-test
+spec:
+  sharing:
+    strategy: TimeSlicing 
+    timeSlicingConfig:
+      timeSlice: Short
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  namespace: timeslicing-gpu-test
+  name: gpu-pod-1
+  labels:
+    app: pod
+spec:
+  containers:
+  - name: ctr
+    image: oguzpastirmaci/gpu-burn
+    args: ["30"]  # 30 seconds
+    resources:
+      claims:
+      - name: shared-gpu
+  resourceClaims:
+  - name: shared-gpu
+    source:
+      resourceClaimTemplateName: timeslicing-gpu-test
+  restartPolicy: Never 
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  namespace: timeslicing-gpu-test
+  name: gpu-pod-2
+  labels:
+    app: pod
+spec:
+  containers:
+  - name: ctr
+    image: oguzpastirmaci/gpu-burn
+    args: ["30"]  # 30 seconds
+    resources:
+      claims:
+      - name: shared-gpu
+  resourceClaims:
+  - name: shared-gpu
+    source:
+      resourceClaimTemplateName: timeslicing-gpu-test
+  restartPolicy: Never 
