@@ -50,7 +50,6 @@ func newDeviceLib(driverRoot root) (*deviceLib, error) {
 	// the nvidia-smi executable and update LD_PRELOAD to include the path to
 	// libnvidia-ml.so.1
 	updatePathListEnvvar("LD_PRELOAD", driverLibraryPath)
-	updatePathListEnvvar("PATH", filepath.Dir(nvidiaSMIPath))
 
 	// We construct an NVML library specifying the path to libnvidia-ml.so.1
 	// explicitly so that we don't have to rely on the library path.
@@ -480,15 +479,13 @@ func walkMigDevices(d nvml.Device, f func(i int, d nvml.Device) error) error {
 
 func (l deviceLib) setTimeSlice(uuids []string, timeSlice int) error {
 	for _, uuid := range uuids {
-		cmd := exec.Command(
-			"nvidia-smi",
+		err := l.runNvidiaSMI(
 			"compute-policy",
 			"-i", uuid,
-			"--set-timeslice", fmt.Sprintf("%d", timeSlice))
-		output, err := cmd.CombinedOutput()
+			"--set-timeslice", fmt.Sprintf("%d", timeSlice),
+		)
 		if err != nil {
-			klog.Errorf("\n%v", string(output))
-			return fmt.Errorf("error running nvidia-smi: %w", err)
+			return err
 		}
 	}
 	return nil
@@ -496,15 +493,25 @@ func (l deviceLib) setTimeSlice(uuids []string, timeSlice int) error {
 
 func (l deviceLib) setComputeMode(uuids []string, mode string) error {
 	for _, uuid := range uuids {
-		cmd := exec.Command(
-			"nvidia-smi",
+		err := l.runNvidiaSMI(
 			"-i", uuid,
 			"-c", mode)
-		output, err := cmd.CombinedOutput()
 		if err != nil {
-			klog.Errorf("\n%v", string(output))
-			return fmt.Errorf("error running nvidia-smi: %w", err)
+			return err
 		}
+	}
+	return nil
+}
+
+func (l deviceLib) runNvidiaSMI(args ...string) error {
+	cmd := exec.Command(
+		l.nvidiaSMIPath,
+		args...)
+	cmd.Env = append(os.Environ(), fmt.Sprintf("PATH=%s:%s", filepath.Dir(l.nvidiaSMIPath), os.Getenv("PATH")))
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		klog.Errorf("\n%v", string(output))
+		return fmt.Errorf("error running nvidia-smi: %w", err)
 	}
 	return nil
 }
