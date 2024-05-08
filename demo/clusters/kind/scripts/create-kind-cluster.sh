@@ -31,4 +31,4 @@ kind create cluster \
 
 # Unmount the masked /proc/driver/nvidia to allow
 # dynamically generated MIG devices to be discovered
-docker exec -it "${KIND_CLUSTER_NAME}-worker" umount -R /proc/driver/nvidia
+docker exec "${KIND_CLUSTER_NAME}-worker" umount -R /proc/driver/nvidia
