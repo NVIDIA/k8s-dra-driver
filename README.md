@@ -35,7 +35,7 @@ First since we'll launch kind with GPU support, ensure that the following prereq
    sudo nvidia-ctk config --set accept-nvidia-visible-devices-as-volume-mounts=true --in-place
    ```
 
-1. Show the current set of GPUs on the machine
+1. Show the current set of GPUs on the machine:
    ```console
    nvidia-smi -L
    ```
@@ -53,6 +53,15 @@ cd k8s-dra-driver
 ```
 
 ### Setting up the infrastructure
+
+Here's a demo showing how to install and configure DRA, and run a pod in a `kind` cluster on a Linux workstation. 
+
+<p align="center">
+<img width="800" src="./demo/specs/quickstart/basic-demo.svg">
+</p>
+
+Below are the detailed, step-by-step instructions.
+
 First, create a `kind` cluster to run the demo:
 ```console
 ./demo/clusters/kind/create-cluster.sh
@@ -88,7 +97,7 @@ The `README` in that directory shows the full script of the demo you can walk th
 cat demo/specs/quickstart/README.md
 ```
 
-Deploy the example pods in the demo directory.
+Deploy the example pods in the demo directory:
 ```console
 kubectl apply --filename=demo/specs/quickstart/gpu-test{1,2,3}.yaml
 ```
@@ -130,11 +139,10 @@ GPU 0: A100-SXM4-40GB (UUID: GPU-4404041a-04cf-1ccf-9e70-f139a9b1e23c)
 
 ### Cleaning up the environment
 
-Running
+Remove the cluster created in the preceding steps:
 ```console
 ./demo/clusters/kind/delete-cluster.sh
 ```
-will remove the cluster created in the preceding steps.
 
 <!--
 TODO: This README should be extended with additional content including:
