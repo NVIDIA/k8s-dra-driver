@@ -17,6 +17,7 @@ spec:
         app: {{ .MpsControlDaemonName }}
     spec:
       nodeName: {{ .NodeName }}
+      hostPID: true
       containers:
       - name: mps-control-daemon
         image: ubuntu:22.04
