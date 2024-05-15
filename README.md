@@ -102,7 +102,9 @@ Deploy the example pods in the demo directory:
 kubectl apply --filename=demo/specs/quickstart/gpu-test{1,2,3}.yaml
 ```
 
-Get the pods' statuses. Depending on which GPUs are available, running the first three examples will produce output similar to the following:
+Get the pods' statuses. Depending on which GPUs are available, running the first three examples will produce output similar to the following...
+
+**Note:** there is a [known issue with kind](https://kind.sigs.k8s.io/docs/user/known-issues/#pod-errors-due-to-too-many-open-files). You may see an error while trying to tail the log of a running pod in the kind cluster: `failed to create fsnotify watcher: too many open files.` The issue may be resolved by increasing the value for `fs.inotify.max_user_watches`.
 ```console
 kubectl get pod -A -l app=pod
 ```
