@@ -371,6 +371,8 @@ func (l deviceLib) createMigDevice(gpu *GpuInfo, profile *MigProfile, placement 
 		return nil, fmt.Errorf("error getting GPU instance profile info for '%v': %v", profile, ret)
 	}
 
+	// TODO: Check if GI instance with placement already exists, if so, skip creation
+
 	gi, ret := device.CreateGpuInstanceWithPlacement(&giProfileInfo, placement)
 	if ret != nvml.SUCCESS {
 		return nil, fmt.Errorf("error creating GPU instance for '%v': %v", profile, ret)
@@ -385,6 +387,8 @@ func (l deviceLib) createMigDevice(gpu *GpuInfo, profile *MigProfile, placement 
 	if ret != nvml.SUCCESS {
 		return nil, fmt.Errorf("error getting Compute instance profile info for '%v': %v", profile, ret)
 	}
+
+	// TODO: Check if CI instance with placement already exists, if so, skip creation
 
 	ci, ret := gi.CreateComputeInstance(&ciProfileInfo)
 	if ret != nvml.SUCCESS {
@@ -443,6 +447,9 @@ func (l deviceLib) deleteMigDevice(mig *MigDeviceInfo) error {
 	if ret != nvml.SUCCESS {
 		return fmt.Errorf("error getting device from UUID '%v': %v", mig.parent.uuid, ret)
 	}
+
+	// TODO: Don't error out if the GI or CI don't exist, just skip destroying them
+
 	gi, ret := parent.GetGpuInstanceById(int(mig.giInfo.Id))
 	if ret != nvml.SUCCESS {
 		return fmt.Errorf("error getting GPU instance ID for MIG device: %v", ret)
