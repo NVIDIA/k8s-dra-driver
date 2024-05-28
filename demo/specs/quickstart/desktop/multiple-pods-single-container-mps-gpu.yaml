@@ -1,0 +1,96 @@
+# MPSC-MPS-GPU: multiple pods, each with a single container, share a GPU via MPS.
+
+# Two pods will be running.
+# $ kubectl get pods -n spmc-mps-gpu-test
+# NAME      READY   STATUS    RESTARTS   AGE
+# gpu-pod-1   1/1     Running   0          14s
+# gpu-pod-2   1/1     Running   0          14s
+
+# Run `nvidia-smi` will show something like the following:
+# +---------------------------------------------------------------------------------------+
+# | Processes:                                                                            |
+# |  GPU   GI   CI        PID   Type   Process name                            GPU Memory |
+# |        ID   ID                                                             Usage      |
+# |=======================================================================================|
+# |    0   N/A  N/A   1568768    M+C   /cuda-samples/sample                        562MiB |
+# |    0   N/A  N/A   1568771    M+C   /cuda-samples/sample                        562MiB |
+# |    0   N/A  N/A   1568831      C   nvidia-cuda-mps-server                       28MiB |
+# +---------------------------------------------------------------------------------------+
+#
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: mpsc-mps-gpu-test
+
+---
+apiVersion: resource.k8s.io/v1alpha2
+kind: ResourceClaim
+metadata:
+  namespace: mpsc-mps-gpu-test
+  name: gpu-mps-sharing
+spec:
+  resourceClassName: gpu.nvidia.com
+  parametersRef:
+    apiGroup: gpu.resource.nvidia.com
+    kind: GpuClaimParameters
+    name: gpu-mps-sharing
+
+---
+apiVersion: gpu.resource.nvidia.com/v1alpha1
+kind: GpuClaimParameters
+metadata:
+  namespace: mpsc-mps-gpu-test
+  name: gpu-mps-sharing
+spec:
+  sharing:
+    strategy: MPS
+    mpsConfig:
+      defaultActiveThreadPercentage: 50
+      defaultPinnedDeviceMemoryLimit: 10Gi
+      # defaultPerDevicePinnedMemoryLimit:
+      #   0: 5Gi
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  namespace: mpsc-mps-gpu-test
+  name: gpu-pod-1
+  labels:
+    app: pod
+spec:
+  containers:
+  - name: ctr
+    image: nvcr.io/nvidia/k8s/cuda-sample:nbody-cuda11.7.1-ubuntu18.04
+    args: ["--benchmark", "--numbodies=2560000"]
+    resources:
+      claims:
+      - name: gpu
+  resourceClaims:
+  - name: gpu
+    source:
+      resourceClaimName: gpu-mps-sharing
+  restartPolicy: Never
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  namespace: mpsc-mps-gpu-test
+  name: gpu-pod-2
+  labels:
+    app: pod
+spec:
+  containers:
+  - name: ctr
+    image: nvcr.io/nvidia/k8s/cuda-sample:nbody-cuda11.7.1-ubuntu18.04
+    args: ["--benchmark", "--numbodies=2560000"]
+    resources:
+      claims:
+      - name: gpu
+  resourceClaims:
+  - name: gpu
+    source:
+      resourceClaimName: gpu-mps-sharing
+  restartPolicy: Never

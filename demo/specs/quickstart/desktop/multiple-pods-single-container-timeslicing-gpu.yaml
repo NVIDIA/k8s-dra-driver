@@ -1,0 +1,90 @@
+# MPSC-Timeslicing-GPU: multiple pods share a GPU via TimeSlicing.
+
+# Two pods will be running.
+# $ kubectl get pods -n spmc-timeslicing-gpu-test
+# NAME      READY   STATUS    RESTARTS   AGE
+# gpu-pod-1   1/1     Running   0          10s
+# gpu-pod-2   1/1     Running   0          10s
+#
+# # Run `nvidia-smi` will show something like the following (2 containers sharing the GPU):
+# +---------------------------------------------------------------------------------------+
+# | Processes:                                                                            |
+# |  GPU   GI   CI        PID   Type   Process name                            GPU Memory |
+# |        ID   ID                                                             Usage      |
+# |=======================================================================================|
+# |    0   N/A  N/A    322523      C   ./gpu_burn                                21670MiB |
+# |    0   N/A  N/A    322585      C   ./gpu_burn                                 2150MiB |
+# +---------------------------------------------------------------------------------------+
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: mpsc-timeslicing-gpu-test
+
+---
+apiVersion: resource.k8s.io/v1alpha2
+kind: ResourceClaim
+metadata:
+  namespace: mpsc-timeslicing-gpu-test 
+  name: gpu-mpsc-timeslicing-gpu-test 
+spec:
+  resourceClassName: gpu.nvidia.com
+  parametersRef:
+    apiGroup: gpu.resource.nvidia.com
+    kind: GpuClaimParameters
+    name: gpu-mpsc-timeslicing-gpu-test
+---
+apiVersion: gpu.resource.nvidia.com/v1alpha1
+kind: GpuClaimParameters
+metadata:
+  namespace: mpsc-timeslicing-gpu-test 
+  name: gpu-mpsc-timeslicing-gpu-test
+spec:
+  sharing:
+    strategy: TimeSlicing 
+    timeSlicingConfig:
+      timeSlice: Short
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  namespace: mpsc-timeslicing-gpu-test
+  name: gpu-pod-1
+  labels:
+    app: pod
+spec:
+  containers:
+  - name: ctr
+    image: oguzpastirmaci/gpu-burn
+    args: ["30"]  # 30 seconds
+    resources:
+      claims:
+      - name: shared-gpu
+  resourceClaims:
+  - name: shared-gpu
+    source:
+      resourceClaimName: gpu-mpsc-timeslicing-gpu-test
+  restartPolicy: Never 
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  namespace: mpsc-timeslicing-gpu-test
+  name: gpu-pod-2
+  labels:
+    app: pod
+spec:
+  containers:
+  - name: ctr
+    image: oguzpastirmaci/gpu-burn
+    args: ["30"]  # 30 seconds
+    resources:
+      claims:
+      - name: shared-gpu
+  resourceClaims:
+  - name: shared-gpu
+    source:
+      resourceClaimName: gpu-mpsc-timeslicing-gpu-test
+  restartPolicy: Never 
