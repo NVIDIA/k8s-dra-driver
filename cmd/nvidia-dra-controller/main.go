@@ -19,6 +19,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"k8s.io/client-go/tools/leaderelection"
 	"net"
 	"net/http"
 	"net/http/pprof"
@@ -138,18 +139,22 @@ func newApp() *cli.App {
 				clientSets: clientSets,
 			}
 
-			if flags.httpEndpoint != "" {
-				err = SetupHTTPEndpoint(config)
-				if err != nil {
-					return fmt.Errorf("create http endpoint: %w", err)
+			run := func(ctx context.Context, config *Config) error {
+				if flags.httpEndpoint != "" {
+					err = SetupHTTPEndpoint(config)
+					if err != nil {
+						return fmt.Errorf("create http endpoint: %w", err)
+					}
 				}
-			}
 
-			err = StartController(ctx, config)
-			if err != nil {
-				return fmt.Errorf("start controller: %w", err)
+				err = StartController(ctx, config)
+				if err != nil {
+					return fmt.Errorf("start controller: %w", err)
+				}
+				return nil
 			}
-
+			leaderElectionCfg := buildLeaderElectionConfig(config, "nvidia-dra-controller", flags.nasConfig.Namespace, run)
+			leaderelection.RunOrDie(ctx, leaderElectionCfg)
 			return nil
 		},
 		Version: info.GetVersionString(),
