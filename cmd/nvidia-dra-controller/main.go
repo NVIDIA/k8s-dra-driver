@@ -195,7 +195,20 @@ func SetupHTTPEndpoint(config *Config) error {
 		config.mux.HandleFunc(path.Join(actualPath, "symbol"), pprof.Symbol)
 		config.mux.HandleFunc(path.Join(actualPath, "trace"), pprof.Trace)
 	}
-
+	healthzService := http.NewServeMux()
+	healthzService.HandleFunc("/healthz", Healthz)
+	healthzListener, err := net.Listen("tcp", "8081")
+	if err != nil {
+		return fmt.Errorf("listen on healthz endpoint: %w", err)
+	}
+	go func() {
+		klog.InfoS("Starting healthz server", "endpoint", "8081")
+		err := http.Serve(healthzListener, healthzService)
+		if err != nil {
+			klog.ErrorS(err, "Healthz server failed")
+			klog.FlushAndExit(klog.ExitFlushTimeout, 1)
+		}
+	}()
 	listener, err := net.Listen("tcp", config.flags.httpEndpoint)
 	if err != nil {
 		return fmt.Errorf("listen on HTTP endpoint: %w", err)
@@ -220,4 +233,8 @@ func StartController(ctx context.Context, config *Config) error {
 	informerFactory.Start(ctx.Done())
 	ctrl.Run(config.flags.workers)
 	return nil
+}
+
+func Healthz(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
 }
