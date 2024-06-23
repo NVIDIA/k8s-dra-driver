@@ -1,7 +1,7 @@
-github.com/NVIDIA/go-nvlib v0.3.0 h1:vd7jSOthJTqzqIWZrv317xDr1+Mnjoy5X4N69W9YwQM=
-github.com/NVIDIA/go-nvlib v0.3.0/go.mod h1:NasUuId9hYFvwzuOHCu9F2X6oTU2tG0JHTfbJYuDAbA=
-github.com/NVIDIA/go-nvml v0.12.0-5 h1:4DYsngBqJEAEj+/RFmBZ43Q3ymoR3tyS0oBuJk12Fag=
-github.com/NVIDIA/go-nvml v0.12.0-5/go.mod h1:8Llmj+1Rr+9VGGwZuRer5N/aCjxGuR5nPb/9ebBiIEQ=
+github.com/NVIDIA/go-nvlib v0.6.0 h1:zAMBzCYT9xeyRQo0tb7HJbStkzajD6e5joyaQqJ2OGU=
+github.com/NVIDIA/go-nvlib v0.6.0/go.mod h1:9UrsLGx/q1OrENygXjOuM5Ey5KCtiZhbvBlbUIxtGWY=
+github.com/NVIDIA/go-nvml v0.12.4-0 h1:4tkbB3pT1O77JGr0gQ6uD8FrsUPqP1A/EOEm2wI1TUg=
+github.com/NVIDIA/go-nvml v0.12.4-0/go.mod h1:8Llmj+1Rr+9VGGwZuRer5N/aCjxGuR5nPb/9ebBiIEQ=
 github.com/NVIDIA/nvidia-container-toolkit v1.15.1-0.20240419094620-0aed9a16addf h1:6eKsIVTytQ34X4rFoPjcW+JbJ8XvYH3ITevLED+enD8=
 github.com/NVIDIA/nvidia-container-toolkit v1.15.1-0.20240419094620-0aed9a16addf/go.mod h1:92ofuEEVSg9zK6TTFHQyNhKy2nCk3S3Qe9QIATfcfHc=
 github.com/benbjohnson/clock v1.1.0 h1:Q92kusRqC1XV2MjkWETPvjJVqKetz1OzxZB7mHJLju8=
