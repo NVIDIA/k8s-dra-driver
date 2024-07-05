@@ -1,4 +1,8 @@
-# Copyright (c) NVIDIA CORPORATION.  All rights reserved.
+//go:build tools
+// +build tools
+
+/**
+# Copyright 2024 NVIDIA CORPORATION
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,19 +15,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+**/
 
-DRIVER_NAME := k8s-dra-driver
-MODULE := github.com/NVIDIA/$(DRIVER_NAME)
+package main
 
-REGISTRY ?= nvcr.io/nvidia/cloud-native
-
-VERSION  ?= v0.1.0
-# vVERSION represents the version with a guaranteed v-prefix
-vVERSION := v$(VERSION:v%=%)
-
-GOLANG_VERSION ?= 1.22.1
-CUDA_VERSION ?= 11.8.0
-
-BUILDIMAGE ?= k8s-dra-driver:devel-go$(GOLANG_VERSION)
-
-GIT_COMMIT ?= $(shell git describe --match="" --dirty --long --always --abbrev=40 2> /dev/null || echo "")
+// Define the tooling required to build the device plugin.
+import (
+	_ "github.com/matryer/moq"
+	_ "k8s.io/code-generator/cmd/client-gen"
+	_ "sigs.k8s.io/controller-tools/cmd/controller-gen"
+)

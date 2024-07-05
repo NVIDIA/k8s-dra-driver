@@ -1,4 +1,4 @@
-# Copyright (c) NVIDIA CORPORATION.  All rights reserved.
+# Copyright (c) 2024, NVIDIA CORPORATION.  All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,18 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-DRIVER_NAME := k8s-dra-driver
-MODULE := github.com/NVIDIA/$(DRIVER_NAME)
+ARG GOLANG_VERSION=x.x.x
+FROM golang:${GOLANG_VERSION}
 
-REGISTRY ?= nvcr.io/nvidia/cloud-native
+WORKDIR /work
+COPY * .
 
-VERSION  ?= v0.1.0
-# vVERSION represents the version with a guaranteed v-prefix
-vVERSION := v$(VERSION:v%=%)
+RUN make install-tools
 
-GOLANG_VERSION ?= 1.22.1
-CUDA_VERSION ?= 11.8.0
+# We need to set the /work directory as a safe directory.
+# This allows git commands to run in the container.
+RUN git config --file=/.gitconfig --add safe.directory /work
 
-BUILDIMAGE ?= k8s-dra-driver:devel-go$(GOLANG_VERSION)
-
-GIT_COMMIT ?= $(shell git describe --match="" --dirty --long --always --abbrev=40 2> /dev/null || echo "")
