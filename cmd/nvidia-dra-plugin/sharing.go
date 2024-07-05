@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 	"text/template"
 	"time"
@@ -100,6 +101,17 @@ func NewTimeSlicingManager(deviceLib *deviceLib) *TimeSlicingManager {
 func (t *TimeSlicingManager) SetTimeSlice(devices *PreparedDevices, config *sharing.TimeSlicingConfig) error {
 	if devices.Mig != nil {
 		return fmt.Errorf("setting a TimeSlice duration on MIG devices is unsupported")
+	}
+
+	for _, gpu := range devices.Gpu.Devices {
+		err, isSupportTimeSlice := detectSupportTimeSliceByCudaComputeCapability(gpu.cudaComputeCapability)
+		if err != nil {
+			return fmt.Errorf("failed to detectSupportTimeSliceByCudaComputeCapability : %w", err)
+		}
+		if !isSupportTimeSlice {
+			klog.InfoS("the current card does not support setting time slices and will be ignored.", "arch", gpu.architecture, "uuid", gpu.uuid, "cudaComputeCapability", gpu.cudaComputeCapability)
+			return fmt.Errorf("setting a TimeSlice duration on devices uuid=%v is unsupported", gpu.uuid)
+		}
 	}
 
 	timeSlice := sharing.DefaultTimeSlice
@@ -389,4 +401,22 @@ func (m *MpsControlDaemon) Stop(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+// detactSupportTimeSliceByArch Determine whether the architecture series
+// supports setting time slices based on the gpu cudaComputeCapability.
+func detectSupportTimeSliceByCudaComputeCapability(cudaComputeCapability string) (error, bool) {
+	// ref https://github.com/NVIDIA/k8s-dra-driver/pull/58#discussion_r1469338562
+	// we believe time-slicing is available on Volta+ architectures, so the check would simply be cudaComputeCapability >= 7.0
+	// by https://github.com/NVIDIA/go-nvlib/blob/main/pkg/nvlib/device/device.go#L149, We know that cuda major and minor versions are concatenated through `.` .
+
+	cudaVersion := strings.Split(cudaComputeCapability, ".")
+	major, err := strconv.Atoi(cudaVersion[0])
+	if err != nil {
+		return fmt.Errorf("error to get cudaComputeCapability major version %v", cudaComputeCapability), false
+	}
+	if major >= 7 {
+		return nil, true
+	}
+	return nil, false
 }
