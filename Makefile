@@ -36,8 +36,6 @@ TARGETS := $(MAKE_TARGETS) $(CMD_TARGETS)
 
 DOCKER_TARGETS := $(patsubst %,docker-%, $(TARGETS))
 .PHONY: $(TARGETS) $(DOCKER_TARGETS)
-DOCKERFILE_DEVEL ?= "images/devel/Dockerfile"
-DOCKERFILE_CONTEXT ?= "https://github.com/NVIDIA/k8s-test-infra.git"
 
 GOOS ?= linux
 ifeq ($(VERSION),)
@@ -141,17 +139,11 @@ generate-clientset: .remove-clientset .remove-deepcopy .remove-crds
 .remove-clientset:
 	rm -rf $(CURDIR)/$(PKG_BASE)/clientset
 
-build-image:
-	$(DOCKER) build \
-		--progress=plain \
-		--build-arg GOLANG_VERSION="$(GOLANG_VERSION)" \
-		--build-arg CLIENT_GEN_VERSION="$(CLIENT_GEN_VERSION)" \
-		--build-arg CONTROLLER_GEN_VERSION="$(CONTROLLER_GEN_VERSION)" \
-		--build-arg GOLANGCI_LINT_VERSION="$(GOLANGCI_LINT_VERSION)" \
-		--build-arg MOQ_VERSION="$(MOQ_VERSION)" \
-		--tag $(BUILDIMAGE) \
-		-f $(DOCKERFILE_DEVEL) \
-		$(DOCKERFILE_CONTEXT)
+# Generate an image for containerized builds
+# Note: This image is local only
+.PHONY: .build-image
+.build-image:
+	make -f deployments/devel/Makefile .build-image
 
 $(DOCKER_TARGETS): docker-%:
 	@echo "Running 'make $(*)' in container image $(BUILDIMAGE)"
