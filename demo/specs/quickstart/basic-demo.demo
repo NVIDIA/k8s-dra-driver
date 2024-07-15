@@ -1,0 +1,38 @@
+# Demonstrate the basic use of DRA in a kind cluster
+
+# Prerequisites: follow the instructions in the README
+# 1. Install kind
+# 2. Install and configure the NVIDIA container toolkit
+
+# Show the current set of GPUs on the machine
+nvidia-smi -L
+
+# Create a kind cluster to run the demo:
+./demo/clusters/kind/create-cluster.sh
+
+# Show the cluster information
+kubectl cluster-info
+kubectl get nodes
+
+# Build the image for the example resource driver and the images for the kind cluster:
+./demo/clusters/kind/build-dra-driver.sh
+
+# Install the driver in the kind cluster
+./demo/clusters/kind/install-dra-driver.sh
+
+# Show two pods running in the nvidia-dra-driver namespace:
+kubectl get pods -n nvidia-dra-driver
+
+# Run the examples in the demo/specs/quickstart folder. The README in that directory shows the full script:
+# For example, you can run the second test.
+kubectl apply --filename=demo/specs/quickstart/gpu-test2.yaml
+sleep 2
+
+# Get the pod information
+kubectl get pod -n gpu-test2
+
+# Get the GPU resource information of the pod.
+kubectl logs -n gpu-test2 pod --all-containers
+
+# Delete the kind cluster and clean up the environment
+./demo/clusters/kind/delete-cluster.sh
