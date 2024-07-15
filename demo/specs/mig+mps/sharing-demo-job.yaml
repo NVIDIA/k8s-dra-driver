@@ -26,25 +26,25 @@ spec:
       containers:
       - name: gpu-ts-sharing-ctr
         image: nvcr.io/nvidia/k8s/cuda-sample:nbody-cuda11.7.1-ubuntu18.04
-        args: ["--benchmark", "--numbodies=4226000"]
+        args: ["--benchmark", "--numbodies=4226048"]
         resources:
           claims:
           - name: gpu-ts-sharing
       - name: gpu-mps-sharing-ctr
         image: nvcr.io/nvidia/k8s/cuda-sample:nbody-cuda11.7.1-ubuntu18.04
-        args: ["--benchmark", "--numbodies=4226000"]
+        args: ["--benchmark", "--numbodies=4226048"]
         resources:
           claims:
           - name: gpu-mps-sharing
       - name: mig-ts-sharing-ctr
         image: nvcr.io/nvidia/k8s/cuda-sample:nbody-cuda11.7.1-ubuntu18.04
-        args: ["--benchmark", "--numbodies=4226000"]
+        args: ["--benchmark", "--numbodies=4226048"]
         resources:
           claims:
           - name: mig-ts-sharing
       - name: mig-mps-sharing-ctr
         image: nvcr.io/nvidia/k8s/cuda-sample:nbody-cuda11.7.1-ubuntu18.04
-        args: ["--benchmark", "--numbodies=4226000"]
+        args: ["--benchmark", "--numbodies=4226048"]
         resources:
           claims:
           - name: mig-mps-sharing
