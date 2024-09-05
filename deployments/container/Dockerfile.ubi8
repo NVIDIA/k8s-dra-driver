@@ -67,7 +67,6 @@ LABEL org.opencontainers.image.description "NVIDIA GPU DRA driver for Kubernetes
 
 RUN mkdir /licenses && mv /NGC-DL-CONTAINER-LICENSE /licenses/NGC-DL-CONTAINER-LICENSE
 
-COPY --from=build /artifacts/nvidia-dra-controller /usr/bin/nvidia-dra-controller
 COPY --from=build /artifacts/nvidia-dra-plugin     /usr/bin/nvidia-dra-plugin
 COPY --from=build /build/templates                 /templates
 
