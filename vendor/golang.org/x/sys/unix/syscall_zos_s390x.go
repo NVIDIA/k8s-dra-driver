@@ -1521,11 +1521,11 @@ func (m *mmapper) Munmap(data []byte) (err error) {
 }
 
 func Mmap(fd int, offset int64, length int, prot int, flags int) (data []byte, err error) {
-        return mapper.Mmap(fd, offset, length, prot, flags)
+	return mapper.Mmap(fd, offset, length, prot, flags)
 }
 
 func Munmap(b []byte) (err error) {
-        return mapper.Munmap(b)
+	return mapper.Munmap(b)
 }
 
 func Read(fd int, p []byte) (n int, err error) {
