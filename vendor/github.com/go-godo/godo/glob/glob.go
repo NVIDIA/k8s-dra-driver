@@ -134,13 +134,14 @@ func Globexp(glob string) *regexp.Regexp {
 //
 // Special chars.
 //
-//	/**/   - match zero or more directories
-//	{a,b}  - match a or b, no spaces
-//	*      - match any non-separator char
-//	?      - match a single non-separator char
-//	**/    - match any directory, start of pattern only
-//	/**    - match any this directory, end of pattern only
-//	!      - removes files from resultset, start of pattern only
+//   /**/   - match zero or more directories
+//   {a,b}  - match a or b, no spaces
+//   *      - match any non-separator char
+//   ?      - match a single non-separator char
+//   **/    - match any directory, start of pattern only
+//   /**    - match any this directory, end of pattern only
+//   !      - removes files from resultset, start of pattern only
+//
 func Glob(patterns []string) ([]*FileAsset, []*RegexpInfo, error) {
 	// TODO very inefficient and unintelligent, optimize later
 
