@@ -18,92 +18,36 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"sync"
-	"time"
 
 	resourceapi "k8s.io/api/resource/v1alpha2"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/watch"
-	"k8s.io/client-go/util/retry"
 	"k8s.io/klog/v2"
 	drapbv1 "k8s.io/kubelet/pkg/apis/dra/v1alpha3"
-
-	nascrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1"
-	nasclient "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1/client"
-	gpucrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/v1alpha1"
-	"github.com/NVIDIA/k8s-dra-driver/api/utils/types"
-)
-
-const (
-	CleanupTimeoutSecondsOnError = 5
 )
 
 type driver struct {
 	sync.Mutex
-	doneCh    chan struct{}
-	nascr     *nascrd.NodeAllocationState
-	nasclient *nasclient.Client
-	state     *DeviceState
+	doneCh chan struct{}
+	state  *DeviceState
 }
 
 func NewDriver(ctx context.Context, config *Config) (*driver, error) {
-	var d *driver
-	client := nasclient.New(config.nascr, config.clientsets.Nvidia.NasV1alpha1())
-	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		err := client.GetOrCreate(ctx)
-		if err != nil {
-			return err
-		}
-
-		err = client.UpdateStatus(ctx, nascrd.NodeAllocationStateStatusNotReady)
-		if err != nil {
-			return err
-		}
-
-		state, err := NewDeviceState(ctx, config)
-		if err != nil {
-			return err
-		}
-
-		err = client.Update(ctx, state.GetUpdatedSpec(&config.nascr.Spec))
-		if err != nil {
-			return err
-		}
-
-		err = client.UpdateStatus(ctx, nascrd.NodeAllocationStateStatusReady)
-		if err != nil {
-			return err
-		}
-
-		d = &driver{
-			nascr:     config.nascr,
-			nasclient: client,
-			state:     state,
-		}
-
-		return nil
-	})
+	state, err := NewDeviceState(ctx, config)
 	if err != nil {
 		return nil, err
 	}
 
-	go d.CleanupStaleStateContinuously(ctx)
+	d := &driver{
+		state: state,
+	}
 
 	return d, nil
 }
 
 func (d *driver) Shutdown(ctx context.Context) error {
-	defer close(d.doneCh)
-
-	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		err := d.nasclient.Get(ctx)
-		if err != nil {
-			return err
-		}
-		return d.nasclient.UpdateStatus(ctx, nascrd.NodeAllocationStateStatusNotReady)
-	})
+	close(d.doneCh)
+	return nil
 }
 
 func (d *driver) NodeListAndWatchResources(req *drapbv1.NodeListAndWatchResourcesRequest, stream drapbv1.Node_NodeListAndWatchResourcesServer) error {
@@ -157,28 +101,20 @@ func (d *driver) nodePrepareResource(ctx context.Context, claim *drapbv1.Claim) 
 	d.Lock()
 	defer d.Unlock()
 
-	isPrepared, prepared, err := d.isPrepared(ctx, claim.Uid)
+	if len(claim.StructuredResourceHandle) == 0 {
+		return &drapbv1.NodePrepareResourceResponse{
+			Error: "driver only supports structured parameters",
+		}
+	}
+
+	allocated, err := d.getAllocatedDevices(ctx, claim)
 	if err != nil {
 		return &drapbv1.NodePrepareResourceResponse{
-			Error: fmt.Sprintf("error checking if claim is already prepared: %v", err),
+			Error: fmt.Sprintf("error allocating devices for claim %v: %v", claim.Uid, err),
 		}
 	}
 
-	if isPrepared {
-		klog.Infof("Returning cached devices for claim '%v': %s", claim.Uid, prepared)
-		return &drapbv1.NodePrepareResourceResponse{CDIDevices: prepared}
-	}
-
-	if len(claim.StructuredResourceHandle) > 0 {
-		err = d.allocateDevices(ctx, claim)
-		if err != nil {
-			return &drapbv1.NodePrepareResourceResponse{
-				Error: fmt.Sprintf("error allocating devices for claim %v: %v", claim.Uid, err),
-			}
-		}
-	}
-
-	prepared, err = d.prepare(ctx, claim.Uid)
+	prepared, err := d.state.Prepare(ctx, claim.Uid, allocated)
 	if err != nil {
 		return &drapbv1.NodePrepareResourceResponse{
 			Error: fmt.Sprintf("error preparing devices for claim %v: %v", claim.Uid, err),
@@ -193,29 +129,13 @@ func (d *driver) nodeUnprepareResource(ctx context.Context, claim *drapbv1.Claim
 	d.Lock()
 	defer d.Unlock()
 
-	isUnprepared, err := d.isUnprepared(ctx, claim.Uid)
-	if err != nil {
+	if len(claim.StructuredResourceHandle) == 0 {
 		return &drapbv1.NodeUnprepareResourceResponse{
-			Error: fmt.Sprintf("error checking if claim is already unprepared: %v", err),
+			Error: "driver only supports structured parameters",
 		}
 	}
 
-	if isUnprepared {
-		klog.Infof("Already unprepared, nothing to do for claim '%v'", claim.Uid)
-		return &drapbv1.NodeUnprepareResourceResponse{}
-	}
-
-	if len(claim.StructuredResourceHandle) > 0 {
-		err = d.deallocateDevices(ctx, claim)
-		if err != nil {
-			return &drapbv1.NodeUnprepareResourceResponse{
-				Error: fmt.Sprintf("error deallocating devices for claim %v: %v", claim.Uid, err),
-			}
-		}
-	}
-
-	err = d.unprepare(ctx, claim.Uid)
-	if err != nil {
+	if err := d.state.Unprepare(ctx, claim.Uid); err != nil {
 		return &drapbv1.NodeUnprepareResourceResponse{
 			Error: fmt.Sprintf("error unpreparing devices for claim %v: %v", claim.Uid, err),
 		}
@@ -224,308 +144,40 @@ func (d *driver) nodeUnprepareResource(ctx context.Context, claim *drapbv1.Claim
 	return &drapbv1.NodeUnprepareResourceResponse{}
 }
 
-func (d *driver) isPrepared(ctx context.Context, claimUID string) (bool, []string, error) {
-	err := d.nasclient.Get(ctx)
-	if err != nil {
-		return false, nil, err
-	}
-	if _, exists := d.nascr.Spec.PreparedClaims[claimUID]; exists {
-		return true, d.state.cdi.GetClaimDevices(claimUID), nil
-	}
-	return false, nil, nil
-}
-
-func (d *driver) isUnprepared(ctx context.Context, claimUID string) (bool, error) {
-	err := d.nasclient.Get(ctx)
-	if err != nil {
-		return false, err
-	}
-	if _, exists := d.nascr.Spec.PreparedClaims[claimUID]; !exists {
-		return true, nil
-	}
-	return false, nil
-}
-
-func (d *driver) prepare(ctx context.Context, claimUID string) ([]string, error) {
-	var err error
-	var prepared []string
-	err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		err = d.nasclient.Get(ctx)
-		if err != nil {
-			return err
-		}
-
-		prepared, err = d.state.Prepare(ctx, claimUID, d.nascr.Spec.AllocatedClaims[claimUID])
-		if err != nil {
-			return err
-		}
-
-		err = d.nasclient.Update(ctx, d.state.GetUpdatedSpec(&d.nascr.Spec))
-		if err != nil {
-			return err
-		}
-
-		return nil
-	})
-	if err != nil {
-		return nil, err
-	}
-	return prepared, nil
-}
-
-func (d *driver) unprepare(ctx context.Context, claimUID string) error {
-	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		err := d.nasclient.Get(ctx)
-		if err != nil {
-			return err
-		}
-
-		err = d.state.Unprepare(ctx, claimUID)
-		if err != nil {
-			return err
-		}
-
-		err = d.nasclient.Update(ctx, d.state.GetUpdatedSpec(&d.nascr.Spec))
-		if err != nil {
-			return err
-		}
-
-		return nil
-	})
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (d *driver) allocateDevices(ctx context.Context, claim *drapbv1.Claim) error {
-	allocated := nascrd.AllocatedDevices{
-		ClaimInfo: &types.ClaimInfo{
-			Namespace: claim.Namespace,
-			Name:      claim.Name,
-			UID:       claim.Uid,
-		},
-		Gpu: &nascrd.AllocatedGpus{},
+func (d *driver) getAllocatedDevices(ctx context.Context, claim *drapbv1.Claim) (AllocatedDevices, error) {
+	allocated := AllocatedDevices{
+		Gpu: &AllocatedGpus{},
 	}
 
-	vendorClaimParameters := claim.StructuredResourceHandle[0].VendorClaimParameters
-	if len(vendorClaimParameters.Raw) > 0 {
-		var claimParams gpucrd.GpuClaimParametersSpec
-		if err := json.Unmarshal(vendorClaimParameters.Raw, &claimParams); err != nil {
-			return fmt.Errorf("decoding claim parameters: %v", err)
-		}
-		allocated.Gpu.Sharing = claimParams.Sharing
-	}
+	// TODO: Defer enabling sharing with structured parameters until we update
+	//       to the APIs for Kubernetes 1.31.
+	//
+	//vendorClaimParameters := claim.StructuredResourceHandle[0].VendorClaimParameters
+	//if len(vendorClaimParameters.Raw) > 0 {
+	//	var claimParams gpucrd.GpuClaimParametersSpec
+	//	if err := json.Unmarshal(vendorClaimParameters.Raw, &claimParams); err != nil {
+	//		return fmt.Errorf("decoding claim parameters: %v", err)
+	//	}
+	//	allocated.Gpu.Sharing = claimParams.Sharing
+	//}
 
 	for _, r := range claim.StructuredResourceHandle[0].Results {
 		name := r.AllocationResultModel.NamedResources.Name
-		gpu := nascrd.AllocatedGpu{
-			UUID: fmt.Sprintf("GPU-%s", name[4:]),
-		}
+		gpu := fmt.Sprintf("GPU-%s", name[4:])
 		allocated.Gpu.Devices = append(allocated.Gpu.Devices, gpu)
 	}
 
-	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		err := d.nasclient.Get(ctx)
-		if err != nil {
-			return err
-		}
-
-		if len(d.nascr.Spec.AllocatedClaims) == 0 {
-			d.nascr.Spec.AllocatedClaims = make(map[string]nascrd.AllocatedDevices)
-		}
-		d.nascr.Spec.AllocatedClaims[claim.Uid] = allocated
-
-		err = d.nasclient.Update(ctx, &d.nascr.Spec)
-		if err != nil {
-			return err
-		}
-
-		return nil
-	})
-	if err != nil {
-		return err
-	}
-	return nil
+	return allocated, nil
 }
 
-func (d *driver) deallocateDevices(ctx context.Context, claim *drapbv1.Claim) error {
-	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		err := d.nasclient.Get(ctx)
-		if err != nil {
-			return err
-		}
-
-		delete(d.nascr.Spec.AllocatedClaims, claim.Uid)
-
-		err = d.nasclient.Update(ctx, &d.nascr.Spec)
-		if err != nil {
-			return err
-		}
-
-		return nil
-	})
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (d *driver) CleanupStaleStateContinuously(ctx context.Context) {
-	for {
-		resourceVersion, err := d.cleanupStaleStateOnce(ctx)
-		if err != nil {
-			klog.Errorf("Error cleaning up stale claim state: %v", err)
-		}
-
-		err = d.cleanupStaleStateContinuously(ctx, resourceVersion, err)
-		if err != nil {
-			klog.Errorf("Error cleaning up stale claim state: %v", err)
-			time.Sleep(CleanupTimeoutSecondsOnError * time.Second)
-		}
-	}
-}
-
-func (d *driver) cleanupStaleStateOnce(ctx context.Context) (string, error) {
-	listOptions := metav1.ListOptions{
-		FieldSelector: fmt.Sprintf("metadata.name=%s", d.nascr.Name),
-	}
-
-	list, err := d.nasclient.List(ctx, listOptions)
-	if err != nil {
-		return "", fmt.Errorf("error listing allocation state: %w", err)
-	}
-
-	if len(list.Items) != 1 {
-		return "", fmt.Errorf("unexpected number of allocation state objects from list: %v", len(list.Items))
-	}
-	nas := list.Items[0]
-
-	err = d.cleanupStaleState(ctx, &nas)
-	if err != nil {
-		return "", err
-	}
-
-	return list.ResourceVersion, nil
-}
-
-func (d *driver) cleanupStaleStateContinuously(ctx context.Context, resourceVersion string, previousError error) error {
-	watchOptions := metav1.ListOptions{
-		Watch:           true,
-		ResourceVersion: resourceVersion,
-		FieldSelector:   fmt.Sprintf("metadata.name=%s", d.nascr.Name),
-	}
-
-	if previousError != nil {
-		timeout := int64(CleanupTimeoutSecondsOnError)
-		watchOptions.TimeoutSeconds = &timeout
-	}
-
-	watcher, err := d.nasclient.Watch(ctx, watchOptions)
-	if err != nil {
-		return fmt.Errorf("error setting up watch to cleanup allocations: %w", err)
-	}
-	defer watcher.Stop()
-
-	for event := range watcher.ResultChan() {
-		if event.Type != watch.Modified {
-			continue
-		}
-
-		nas, ok := event.Object.(*nascrd.NodeAllocationState)
-		if !ok {
-			return fmt.Errorf("unexpected error decoding object from watcher")
-		}
-
-		err = d.cleanupStaleState(ctx, nas)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (d *driver) cleanupStaleState(ctx context.Context, nas *nascrd.NodeAllocationState) error {
-	var wg sync.WaitGroup
-	var errorChans []chan error
-	errorCounts := make(chan int)
-
-	caErrors := d.cleanupClaimAllocations(ctx, nas, &wg)
-	errorChans = append(errorChans, caErrors)
-	go func() {
-		count := 0
-		for err := range caErrors {
-			klog.Errorf("Error cleaning up claim allocations: %v", err)
-			count++
-		}
-		errorCounts <- count
-	}()
-
-	cdiErrors := d.cleanupCDIFiles(nas, &wg)
-	errorChans = append(errorChans, cdiErrors)
-	go func() {
-		count := 0
-		for err := range cdiErrors {
-			klog.Errorf("Error cleaning up CDI files: %v", err)
-			count++
-		}
-		errorCounts <- count
-	}()
-
-	mpsErrors := d.cleanupMpsControlDaemonArtifacts(nas, &wg)
-	errorChans = append(errorChans, mpsErrors)
-	go func() {
-		count := 0
-		for err := range mpsErrors {
-			klog.Errorf("Error cleaning up MPS control daemon artifacts: %v", err)
-			count++
-		}
-		errorCounts <- count
-	}()
-
-	wg.Wait()
-	sumErrors := 0
-	for i := range errorChans {
-		close(errorChans[i])
-		sumErrors += <-errorCounts
-	}
-
-	if sumErrors != 0 {
-		return fmt.Errorf("encountered %v errors", sumErrors)
-	}
-
-	return nil
-}
-
-func (d *driver) cleanupClaimAllocations(ctx context.Context, nas *nascrd.NodeAllocationState, wg *sync.WaitGroup) chan error {
-	errors := make(chan error)
-	for claimUID := range nas.Spec.PreparedClaims {
-		if _, exists := nas.Spec.AllocatedClaims[claimUID]; !exists {
-			wg.Add(1)
-			go func(claimUID string) {
-				defer wg.Done()
-				klog.Infof("Attempting to unprepare resources for claim %v", claimUID)
-				err := d.unprepare(ctx, claimUID)
-				if err != nil {
-					errors <- fmt.Errorf("error unpreparing resources for claim %v: %w", claimUID, err)
-					return
-				}
-				klog.Infof("Successfully unprepared resources for claim %v", claimUID)
-			}(claimUID)
-		}
-	}
-	return errors
-}
-
-func (d *driver) cleanupCDIFiles(nas *nascrd.NodeAllocationState, wg *sync.WaitGroup) chan error {
+func (d *driver) cleanupCDIFiles(wg *sync.WaitGroup) chan error {
 	// TODO: implement loop to remove CDI files from the CDI path for claimUIDs
 	// that have been removed from the AllocatedClaims map.
 	errors := make(chan error)
 	return errors
 }
 
-func (d *driver) cleanupMpsControlDaemonArtifacts(nas *nascrd.NodeAllocationState, wg *sync.WaitGroup) chan error {
+func (d *driver) cleanupMpsControlDaemonArtifacts(wg *sync.WaitGroup) chan error {
 	// TODO: implement loop to remove mpsControlDaemon folders from the mps
 	// path for claimUIDs that have been removed from the AllocatedClaims map.
 	errors := make(chan error)

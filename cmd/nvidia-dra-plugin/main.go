@@ -28,7 +28,6 @@ import (
 	plugin "k8s.io/dynamic-resource-allocation/kubeletplugin"
 	"k8s.io/klog/v2"
 
-	nascrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1"
 	gpucrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/v1alpha1"
 	"github.com/NVIDIA/k8s-dra-driver/internal/info"
 	"github.com/NVIDIA/k8s-dra-driver/pkg/flags"
@@ -44,7 +43,7 @@ const (
 
 type Flags struct {
 	kubeClientConfig flags.KubeClientConfig
-	nasConfig        flags.NasConfig
+	crdConfig        flags.CRDConfig
 	loggingConfig    *flags.LoggingConfig
 
 	cdiRoot             string
@@ -55,7 +54,6 @@ type Flags struct {
 
 type Config struct {
 	flags      *Flags
-	nascr      *nascrd.NodeAllocationState
 	clientsets flags.ClientSets
 }
 
@@ -102,7 +100,7 @@ func newApp() *cli.App {
 		},
 	}
 	cliFlags = append(cliFlags, flags.kubeClientConfig.Flags()...)
-	cliFlags = append(cliFlags, flags.nasConfig.Flags()...)
+	cliFlags = append(cliFlags, flags.crdConfig.Flags()...)
 	cliFlags = append(cliFlags, flags.loggingConfig.Flags()...)
 
 	app := &cli.App{
@@ -124,14 +122,8 @@ func newApp() *cli.App {
 				return fmt.Errorf("create client: %w", err)
 			}
 
-			nascr, err := flags.nasConfig.NewNodeAllocationState(ctx, clientSets.Core)
-			if err != nil {
-				return fmt.Errorf("create NodeAllocationState CR: %w", err)
-			}
-
 			config := &Config{
 				flags:      flags,
-				nascr:      nascr,
 				clientsets: clientSets,
 			}
 

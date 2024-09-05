@@ -23,7 +23,6 @@ import (
 	"net/http"
 
 	gpuv1alpha1 "github.com/NVIDIA/k8s-dra-driver/pkg/nvidia.com/resource/clientset/versioned/typed/gpu/v1alpha1"
-	nasv1alpha1 "github.com/NVIDIA/k8s-dra-driver/pkg/nvidia.com/resource/clientset/versioned/typed/nas/v1alpha1"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"
@@ -32,24 +31,17 @@ import (
 type Interface interface {
 	Discovery() discovery.DiscoveryInterface
 	GpuV1alpha1() gpuv1alpha1.GpuV1alpha1Interface
-	NasV1alpha1() nasv1alpha1.NasV1alpha1Interface
 }
 
 // Clientset contains the clients for groups.
 type Clientset struct {
 	*discovery.DiscoveryClient
 	gpuV1alpha1 *gpuv1alpha1.GpuV1alpha1Client
-	nasV1alpha1 *nasv1alpha1.NasV1alpha1Client
 }
 
 // GpuV1alpha1 retrieves the GpuV1alpha1Client
 func (c *Clientset) GpuV1alpha1() gpuv1alpha1.GpuV1alpha1Interface {
 	return c.gpuV1alpha1
-}
-
-// NasV1alpha1 retrieves the NasV1alpha1Client
-func (c *Clientset) NasV1alpha1() nasv1alpha1.NasV1alpha1Interface {
-	return c.nasV1alpha1
 }
 
 // Discovery retrieves the DiscoveryClient
@@ -100,10 +92,6 @@ func NewForConfigAndClient(c *rest.Config, httpClient *http.Client) (*Clientset,
 	if err != nil {
 		return nil, err
 	}
-	cs.nasV1alpha1, err = nasv1alpha1.NewForConfigAndClient(&configShallowCopy, httpClient)
-	if err != nil {
-		return nil, err
-	}
 
 	cs.DiscoveryClient, err = discovery.NewDiscoveryClientForConfigAndClient(&configShallowCopy, httpClient)
 	if err != nil {
@@ -126,7 +114,6 @@ func NewForConfigOrDie(c *rest.Config) *Clientset {
 func New(c rest.Interface) *Clientset {
 	var cs Clientset
 	cs.gpuV1alpha1 = gpuv1alpha1.New(c)
-	cs.nasV1alpha1 = nasv1alpha1.New(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClient(c)
 	return &cs

@@ -17,7 +17,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"net"
 	"net/http"
@@ -29,9 +28,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/urfave/cli/v2"
 
-	"k8s.io/client-go/informers"
 	"k8s.io/component-base/metrics/legacyregistry"
-	"k8s.io/dynamic-resource-allocation/controller"
 	"k8s.io/klog/v2"
 
 	_ "k8s.io/component-base/metrics/prometheus/restclient" // for client metric registration
@@ -45,7 +42,7 @@ import (
 type Flags struct {
 	kubeClientConfig flags.KubeClientConfig
 	loggingConfig    *flags.LoggingConfig
-	nasConfig        flags.NasConfig
+	crdConfig        flags.CRDConfig
 
 	workers int
 
@@ -107,8 +104,8 @@ func newApp() *cli.App {
 
 	cliFlags = append(cliFlags, flags.kubeClientConfig.Flags()...)
 	cliFlags = append(cliFlags, flags.loggingConfig.Flags()...)
-	flags.nasConfig.HideNodeName = true
-	cliFlags = append(cliFlags, flags.nasConfig.Flags()...)
+	flags.crdConfig.HideNodeName = true
+	cliFlags = append(cliFlags, flags.crdConfig.Flags()...)
 
 	app := &cli.App{
 		Name:            "nvidia-dra-controller",
@@ -134,7 +131,7 @@ func newApp() *cli.App {
 			config := &Config{
 				mux:        mux,
 				flags:      flags,
-				namespace:  flags.nasConfig.Namespace,
+				namespace:  flags.crdConfig.Namespace,
 				clientSets: clientSets,
 			}
 
@@ -150,10 +147,7 @@ func newApp() *cli.App {
 				return fmt.Errorf("start claim parameters generator: %w", err)
 			}
 
-			err = StartController(ctx, config)
-			if err != nil {
-				return fmt.Errorf("start controller: %w", err)
-			}
+			<-ctx.Done()
 
 			return nil
 		},
@@ -215,14 +209,5 @@ func SetupHTTPEndpoint(config *Config) error {
 		}
 	}()
 
-	return nil
-}
-
-func StartController(ctx context.Context, config *Config) error {
-	driver := NewDriver(config)
-	informerFactory := informers.NewSharedInformerFactory(config.clientSets.Core, 0 /* resync period */)
-	ctrl := controller.New(ctx, DriverAPIGroup, driver, config.clientSets.Core, informerFactory)
-	informerFactory.Start(ctx.Done())
-	ctrl.Run(config.flags.workers)
 	return nil
 }

@@ -22,8 +22,6 @@ import (
 	clientset "github.com/NVIDIA/k8s-dra-driver/pkg/nvidia.com/resource/clientset/versioned"
 	gpuv1alpha1 "github.com/NVIDIA/k8s-dra-driver/pkg/nvidia.com/resource/clientset/versioned/typed/gpu/v1alpha1"
 	fakegpuv1alpha1 "github.com/NVIDIA/k8s-dra-driver/pkg/nvidia.com/resource/clientset/versioned/typed/gpu/v1alpha1/fake"
-	nasv1alpha1 "github.com/NVIDIA/k8s-dra-driver/pkg/nvidia.com/resource/clientset/versioned/typed/nas/v1alpha1"
-	fakenasv1alpha1 "github.com/NVIDIA/k8s-dra-driver/pkg/nvidia.com/resource/clientset/versioned/typed/nas/v1alpha1/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"
@@ -84,9 +82,4 @@ var (
 // GpuV1alpha1 retrieves the GpuV1alpha1Client
 func (c *Clientset) GpuV1alpha1() gpuv1alpha1.GpuV1alpha1Interface {
 	return &fakegpuv1alpha1.FakeGpuV1alpha1{Fake: &c.Fake}
-}
-
-// NasV1alpha1 retrieves the NasV1alpha1Client
-func (c *Clientset) NasV1alpha1() nasv1alpha1.NasV1alpha1Interface {
-	return &fakenasv1alpha1.FakeNasV1alpha1{Fake: &c.Fake}
 }
