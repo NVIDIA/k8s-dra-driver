@@ -36,9 +36,10 @@ import (
 const (
 	DriverName = gpucrd.GroupName
 
-	PluginRegistrationPath = "/var/lib/kubelet/plugins_registry/" + DriverName + ".sock"
-	DriverPluginPath       = "/var/lib/kubelet/plugins/" + DriverName
-	DriverPluginSocketPath = DriverPluginPath + "/plugin.sock"
+	PluginRegistrationPath     = "/var/lib/kubelet/plugins_registry/" + DriverName + ".sock"
+	DriverPluginPath           = "/var/lib/kubelet/plugins/" + DriverName
+	DriverPluginSocketPath     = DriverPluginPath + "/plugin.sock"
+	DriverPluginCheckpointFile = "checkpoint.json"
 )
 
 type Flags struct {

@@ -28,6 +28,7 @@ import (
 	resourceapi "k8s.io/api/resource/v1alpha2"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/klog/v2"
+	"k8s.io/kubernetes/pkg/kubelet/checkpointmanager"
 	"k8s.io/utils/ptr"
 
 	"github.com/NVIDIA/k8s-dra-driver/api/utils/types"
@@ -37,9 +38,9 @@ type AllocatableDevices map[string]*AllocatableDeviceInfo
 type PreparedClaims map[string]*PreparedDevices
 
 type GpuInfo struct {
+	UUID                  string `json:"uuid"`
 	minor                 int
 	index                 int
-	uuid                  string
 	migEnabled            bool
 	memoryBytes           uint64
 	productName           string
@@ -51,7 +52,7 @@ type GpuInfo struct {
 }
 
 type MigDeviceInfo struct {
-	uuid    string
+	UUID    string `json:"uuid"`
 	parent  *GpuInfo
 	profile nvdev.MigProfile
 	giInfo  *nvml.GpuInstanceInfo
@@ -59,24 +60,24 @@ type MigDeviceInfo struct {
 }
 
 type AllocatedGpus struct {
-	Devices []string
+	Devices []string `json:"devices"`
 }
 
 type AllocatedDevices struct {
-	Gpu *AllocatedGpus
+	Gpu *AllocatedGpus `json:"gpu"`
 }
 
 type PreparedGpus struct {
-	Devices []*GpuInfo
+	Devices []*GpuInfo `json:"devices"`
 }
 
 type PreparedMigDevices struct {
-	Devices []*MigDeviceInfo
+	Devices []*MigDeviceInfo `json:"devices"`
 }
 
 type PreparedDevices struct {
-	Gpu              *PreparedGpus
-	Mig              *PreparedMigDevices
+	Gpu              *PreparedGpus       `json:"gpu"`
+	Mig              *PreparedMigDevices `json:"mig"`
 	MpsControlDaemon *MpsControlDaemon
 }
 
@@ -112,11 +113,11 @@ func (d *PreparedDevices) UUIDs() []string {
 	switch d.Type() {
 	case types.GpuDeviceType:
 		for _, device := range d.Gpu.Devices {
-			deviceStrings = append(deviceStrings, device.uuid)
+			deviceStrings = append(deviceStrings, device.UUID)
 		}
 	case types.MigDeviceType:
 		for _, device := range d.Mig.Devices {
-			deviceStrings = append(deviceStrings, device.uuid)
+			deviceStrings = append(deviceStrings, device.UUID)
 		}
 	}
 	return deviceStrings
@@ -143,10 +144,10 @@ type DeviceState struct {
 	tsManager   *TimeSlicingManager
 	mpsManager  *MpsManager
 	allocatable AllocatableDevices
-	prepared    PreparedClaims
 	config      *Config
 
-	nvdevlib *deviceLib
+	nvdevlib          *deviceLib
+	checkpointManager checkpointmanager.CheckpointManager
 }
 
 func NewDeviceState(ctx context.Context, config *Config) (*DeviceState, error) {
@@ -182,14 +183,35 @@ func NewDeviceState(ctx context.Context, config *Config) (*DeviceState, error) {
 	tsManager := NewTimeSlicingManager(nvdevlib)
 	mpsManager := NewMpsManager(config, nvdevlib, MpsRoot, hostDriverRoot, MpsControlDaemonTemplatePath)
 
+	checkpointManager, err := checkpointmanager.NewCheckpointManager(DriverPluginPath)
+	if err != nil {
+		return nil, fmt.Errorf("unable to create checkpoint manager: %v", err)
+	}
+
 	state := &DeviceState{
-		cdi:         cdi,
-		tsManager:   tsManager,
-		mpsManager:  mpsManager,
-		allocatable: allocatable,
-		prepared:    make(PreparedClaims),
-		config:      config,
-		nvdevlib:    nvdevlib,
+		cdi:               cdi,
+		tsManager:         tsManager,
+		mpsManager:        mpsManager,
+		allocatable:       allocatable,
+		config:            config,
+		nvdevlib:          nvdevlib,
+		checkpointManager: checkpointManager,
+	}
+
+	checkpoints, err := state.checkpointManager.ListCheckpoints()
+	if err != nil {
+		return nil, fmt.Errorf("unable to list checkpoints: %v", err)
+	}
+
+	for _, c := range checkpoints {
+		if c == DriverPluginCheckpointFile {
+			return state, nil
+		}
+	}
+
+	checkpoint := newCheckpoint()
+	if err := state.checkpointManager.CreateCheckpoint(DriverPluginCheckpointFile, checkpoint); err != nil {
+		return nil, fmt.Errorf("unable to sync to checkpoint: %v", err)
 	}
 
 	return state, nil
@@ -199,16 +221,22 @@ func (s *DeviceState) Prepare(ctx context.Context, claimUID string, allocated Al
 	s.Lock()
 	defer s.Unlock()
 
-	if s.prepared[claimUID] != nil {
+	checkpoint := newCheckpoint()
+	if err := s.checkpointManager.GetCheckpoint(DriverPluginCheckpointFile, checkpoint); err != nil {
+		return nil, fmt.Errorf("unable to sync from checkpoint: %v", err)
+	}
+	preparedClaims := checkpoint.V1.PreparedClaims
+
+	if preparedClaims[claimUID] != nil {
 		return s.cdi.GetClaimDevices(claimUID), nil
 	}
 
-	prepared := &PreparedDevices{}
+	preparedDevices := &PreparedDevices{}
 
 	var err error
 	switch allocated.Type() {
 	case types.GpuDeviceType:
-		prepared.Gpu, err = s.prepareGpus(claimUID, allocated.Gpu)
+		preparedDevices.Gpu, err = s.prepareGpus(claimUID, allocated.Gpu)
 		if err != nil {
 			return nil, fmt.Errorf("GPU allocation failed: %w", err)
 		}
@@ -234,12 +262,15 @@ func (s *DeviceState) Prepare(ctx context.Context, claimUID string, allocated Al
 		//}
 	}
 
-	err = s.cdi.CreateClaimSpecFile(claimUID, prepared)
+	err = s.cdi.CreateClaimSpecFile(claimUID, preparedDevices)
 	if err != nil {
 		return nil, fmt.Errorf("unable to create CDI spec file for claim: %w", err)
 	}
 
-	s.prepared[claimUID] = prepared
+	preparedClaims[claimUID] = preparedDevices
+	if err := s.checkpointManager.CreateCheckpoint(DriverPluginCheckpointFile, checkpoint); err != nil {
+		return nil, fmt.Errorf("unable to sync to checkpoint: %v", err)
+	}
 
 	return s.cdi.GetClaimDevices(claimUID), nil
 }
@@ -248,20 +279,26 @@ func (s *DeviceState) Unprepare(ctx context.Context, claimUID string) error {
 	s.Lock()
 	defer s.Unlock()
 
-	if s.prepared[claimUID] == nil {
+	checkpoint := newCheckpoint()
+	if err := s.checkpointManager.GetCheckpoint(DriverPluginCheckpointFile, checkpoint); err != nil {
+		return fmt.Errorf("unable to sync from checkpoint: %v", err)
+	}
+	preparedClaims := checkpoint.V1.PreparedClaims
+
+	if preparedClaims[claimUID] == nil {
 		return nil
 	}
 
-	if s.prepared[claimUID].MpsControlDaemon != nil {
-		err := s.prepared[claimUID].MpsControlDaemon.Stop(ctx)
+	if preparedClaims[claimUID].MpsControlDaemon != nil {
+		err := preparedClaims[claimUID].MpsControlDaemon.Stop(ctx)
 		if err != nil {
 			return fmt.Errorf("error stopping MPS control daemon: %w", err)
 		}
 	}
 
-	switch s.prepared[claimUID].Type() {
+	switch preparedClaims[claimUID].Type() {
 	case types.GpuDeviceType:
-		err := s.unprepareGpus(claimUID, s.prepared[claimUID])
+		err := s.unprepareGpus(claimUID, preparedClaims[claimUID])
 		if err != nil {
 			return fmt.Errorf("unprepare failed: %w", err)
 		}
@@ -281,7 +318,10 @@ func (s *DeviceState) Unprepare(ctx context.Context, claimUID string) error {
 		return fmt.Errorf("unable to delete CDI spec file for claim: %w", err)
 	}
 
-	delete(s.prepared, claimUID)
+	delete(preparedClaims, claimUID)
+	if err := s.checkpointManager.CreateCheckpoint(DriverPluginCheckpointFile, checkpoint); err != nil {
+		return fmt.Errorf("unable to sync to checkpoint: %v", err)
+	}
 
 	return nil
 }
@@ -397,7 +437,7 @@ func (s *DeviceState) getResourceModelFromAllocatableDevices() resourceapi.Resou
 	var instances []resourceapi.NamedResourcesInstance
 	for _, device := range s.allocatable {
 		instance := resourceapi.NamedResourcesInstance{
-			Name: strings.ToLower(device.uuid),
+			Name: strings.ToLower(device.UUID),
 			Attributes: []resourceapi.NamedResourcesAttribute{
 				{
 					Name: "index",
@@ -408,7 +448,7 @@ func (s *DeviceState) getResourceModelFromAllocatableDevices() resourceapi.Resou
 				{
 					Name: "uuid",
 					NamedResourcesAttributeValue: resourceapi.NamedResourcesAttributeValue{
-						StringValue: &device.uuid,
+						StringValue: &device.UUID,
 					},
 				},
 				{
