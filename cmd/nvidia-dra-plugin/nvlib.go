@@ -53,7 +53,7 @@ func newDeviceLib(driverRoot root) (*deviceLib, error) {
 		nvml.WithLibraryPath(driverLibraryPath),
 	)
 	d := deviceLib{
-		Interface:         nvdev.New(nvdev.WithNvml(nvmllib)),
+		Interface:         nvdev.New(nvmllib),
 		nvmllib:           nvmllib,
 		driverLibraryPath: driverLibraryPath,
 		nvidiaSMIPath:     nvidiaSMIPath,
@@ -121,7 +121,7 @@ func (l deviceLib) enumerateAllPossibleDevices() (AllocatableDevices, error) {
 			migProfiles: migProfileInfos,
 		}
 
-		alldevices[gpuInfo.UUID] = deviceInfo
+		alldevices[fmt.Sprintf("gpu-%d", gpuInfo.index)] = deviceInfo
 
 		return nil
 	})
@@ -345,6 +345,7 @@ func (l deviceLib) getMigDevices(gpuInfo *GpuInfo) (map[string]*MigDeviceInfo, e
 		}
 		migInfos[uuid] = &MigDeviceInfo{
 			UUID:    uuid,
+			index:   i,
 			parent:  gpuInfo,
 			profile: migProfiles[int(giInfo.ProfileId)],
 			giInfo:  &giInfo,

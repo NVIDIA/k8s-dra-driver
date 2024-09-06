@@ -19,7 +19,7 @@ func newCheckpoint() *Checkpoint {
 	pc := &Checkpoint{
 		Checksum: 0,
 		V1: &CheckpointV1{
-			PreparedClaims: make(map[string]*PreparedDevices),
+			PreparedClaims: make(PreparedClaims),
 		},
 	}
 	return pc

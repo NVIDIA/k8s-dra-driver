@@ -132,8 +132,8 @@ func NewMpsManager(config *Config, deviceLib *deviceLib, controlFilesRoot, hostD
 
 func (m *MpsManager) NewMpsControlDaemon(claim *types.ClaimInfo, devices *PreparedDevices, config *sharing.MpsConfig) *MpsControlDaemon {
 	return &MpsControlDaemon{
-		nodeName:  m.config.flags.crdConfig.NodeName,
-		namespace: m.config.flags.crdConfig.Namespace,
+		nodeName:  m.config.flags.nodeName,
+		namespace: m.config.flags.namespace,
 		name:      fmt.Sprintf(MpsControlDaemonNameFmt, claim.UID),
 		claim:     claim,
 		rootDir:   fmt.Sprintf("%s/%s", m.controlFilesRoot, claim.UID),
@@ -148,7 +148,7 @@ func (m *MpsManager) NewMpsControlDaemon(claim *types.ClaimInfo, devices *Prepar
 
 func (m *MpsManager) IsControlDaemonStarted(ctx context.Context, claim *types.ClaimInfo) (bool, error) {
 	name := fmt.Sprintf(MpsControlDaemonNameFmt, claim.UID)
-	_, err := m.config.clientsets.Core.AppsV1().Deployments(m.config.flags.crdConfig.Namespace).Get(ctx, name, metav1.GetOptions{})
+	_, err := m.config.clientsets.Core.AppsV1().Deployments(m.config.flags.namespace).Get(ctx, name, metav1.GetOptions{})
 	if errors.IsNotFound(err) {
 		return false, nil
 	}
@@ -160,7 +160,7 @@ func (m *MpsManager) IsControlDaemonStarted(ctx context.Context, claim *types.Cl
 
 func (m *MpsManager) IsControlDaemonStopped(ctx context.Context, claim *types.ClaimInfo) (bool, error) {
 	name := fmt.Sprintf(MpsControlDaemonNameFmt, claim.UID)
-	_, err := m.config.clientsets.Core.AppsV1().Deployments(m.config.flags.crdConfig.Namespace).Get(ctx, name, metav1.GetOptions{})
+	_, err := m.config.clientsets.Core.AppsV1().Deployments(m.config.flags.namespace).Get(ctx, name, metav1.GetOptions{})
 	if errors.IsNotFound(err) {
 		return true, nil
 	}

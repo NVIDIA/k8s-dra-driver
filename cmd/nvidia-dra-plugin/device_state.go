@@ -19,7 +19,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"strings"
 	"sync"
 
 	"github.com/Masterminds/semver"
@@ -28,6 +27,7 @@ import (
 	resourceapi "k8s.io/api/resource/v1alpha3"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/klog/v2"
+	drapbv1 "k8s.io/kubelet/pkg/apis/dra/v1alpha4"
 	"k8s.io/kubernetes/pkg/kubelet/checkpointmanager"
 	"k8s.io/utils/ptr"
 
@@ -39,8 +39,8 @@ type PreparedClaims map[string]*PreparedDevices
 
 type GpuInfo struct {
 	UUID                  string `json:"uuid"`
-	minor                 int
 	index                 int
+	minor                 int
 	migEnabled            bool
 	memoryBytes           uint64
 	productName           string
@@ -53,6 +53,7 @@ type GpuInfo struct {
 
 type MigDeviceInfo struct {
 	UUID    string `json:"uuid"`
+	index   int
 	parent  *GpuInfo
 	profile nvdev.MigProfile
 	giInfo  *nvml.GpuInstanceInfo
@@ -68,11 +69,21 @@ type AllocatedDevices struct {
 }
 
 type PreparedGpus struct {
-	Devices []*GpuInfo `json:"devices"`
+	Devices []*PreparedGpu `json:"devices"`
+}
+
+type PreparedGpu struct {
+	Info   *GpuInfo        `json:"info"`
+	Device *drapbv1.Device `json:"device"`
 }
 
 type PreparedMigDevices struct {
-	Devices []*MigDeviceInfo `json:"devices"`
+	Devices []*PreparedMig `json:"devices"`
+}
+
+type PreparedMig struct {
+	Info   *MigDeviceInfo  `json:"info"`
+	Device *drapbv1.Device `json:"device"`
 }
 
 type PreparedDevices struct {
@@ -113,14 +124,29 @@ func (d *PreparedDevices) UUIDs() []string {
 	switch d.Type() {
 	case types.GpuDeviceType:
 		for _, device := range d.Gpu.Devices {
-			deviceStrings = append(deviceStrings, device.UUID)
+			deviceStrings = append(deviceStrings, device.Info.UUID)
 		}
 	case types.MigDeviceType:
 		for _, device := range d.Mig.Devices {
-			deviceStrings = append(deviceStrings, device.UUID)
+			deviceStrings = append(deviceStrings, device.Info.UUID)
 		}
 	}
 	return deviceStrings
+}
+
+func (d *PreparedDevices) GetDevices() []*drapbv1.Device {
+	var devices []*drapbv1.Device
+	switch d.Type() {
+	case types.GpuDeviceType:
+		for _, gpu := range d.Gpu.Devices {
+			devices = append(devices, gpu.Device)
+		}
+	case types.MigDeviceType:
+		for _, mig := range d.Mig.Devices {
+			devices = append(devices, mig.Device)
+		}
+	}
+	return devices
 }
 
 type MigProfileInfo struct {
@@ -183,6 +209,10 @@ func NewDeviceState(ctx context.Context, config *Config) (*DeviceState, error) {
 	tsManager := NewTimeSlicingManager(nvdevlib)
 	mpsManager := NewMpsManager(config, nvdevlib, MpsRoot, hostDriverRoot, MpsControlDaemonTemplatePath)
 
+	if err := cdi.CreateStandardDeviceSpecFile(allocatable); err != nil {
+		return nil, fmt.Errorf("unable to create base CDI spec file: %v", err)
+	}
+
 	checkpointManager, err := checkpointmanager.NewCheckpointManager(DriverPluginPath)
 	if err != nil {
 		return nil, fmt.Errorf("unable to create checkpoint manager: %v", err)
@@ -217,9 +247,11 @@ func NewDeviceState(ctx context.Context, config *Config) (*DeviceState, error) {
 	return state, nil
 }
 
-func (s *DeviceState) Prepare(ctx context.Context, claimUID string, allocated AllocatedDevices) ([]string, error) {
+func (s *DeviceState) Prepare(claim *resourceapi.ResourceClaim) ([]*drapbv1.Device, error) {
 	s.Lock()
 	defer s.Unlock()
+
+	claimUID := string(claim.UID)
 
 	checkpoint := newCheckpoint()
 	if err := s.checkpointManager.GetCheckpoint(DriverPluginCheckpointFile, checkpoint); err != nil {
@@ -228,42 +260,38 @@ func (s *DeviceState) Prepare(ctx context.Context, claimUID string, allocated Al
 	preparedClaims := checkpoint.V1.PreparedClaims
 
 	if preparedClaims[claimUID] != nil {
-		return s.cdi.GetClaimDevices(claimUID), nil
+		return preparedClaims[claimUID].GetDevices(), nil
 	}
 
 	preparedDevices := &PreparedDevices{}
 
 	var err error
-	switch allocated.Type() {
-	case types.GpuDeviceType:
-		preparedDevices.Gpu, err = s.prepareGpus(claimUID, allocated.Gpu)
-		if err != nil {
-			return nil, fmt.Errorf("GPU allocation failed: %w", err)
-		}
-		// TODO: Defer enabling sharing with structured parameters until we
-		//       update to the APIs for Kubernetes 1.31.
-		//
-		//err := s.setupSharing(ctx, allocated.Gpu.Sharing, allocated.ClaimInfo, prepared)
-		//if err != nil {
-		//	return nil, fmt.Errorf("error setting up sharing: %w", err)
-		//}
-	case types.MigDeviceType:
-		// TODO: Dynamic MIG is not yet supported with structured parameters.
-		//      Refactor this to allow for the allocation of statically
-		//      partitioned MIG devices in 1.31.
-		//
-		//prepared.Mig, err = s.prepareMigDevices(claimUID, allocated.Mig)
-		//if err != nil {
-		//	return nil, fmt.Errorf("MIG device allocation failed: %w", err)
-		//}
-		//err = s.setupSharing(ctx, allocated.Mig.Sharing, allocated.ClaimInfo, prepared)
-		//if err != nil {
-		//	return nil, fmt.Errorf("error setting up sharing: %w", err)
-		//}
-	}
-
-	err = s.cdi.CreateClaimSpecFile(claimUID, preparedDevices)
+	preparedDevices.Gpu, err = s.prepareGpus(claim)
 	if err != nil {
+		return nil, fmt.Errorf("GPU prepare failed: %w", err)
+	}
+	// TODO: Defer enabling sharing with structured parameters until we
+	//       update to the APIs for Kubernetes 1.31.
+	//
+	// err := s.setupSharing(ctx, allocated.Gpu.Sharing, allocated.ClaimInfo, prepared)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("error setting up sharing: %w", err)
+	// }
+
+	// TODO: Dynamic MIG is not yet supported with structured parameters.
+	//      Refactor this to allow for the allocation of statically
+	//      partitioned MIG devices in 1.31.
+	//
+	// prepared.Mig, err = s.prepareMigDevices(claimUID, allocated.Mig)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("MIG device allocation failed: %w", err)
+	// }
+	// err = s.setupSharing(ctx, allocated.Mig.Sharing, allocated.ClaimInfo, prepared)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("error setting up sharing: %w", err)
+	// }
+
+	if err := s.cdi.CreateClaimSpecFile(claimUID, preparedDevices); err != nil {
 		return nil, fmt.Errorf("unable to create CDI spec file for claim: %w", err)
 	}
 
@@ -272,7 +300,7 @@ func (s *DeviceState) Prepare(ctx context.Context, claimUID string, allocated Al
 		return nil, fmt.Errorf("unable to sync to checkpoint: %v", err)
 	}
 
-	return s.cdi.GetClaimDevices(claimUID), nil
+	return preparedClaims[claimUID].GetDevices(), nil
 }
 
 func (s *DeviceState) Unprepare(ctx context.Context, claimUID string) error {
@@ -300,17 +328,17 @@ func (s *DeviceState) Unprepare(ctx context.Context, claimUID string) error {
 	case types.GpuDeviceType:
 		err := s.unprepareGpus(claimUID, preparedClaims[claimUID])
 		if err != nil {
-			return fmt.Errorf("unprepare failed: %w", err)
+			return fmt.Errorf("GPU unprepare failed: %w", err)
 		}
 	case types.MigDeviceType:
 		// TODO: Dynamic MIG is not yet supported with structured parameters.
 		//      Refactor this to allow for the allocation of statically
 		//      partitioned MIG devices in 1.31.
 		//
-		//err := s.unprepareMigDevices(claimUID, s.prepared[claimUID])
-		//if err != nil {
-		//	return fmt.Errorf("unprepare failed: %w", err)
-		//}
+		// err := s.unprepareMigDevices(claimUID, s.prepared[claimUID])
+		// if err != nil {
+		// 	return fmt.Errorf("unprepare failed: %w", err)
+		// }
 	}
 
 	err := s.cdi.DeleteClaimSpecFile(claimUID)
@@ -326,20 +354,34 @@ func (s *DeviceState) Unprepare(ctx context.Context, claimUID string) error {
 	return nil
 }
 
-func (s *DeviceState) prepareGpus(claimUID string, allocated *AllocatedGpus) (*PreparedGpus, error) {
-	prepared := &PreparedGpus{}
-
-	for _, device := range allocated.Devices {
-		gpuInfo := s.allocatable[device].GpuInfo
-
-		if _, exists := s.allocatable[device]; !exists {
-			return nil, fmt.Errorf("allocated GPU does not exist: %v", device)
-		}
-
-		prepared.Devices = append(prepared.Devices, gpuInfo)
+func (s *DeviceState) prepareGpus(claim *resourceapi.ResourceClaim) (*PreparedGpus, error) {
+	if claim.Status.Allocation == nil {
+		return nil, fmt.Errorf("claim not yet allocated")
 	}
 
-	return prepared, nil
+	var prepared PreparedGpus
+	for _, result := range claim.Status.Allocation.Devices.Results {
+		if _, exists := s.allocatable[result.Device]; !exists {
+			return nil, fmt.Errorf("requested GPU is not allocatable: %v", result.Device)
+		}
+
+		cdiDevices := s.cdi.GetStandardDevices([]string{result.Device})
+		cdiDevices = append(cdiDevices, s.cdi.GetClaimDevice(string(claim.UID)))
+
+		device := &PreparedGpu{
+			Info: s.allocatable[result.Device].GpuInfo,
+			Device: &drapbv1.Device{
+				RequestNames: []string{result.Request},
+				PoolName:     result.Pool,
+				DeviceName:   result.Device,
+				CDIDeviceIDs: cdiDevices,
+			},
+		}
+
+		prepared.Devices = append(prepared.Devices, device)
+	}
+
+	return &prepared, nil
 }
 
 func (s *DeviceState) unprepareGpus(claimUID string, devices *PreparedDevices) error {
@@ -354,159 +396,125 @@ func (s *DeviceState) unprepareGpus(claimUID string, devices *PreparedDevices) e
 // Refactor this to allow for the allocation of statically partitioned MIG
 // devices.
 //
-//func (s *DeviceState) prepareMigDevices(claimUID string, allocated *nascrd.AllocatedMigDevices) (*PreparedMigDevices, error) {
-//	prepared := &PreparedMigDevices{}
-//
-//	for _, device := range allocated.Devices {
-//		if _, exists := s.allocatable[device.ParentUUID]; !exists {
-//			return nil, fmt.Errorf("allocated GPU does not exist: %v", device.ParentUUID)
-//		}
-//
-//		parent := s.allocatable[device.ParentUUID]
-//
-//		if !parent.migEnabled {
-//			return nil, fmt.Errorf("cannot prepare a GPU with MIG mode disabled: %v", device.ParentUUID)
-//		}
-//
-//		if _, exists := parent.migProfiles[device.Profile]; !exists {
-//			return nil, fmt.Errorf("MIG profile %v does not exist on GPU: %v", device.Profile, device.ParentUUID)
-//		}
-//
-//		placement := nvml.GpuInstancePlacement{
-//			Start: uint32(device.Placement.Start),
-//			Size:  uint32(device.Placement.Size),
-//		}
-//
-//		migInfo, err := s.nvdevlib.createMigDevice(parent.GpuInfo, parent.migProfiles[device.Profile].profile, &placement)
-//		if err != nil {
-//			return nil, fmt.Errorf("error creating MIG device: %w", err)
-//		}
-//
-//		prepared.Devices = append(prepared.Devices, migInfo)
-//	}
-//
-//	return prepared, nil
-//}
-//
-//func (s *DeviceState) unprepareMigDevices(claimUID string, devices *PreparedDevices) error {
-//	for _, device := range devices.Mig.Devices {
-//		err := s.nvdevlib.deleteMigDevice(device)
-//		if err != nil {
-//			return fmt.Errorf("error deleting MIG device for %v: %w", device.uuid, err)
-//		}
-//	}
-//	return nil
+// func (s *DeviceState) prepareMigDevices(claimUID string, allocated *nascrd.AllocatedMigDevices) (*PreparedMigDevices, error) {
+// 	prepared := &PreparedMigDevices{}
+// 
+// 	for _, device := range allocated.Devices {
+// 		if _, exists := s.allocatable[device.ParentUUID]; !exists {
+// 			return nil, fmt.Errorf("allocated GPU does not exist: %v", device.ParentUUID)
+// 		}
+// 
+// 		parent := s.allocatable[device.ParentUUID]
+// 
+// 		if !parent.migEnabled {
+// 			return nil, fmt.Errorf("cannot prepare a GPU with MIG mode disabled: %v", device.ParentUUID)
+// 		}
+// 
+// 		if _, exists := parent.migProfiles[device.Profile]; !exists {
+// 			return nil, fmt.Errorf("MIG profile %v does not exist on GPU: %v", device.Profile, device.ParentUUID)
+// 		}
+// 
+// 		placement := nvml.GpuInstancePlacement{
+// 			Start: uint32(device.Placement.Start),
+// 			Size:  uint32(device.Placement.Size),
+// 		}
+// 
+// 		migInfo, err := s.nvdevlib.createMigDevice(parent.GpuInfo, parent.migProfiles[device.Profile].profile, &placement)
+// 		if err != nil {
+// 			return nil, fmt.Errorf("error creating MIG device: %w", err)
+// 		}
+// 
+// 		prepared.Devices = append(prepared.Devices, migInfo)
+// 	}
+// 
+// 	return prepared, nil
+// }
+// 
+// func (s *DeviceState) unprepareMigDevices(claimUID string, devices *PreparedDevices) error {
+// 	for _, device := range devices.Mig.Devices {
+// 		err := s.nvdevlib.deleteMigDevice(device)
+// 		if err != nil {
+// 			return fmt.Errorf("error deleting MIG device for %v: %w", device.uuid, err)
+// 		}
+// 	}
+// 	return nil
 //}
 
 // TODO: Defer enabling sharing with structured parameters until we update to
 //       the APIs for Kubrnetes 1.31
 //
-//func (s *DeviceState) setupSharing(ctx context.Context, sharing sharing.Interface, claim *types.ClaimInfo, devices *PreparedDevices) error {
-//	if sharing.IsTimeSlicing() {
-//		config, err := sharing.GetTimeSlicingConfig()
-//		if err != nil {
-//			return fmt.Errorf("error getting timeslice for %v: %w", claim.UID, err)
-//		}
-//		err = s.tsManager.SetTimeSlice(devices, config)
-//		if err != nil {
-//			return fmt.Errorf("error setting timeslice for %v: %w", claim.UID, err)
-//		}
-//	}
-//
-//	if sharing.IsMps() {
-//		config, err := sharing.GetMpsConfig()
-//		if err != nil {
-//			return fmt.Errorf("error getting MPS configuration: %w", err)
-//		}
-//		mpsControlDaemon := s.mpsManager.NewMpsControlDaemon(claim, devices, config)
-//		err = mpsControlDaemon.Start(ctx)
-//		if err != nil {
-//			return fmt.Errorf("error starting MPS control daemon: %w", err)
-//		}
-//		err = mpsControlDaemon.AssertReady(ctx)
-//		if err != nil {
-//			return fmt.Errorf("MPS control daemon is not yet ready: %w", err)
-//		}
-//		devices.MpsControlDaemon = mpsControlDaemon
-//	}
-//
-//	return nil
-//}
+// func (s *DeviceState) setupSharing(ctx context.Context, sharing sharing.Interface, claim *types.ClaimInfo, devices *PreparedDevices) error {
+// 	if sharing.IsTimeSlicing() {
+// 		config, err := sharing.GetTimeSlicingConfig()
+// 		if err != nil {
+// 			return fmt.Errorf("error getting timeslice for %v: %w", claim.UID, err)
+// 		}
+// 		err = s.tsManager.SetTimeSlice(devices, config)
+// 		if err != nil {
+// 			return fmt.Errorf("error setting timeslice for %v: %w", claim.UID, err)
+// 		}
+// 	}
+// 
+// 	if sharing.IsMps() {
+// 		config, err := sharing.GetMpsConfig()
+// 		if err != nil {
+// 			return fmt.Errorf("error getting MPS configuration: %w", err)
+// 		}
+// 		mpsControlDaemon := s.mpsManager.NewMpsControlDaemon(claim, devices, config)
+// 		err = mpsControlDaemon.Start(ctx)
+// 		if err != nil {
+// 			return fmt.Errorf("error starting MPS control daemon: %w", err)
+// 		}
+// 		err = mpsControlDaemon.AssertReady(ctx)
+// 		if err != nil {
+// 			return fmt.Errorf("MPS control daemon is not yet ready: %w", err)
+// 		}
+// 		devices.MpsControlDaemon = mpsControlDaemon
+// 	}
+// 
+// 	return nil
+// }
 
-func (s *DeviceState) getResourceModelFromAllocatableDevices() resourceapi.ResourceModel {
-	var instances []resourceapi.NamedResourcesInstance
-	for _, device := range s.allocatable {
-		instance := resourceapi.NamedResourcesInstance{
-			Name: strings.ToLower(device.UUID),
-			Attributes: []resourceapi.NamedResourcesAttribute{
-				{
-					Name: "index",
-					NamedResourcesAttributeValue: resourceapi.NamedResourcesAttributeValue{
-						IntValue: ptr.To(int64(device.index)),
-					},
+func (d *AllocatableDeviceInfo) GetDevice() resourceapi.Device {
+	device := resourceapi.Device{
+		Name: fmt.Sprintf("gpu-%d", d.index),
+		Basic: &resourceapi.BasicDevice{
+			Attributes: map[resourceapi.QualifiedName]resourceapi.DeviceAttribute{
+				"uuid": {
+					StringValue: &d.UUID,
 				},
-				{
-					Name: "uuid",
-					NamedResourcesAttributeValue: resourceapi.NamedResourcesAttributeValue{
-						StringValue: &device.UUID,
-					},
+				"minor": {
+					IntValue: ptr.To(int64(d.minor)),
 				},
-				{
-					Name: "mig-enabled",
-					NamedResourcesAttributeValue: resourceapi.NamedResourcesAttributeValue{
-						BoolValue: &device.migEnabled,
-					},
+				"index": {
+					IntValue: ptr.To(int64(d.index)),
 				},
-				{
-					Name: "memory",
-					NamedResourcesAttributeValue: resourceapi.NamedResourcesAttributeValue{
-						QuantityValue: resource.NewQuantity(int64(device.memoryBytes), resource.BinarySI),
-					},
+				"migEnabled": {
+					BoolValue: &d.migEnabled,
 				},
-				{
-					Name: "product-name",
-					NamedResourcesAttributeValue: resourceapi.NamedResourcesAttributeValue{
-						StringValue: &device.productName,
-					},
+				"productName": {
+					StringValue: &d.productName,
 				},
-				{
-					Name: "brand",
-					NamedResourcesAttributeValue: resourceapi.NamedResourcesAttributeValue{
-						StringValue: &device.brand,
-					},
+				"brand": {
+					StringValue: &d.brand,
 				},
-				{
-					Name: "architecture",
-					NamedResourcesAttributeValue: resourceapi.NamedResourcesAttributeValue{
-						StringValue: &device.architecture,
-					},
+				"architecture": {
+					StringValue: &d.architecture,
 				},
-				{
-					Name: "cuda-compute-capability",
-					NamedResourcesAttributeValue: resourceapi.NamedResourcesAttributeValue{
-						VersionValue: ptr.To(semver.MustParse(device.cudaComputeCapability).String()),
-					},
+				"cudaComputeCapability": {
+					VersionValue: ptr.To(semver.MustParse(d.cudaComputeCapability).String()),
 				},
-				{
-					Name: "driver-version",
-					NamedResourcesAttributeValue: resourceapi.NamedResourcesAttributeValue{
-						VersionValue: ptr.To(semver.MustParse(device.driverVersion).String()),
-					},
+				"driverVersion": {
+					VersionValue: ptr.To(semver.MustParse(d.driverVersion).String()),
 				},
-				{
-					Name: "cuda-driver-version",
-					NamedResourcesAttributeValue: resourceapi.NamedResourcesAttributeValue{
-						VersionValue: ptr.To(semver.MustParse(device.cudaDriverVersion).String()),
-					},
+				"cudaDriverVersion": {
+					VersionValue: ptr.To(semver.MustParse(d.cudaDriverVersion).String()),
 				},
 			},
-		}
-		instances = append(instances, instance)
+			Capacity: map[resourceapi.QualifiedName]resource.Quantity{
+				"memory": *resource.NewQuantity(int64(d.memoryBytes), resource.BinarySI),
+			},
+		},
 	}
-
-	model := resourceapi.ResourceModel{
-		NamedResources: &resourceapi.NamedResourcesResources{instances},
-	}
-
-	return model
+	return device
 }

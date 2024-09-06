@@ -25,16 +25,14 @@ import (
 
 	"github.com/urfave/cli/v2"
 
-	plugin "k8s.io/dynamic-resource-allocation/kubeletplugin"
 	"k8s.io/klog/v2"
 
-	gpucrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/v1alpha1"
 	"github.com/NVIDIA/k8s-dra-driver/internal/info"
 	"github.com/NVIDIA/k8s-dra-driver/pkg/flags"
 )
 
 const (
-	DriverName = gpucrd.GroupName
+	DriverName = "gpu.nvidia.com"
 
 	PluginRegistrationPath     = "/var/lib/kubelet/plugins_registry/" + DriverName + ".sock"
 	DriverPluginPath           = "/var/lib/kubelet/plugins/" + DriverName
@@ -44,9 +42,10 @@ const (
 
 type Flags struct {
 	kubeClientConfig flags.KubeClientConfig
-	crdConfig        flags.CRDConfig
 	loggingConfig    *flags.LoggingConfig
 
+	nodeName            string
+	namespace           string
 	cdiRoot             string
 	containerDriverRoot string
 	hostDriverRoot      string
@@ -70,6 +69,20 @@ func newApp() *cli.App {
 		loggingConfig: flags.NewLoggingConfig(),
 	}
 	cliFlags := []cli.Flag{
+		&cli.StringFlag{
+			Name:        "node-name",
+			Usage:       "The name of the node to be worked on.",
+			Required:    true,
+			Destination: &flags.nodeName,
+			EnvVars:     []string{"NODE_NAME"},
+		},
+		&cli.StringFlag{
+			Name:        "namespace",
+			Usage:       "The namespace used for the custom resources.",
+			Value:       "default",
+			Destination: &flags.namespace,
+			EnvVars:     []string{"NAMESPACE"},
+		},
 		&cli.StringFlag{
 			Name:        "cdi-root",
 			Usage:       "Absolute path to the directory where CDI files will be generated.",
@@ -101,7 +114,6 @@ func newApp() *cli.App {
 		},
 	}
 	cliFlags = append(cliFlags, flags.kubeClientConfig.Flags()...)
-	cliFlags = append(cliFlags, flags.crdConfig.Flags()...)
 	cliFlags = append(cliFlags, flags.loggingConfig.Flags()...)
 
 	app := &cli.App{
@@ -166,21 +178,9 @@ func StartPlugin(ctx context.Context, config *Config) error {
 		return err
 	}
 
-	dp, err := plugin.Start(
-		driver,
-		plugin.DriverName(DriverName),
-		plugin.RegistrarSocketPath(PluginRegistrationPath),
-		plugin.PluginSocketPath(DriverPluginSocketPath),
-		plugin.KubeletPluginSocketPath(DriverPluginSocketPath))
-	if err != nil {
-		return err
-	}
-
 	sigc := make(chan os.Signal, 1)
 	signal.Notify(sigc, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	<-sigc
-
-	dp.Stop()
 
 	err = driver.Shutdown(ctx)
 	if err != nil {
