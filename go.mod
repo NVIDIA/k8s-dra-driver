@@ -6,15 +6,14 @@ toolchain go1.22.1
 
 require (
 	github.com/Masterminds/semver v1.5.0
-	github.com/NVIDIA/go-nvlib v0.3.0
-	github.com/NVIDIA/go-nvml v0.12.0-5
-	github.com/NVIDIA/nvidia-container-toolkit v1.15.1-0.20240419094620-0aed9a16addf
+	github.com/NVIDIA/go-nvlib v0.6.0
+	github.com/NVIDIA/go-nvml v0.12.4-0
+	github.com/NVIDIA/nvidia-container-toolkit v1.16.1
 	github.com/go-godo/godo v2.0.9+incompatible
-	github.com/prometheus/client_golang v1.19.1
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.9.0
-	github.com/urfave/cli/v2 v2.27.1
+	github.com/urfave/cli/v2 v2.27.2
 	k8s.io/api v0.31.0
 	k8s.io/apimachinery v0.31.0
 	k8s.io/client-go v0.31.0
@@ -25,8 +24,8 @@ require (
 	k8s.io/kubernetes v1.31.0
 	k8s.io/mount-utils v0.31.0
 	k8s.io/utils v0.0.0-20240711033017-18e509b52bc8
-	tags.cncf.io/container-device-interface v0.7.2
-	tags.cncf.io/container-device-interface/specs-go v0.7.0
+	tags.cncf.io/container-device-interface v0.8.0
+	tags.cncf.io/container-device-interface/specs-go v0.8.0
 )
 
 require (
@@ -67,6 +66,7 @@ require (
 	github.com/opencontainers/runtime-tools v0.9.1-0.20221107090550-2e043c6bd626 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
+	github.com/prometheus/client_golang v1.19.1 // indirect
 	github.com/prometheus/client_model v0.6.1 // indirect
 	github.com/prometheus/common v0.55.0 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
@@ -74,13 +74,13 @@ require (
 	github.com/spf13/cobra v1.8.1 // indirect
 	github.com/syndtr/gocapability v0.0.0-20200815063812-42c35b437635 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
-	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
+	github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.26.0 // indirect
-	golang.org/x/mod v0.17.0 // indirect
+	golang.org/x/mod v0.19.0 // indirect
 	golang.org/x/net v0.26.0 // indirect
 	golang.org/x/oauth2 v0.21.0 // indirect
-	golang.org/x/sys v0.21.0 // indirect
+	golang.org/x/sys v0.22.0 // indirect
 	golang.org/x/term v0.21.0 // indirect
 	golang.org/x/text v0.16.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
