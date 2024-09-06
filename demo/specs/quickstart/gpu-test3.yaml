@@ -8,13 +8,16 @@ metadata:
   name: gpu-test3
 
 ---
-apiVersion: resource.k8s.io/v1alpha2
+apiVersion: resource.k8s.io/v1alpha3
 kind: ResourceClaim
 metadata:
   namespace: gpu-test3
-  name: shared-gpu
+  name: single-gpu
 spec:
-  resourceClassName: gpu.nvidia.com
+  devices:
+    requests:
+    - name: gpu
+      deviceClassName: gpu.nvidia.com
 
 ---
 apiVersion: v1
@@ -35,8 +38,7 @@ spec:
       - name: shared-gpu
   resourceClaims:
   - name: shared-gpu
-    source:
-      resourceClaimName: shared-gpu
+    resourceClaimName: single-gpu
 
 ---
 apiVersion: v1
@@ -57,5 +59,4 @@ spec:
       - name: shared-gpu
   resourceClaims:
   - name: shared-gpu
-    source:
-      resourceClaimName: shared-gpu
+    resourceClaimName: single-gpu
