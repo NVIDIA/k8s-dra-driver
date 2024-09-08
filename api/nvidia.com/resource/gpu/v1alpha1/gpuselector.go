@@ -80,7 +80,7 @@ func (s GpuSelector) Matches(compare func(*GpuSelectorProperties) bool) bool {
 }
 
 // ToNamedResourcesSelector converts a GpuSelector into a selector for use with
-// the NamedResources structured model
+// the NamedResources structured model.
 func (s GpuSelector) ToNamedResourcesSelector() string {
 	return s.convert().ToNamedResourcesSelector()
 }
@@ -153,7 +153,7 @@ func (s GpuSelector3) convert() selector.Selector[GpuSelectorProperties] {
 
 // ToNamedResourcesSelector defines the process of converting
 // GpuSelectorProperties into a selector for use with the NamedResources
-// structured model
+// structured model.
 func (p GpuSelectorProperties) ToNamedResourcesSelector() string {
 	if p.Index != nil {
 		return p.Index.ToNamedResourcesSelector("index")

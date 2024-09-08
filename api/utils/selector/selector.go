@@ -80,7 +80,7 @@ type VersionComparator struct {
 }
 
 // ToNamedResourcesSelector defines the translation of a Selector[T] to the
-// selector format required by the NamedResources structured model
+// selector format required by the NamedResources structured model.
 func (s Selector[T]) ToNamedResourcesSelector() string {
 	if s.Properties != nil {
 		return fmt.Sprintf("(%v)", (*s.Properties).ToNamedResourcesSelector())
@@ -146,7 +146,7 @@ func (p IntProperty) Matches(i int) bool {
 }
 
 // ToNamedResourcesSelector converts an IntProperty to a NamedResources
-// selector with the given name as the atrribute field name
+// selector with the given name as the atrribute field name.
 func (p IntProperty) ToNamedResourcesSelector(name string) string {
 	return fmt.Sprintf(`attributes.int["%v"] == %v`, name, p)
 }
@@ -157,7 +157,7 @@ func (p StringProperty) Matches(s string) bool {
 }
 
 // ToNamedResourcesSelector converts a StringProperty to a NamedResources
-// selector with the given name as the atrribute field name
+// selector with the given name as the atrribute field name.
 func (p StringProperty) ToNamedResourcesSelector(name string) string {
 	return fmt.Sprintf(`attributes.string["%v"] == %v`, name, p)
 }
@@ -168,21 +168,21 @@ func (p BoolProperty) Matches(b bool) bool {
 }
 
 // ToNamedResourcesSelector converts a BoolProperty to a NamedResources
-// selector with the given name as the atrribute field name
+// selector with the given name as the atrribute field name.
 func (p BoolProperty) ToNamedResourcesSelector(name string) string {
 	return fmt.Sprintf(`attributes.bool["%v"] == %v`, name, p)
 }
 
 // Matches checks if the provided string matches the GlobProperty.
-func (g GlobProperty) Matches(s string) bool {
-	lowerg := strings.ToLower(string(g))
+func (p GlobProperty) Matches(s string) bool {
+	lowerg := strings.ToLower(string(p))
 	lowers := strings.ToLower(s)
 	result, _ := regexp.MatchString(wildCardToRegexp(lowerg), lowers)
 	return result
 }
 
 // ToNamedResourcesSelector converts a GlobProperty to a NamedResources
-// selector with the given name as the atrribute field name
+// selector with the given name as the atrribute field name.
 func (p GlobProperty) ToNamedResourcesSelector(name string) string {
 	regex := glob.Globexp(strings.ToLower(string(p)))
 	return fmt.Sprintf(`attributes.string["%v"].lowerAscii().matches("%v")`, name, regex.String())
@@ -195,7 +195,7 @@ func (c *QuantityComparator) Matches(quantity *resource.Quantity) bool {
 }
 
 // ToNamedResourcesSelector converts a QuantityComparator to a NamedResources
-// selector with the given name as the atrribute field name
+// selector with the given name as the atrribute field name.
 func (c *QuantityComparator) ToNamedResourcesSelector(name string) string {
 	return comparatorToNamedResourcesSelector("quantity", name, "quantity", string(c.Operator), c.Value.String())
 }
@@ -207,7 +207,7 @@ func (c *VersionComparator) Matches(version string) bool {
 }
 
 // ToNamedResourcesSelector converts a VersionComparator to a NamedResources
-// selector with the given name as the atrribute field name
+// selector with the given name as the atrribute field name.
 func (c *VersionComparator) ToNamedResourcesSelector(name string) string {
 	return comparatorToNamedResourcesSelector("version", name, "semver", string(c.Operator), semver.MustParse(c.Value).String())
 }
@@ -240,7 +240,7 @@ func checkCompareValue(value int, operator string) bool {
 }
 
 // comparatorToNamedResourcesSelector converts a Comparator to a NamedResources
-// selctor using the fields passed in
+// selector using the fields passed in.
 func comparatorToNamedResourcesSelector(kind string, name string, method string, operator string, value string) string {
 	expression := fmt.Sprintf(`attributes.%v["%v"].compareTo(%v("%v"))`, kind, name, method, value)
 	switch operator {
