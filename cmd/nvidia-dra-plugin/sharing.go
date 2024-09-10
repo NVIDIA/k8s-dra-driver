@@ -41,8 +41,7 @@ import (
 	cdiapi "tags.cncf.io/container-device-interface/pkg/cdi"
 	cdispec "tags.cncf.io/container-device-interface/specs-go"
 
-	"github.com/NVIDIA/k8s-dra-driver/api/utils/sharing"
-	"github.com/NVIDIA/k8s-dra-driver/api/utils/types"
+	configapi "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/v1alpha1"
 )
 
 const (
@@ -72,9 +71,9 @@ type MpsControlDaemon struct {
 	pipeDir     string
 	shmDir      string
 	logDir      string
-	claim       *types.ClaimInfo
+	claim       *ClaimInfo
 	deviceGroup *PreparedDeviceGroup
-	config      *sharing.MpsConfig
+	config      *configapi.MpsConfig
 	manager     *MpsManager
 }
 
@@ -97,18 +96,18 @@ func NewTimeSlicingManager(deviceLib *deviceLib) *TimeSlicingManager {
 	}
 }
 
-func (t *TimeSlicingManager) SetTimeSlice(group *PreparedDeviceGroup, config *sharing.TimeSlicingConfig) error {
+func (t *TimeSlicingManager) SetTimeSlice(group *PreparedDeviceGroup, config *configapi.TimeSlicingConfig) error {
 	// Only set the time slice on full GPUs in the group, not MIG devices
 	var filteredGroup PreparedDeviceGroup
 	for _, d := range group.Devices {
-		if d.Type() == types.GpuDeviceType {
+		if d.Type() == GpuDeviceType {
 			filteredGroup.Devices = append(filteredGroup.Devices, d)
 		}
 	}
 
-	timeSlice := sharing.DefaultTimeSlice
-	if config != nil && config.TimeSlice != nil {
-		timeSlice = *config.TimeSlice
+	interval := configapi.DefaultTimeSlice
+	if config != nil && config.Interval != nil {
+		interval = *config.Interval
 	}
 
 	err := t.nvdevlib.setComputeMode(filteredGroup.UUIDs(), "DEFAULT")
@@ -116,7 +115,7 @@ func (t *TimeSlicingManager) SetTimeSlice(group *PreparedDeviceGroup, config *sh
 		return fmt.Errorf("error setting compute mode: %w", err)
 	}
 
-	err = t.nvdevlib.setTimeSlice(filteredGroup.UUIDs(), timeSlice.Int())
+	err = t.nvdevlib.setTimeSlice(filteredGroup.UUIDs(), interval.Int())
 	if err != nil {
 		return fmt.Errorf("error setting time slice: %w", err)
 	}
@@ -134,7 +133,7 @@ func NewMpsManager(config *Config, deviceLib *deviceLib, controlFilesRoot, hostD
 	}
 }
 
-func (m *MpsManager) NewMpsControlDaemon(claim *types.ClaimInfo, deviceGroup *PreparedDeviceGroup, config *sharing.MpsConfig) *MpsControlDaemon {
+func (m *MpsManager) NewMpsControlDaemon(claim *ClaimInfo, deviceGroup *PreparedDeviceGroup, config *configapi.MpsConfig) *MpsControlDaemon {
 	return &MpsControlDaemon{
 		nodeName:    m.config.flags.nodeName,
 		namespace:   m.config.flags.namespace,
@@ -150,7 +149,7 @@ func (m *MpsManager) NewMpsControlDaemon(claim *types.ClaimInfo, deviceGroup *Pr
 	}
 }
 
-func (m *MpsManager) IsControlDaemonStarted(ctx context.Context, claim *types.ClaimInfo) (bool, error) {
+func (m *MpsManager) IsControlDaemonStarted(ctx context.Context, claim *ClaimInfo) (bool, error) {
 	name := fmt.Sprintf(MpsControlDaemonNameFmt, claim.UID)
 	_, err := m.config.clientsets.Core.AppsV1().Deployments(m.config.flags.namespace).Get(ctx, name, metav1.GetOptions{})
 	if errors.IsNotFound(err) {
@@ -162,7 +161,7 @@ func (m *MpsManager) IsControlDaemonStarted(ctx context.Context, claim *types.Cl
 	return true, nil
 }
 
-func (m *MpsManager) IsControlDaemonStopped(ctx context.Context, claim *types.ClaimInfo) (bool, error) {
+func (m *MpsManager) IsControlDaemonStopped(ctx context.Context, claim *ClaimInfo) (bool, error) {
 	name := fmt.Sprintf(MpsControlDaemonNameFmt, claim.UID)
 	_, err := m.config.clientsets.Core.AppsV1().Deployments(m.config.flags.namespace).Get(ctx, name, metav1.GetOptions{})
 	if errors.IsNotFound(err) {

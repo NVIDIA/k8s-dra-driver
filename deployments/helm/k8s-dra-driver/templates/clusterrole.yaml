@@ -9,6 +9,6 @@ rules:
   - ""
   - apps
   - resource.k8s.io
-  - gpu.resource.nvidia.com
+  - gpu.nvidia.com
   resources: ["*"]
   verbs: ["*"]

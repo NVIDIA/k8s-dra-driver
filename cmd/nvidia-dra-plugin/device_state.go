@@ -30,8 +30,6 @@ import (
 	drapbv1 "k8s.io/kubelet/pkg/apis/dra/v1alpha4"
 	"k8s.io/kubernetes/pkg/kubelet/checkpointmanager"
 	"k8s.io/utils/ptr"
-
-	"github.com/NVIDIA/k8s-dra-driver/api/utils/types"
 )
 
 type AllocatableDevices map[string]*AllocatableDevice
@@ -105,28 +103,28 @@ func (p MigProfileInfo) String() string {
 
 func (d AllocatableDevice) Type() string {
 	if d.Gpu != nil {
-		return types.GpuDeviceType
+		return GpuDeviceType
 	}
 	if d.Mig != nil {
-		return types.MigDeviceType
+		return MigDeviceType
 	}
-	return types.UnknownDeviceType
+	return UnknownDeviceType
 }
 
 func (d PreparedDevice) Type() string {
 	if d.Gpu != nil {
-		return types.GpuDeviceType
+		return GpuDeviceType
 	}
 	if d.Mig != nil {
-		return types.MigDeviceType
+		return MigDeviceType
 	}
-	return types.UnknownDeviceType
+	return UnknownDeviceType
 }
 
 func (d *PreparedDeviceGroup) GpuUUIDs() []string {
 	var uuids []string
 	for _, device := range d.Devices {
-		if device.Type() == types.GpuDeviceType {
+		if device.Type() == GpuDeviceType {
 			uuids = append(uuids, device.Gpu.Info.UUID)
 		}
 	}
@@ -136,7 +134,7 @@ func (d *PreparedDeviceGroup) GpuUUIDs() []string {
 func (d *PreparedDeviceGroup) MigDeviceUUIDs() []string {
 	var uuids []string
 	for _, device := range d.Devices {
-		if device.Type() == types.MigDeviceType {
+		if device.Type() == MigDeviceType {
 			uuids = append(uuids, device.Mig.Info.UUID)
 		}
 	}
@@ -183,9 +181,9 @@ func (d *PreparedDeviceGroup) GetDevices() []*drapbv1.Device {
 	var devices []*drapbv1.Device
 	for _, device := range d.Devices {
 		switch device.Type() {
-		case types.GpuDeviceType:
+		case GpuDeviceType:
 			devices = append(devices, device.Gpu.Device)
-		case types.MigDeviceType:
+		case MigDeviceType:
 			devices = append(devices, device.Mig.Device)
 		}
 	}
@@ -194,9 +192,9 @@ func (d *PreparedDeviceGroup) GetDevices() []*drapbv1.Device {
 
 func (d *AllocatableDevice) GetDevice() resourceapi.Device {
 	switch d.Type() {
-	case types.GpuDeviceType:
+	case GpuDeviceType:
 		return d.Gpu.GetDevice()
-	case types.MigDeviceType:
+	case MigDeviceType:
 		return d.Mig.GetDevice()
 	}
 	panic("unexpected type for AllocatableDevice")
@@ -204,9 +202,9 @@ func (d *AllocatableDevice) GetDevice() resourceapi.Device {
 
 func (d *AllocatableDevice) CanonicalName() string {
 	switch d.Type() {
-	case types.GpuDeviceType:
+	case GpuDeviceType:
 		return d.Gpu.CanonicalName()
-	case types.MigDeviceType:
+	case MigDeviceType:
 		return d.Mig.CanonicalName()
 	}
 	panic("unexpected type for AllocatableDevice")
@@ -214,9 +212,9 @@ func (d *AllocatableDevice) CanonicalName() string {
 
 func (d *AllocatableDevice) CanonicalIndex() string {
 	switch d.Type() {
-	case types.GpuDeviceType:
+	case GpuDeviceType:
 		return d.Gpu.CanonicalIndex()
-	case types.MigDeviceType:
+	case MigDeviceType:
 		return d.Mig.CanonicalIndex()
 	}
 	panic("unexpected type for AllocatableDevice")
@@ -224,9 +222,9 @@ func (d *AllocatableDevice) CanonicalIndex() string {
 
 func (d *PreparedDevice) CanonicalName() string {
 	switch d.Type() {
-	case types.GpuDeviceType:
+	case GpuDeviceType:
 		return d.Gpu.Info.CanonicalName()
-	case types.MigDeviceType:
+	case MigDeviceType:
 		return d.Mig.Info.CanonicalName()
 	}
 	panic("unexpected type for AllocatableDevice")
@@ -234,9 +232,9 @@ func (d *PreparedDevice) CanonicalName() string {
 
 func (d *PreparedDevice) CanonicalIndex() string {
 	switch d.Type() {
-	case types.GpuDeviceType:
+	case GpuDeviceType:
 		return d.Gpu.Info.CanonicalIndex()
-	case types.MigDeviceType:
+	case MigDeviceType:
 		return d.Mig.Info.CanonicalIndex()
 	}
 	panic("unexpected type for AllocatableDevice")
@@ -264,7 +262,7 @@ func (d *GpuInfo) GetDevice() resourceapi.Device {
 		Basic: &resourceapi.BasicDevice{
 			Attributes: map[resourceapi.QualifiedName]resourceapi.DeviceAttribute{
 				"type": {
-					StringValue: ptr.To(types.GpuDeviceType),
+					StringValue: ptr.To(GpuDeviceType),
 				},
 				"uuid": {
 					StringValue: &d.UUID,
@@ -308,7 +306,7 @@ func (d *MigDeviceInfo) GetDevice() resourceapi.Device {
 		Basic: &resourceapi.BasicDevice{
 			Attributes: map[resourceapi.QualifiedName]resourceapi.DeviceAttribute{
 				"type": {
-					StringValue: ptr.To(types.MigDeviceType),
+					StringValue: ptr.To(MigDeviceType),
 				},
 				"uuid": {
 					StringValue: &d.UUID,
@@ -540,12 +538,12 @@ func (s *DeviceState) prepareDevices(ctx context.Context, claim *resourceapi.Res
 
 		var preparedDevice PreparedDevice
 		switch s.allocatable[result.Device].Type() {
-		case types.GpuDeviceType:
+		case GpuDeviceType:
 			preparedDevice.Gpu = &PreparedGpu{
 				Info:   s.allocatable[result.Device].Gpu,
 				Device: device,
 			}
-		case types.MigDeviceType:
+		case MigDeviceType:
 			preparedDevice.Mig = &PreparedMigDevice{
 				Info:   s.allocatable[result.Device].Mig,
 				Device: device,

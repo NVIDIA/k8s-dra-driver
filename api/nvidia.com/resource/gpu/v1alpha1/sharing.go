@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package sharing
+package v1alpha1
 
 import (
 	"errors"
@@ -26,21 +26,21 @@ import (
 
 // These constants represent the different Sharing strategies.
 const (
-	TimeSlicingStrategy GpuSharingStrategy = "TimeSlicing"
-	MpsStrategy         GpuSharingStrategy = "MPS"
+	TimeSlicingStrategy = "TimeSlicing"
+	MpsStrategy         = "MPS"
 )
 
 // These constants represent the different TimeSlicing configurations.
 const (
-	DefaultTimeSlice TimeSliceDuration = "Default"
-	ShortTimeSlice   TimeSliceDuration = "Short"
-	MediumTimeSlice  TimeSliceDuration = "Medium"
-	LongTimeSlice    TimeSliceDuration = "Long"
+	DefaultTimeSlice TimeSliceInterval = "Default"
+	ShortTimeSlice   TimeSliceInterval = "Short"
+	MediumTimeSlice  TimeSliceInterval = "Medium"
+	LongTimeSlice    TimeSliceInterval = "Long"
 )
 
 // Sharing provides methods to check if a given sharing strategy is selected and grab its configuration.
 // +k8s:deepcopy-gen=false
-type Interface interface {
+type Sharing interface {
 	IsTimeSlicing() bool
 	IsMps() bool
 	GetTimeSlicingConfig() (*TimeSlicingConfig, error)
@@ -48,43 +48,33 @@ type Interface interface {
 }
 
 // GpuSharingStrategy encodes the valid Sharing strategies as a string.
-// +kubebuilder:validation:Enum=TimeSlicing;MPS
 type GpuSharingStrategy string
 
 // MigDeviceSharingStrategy encodes the valid Sharing strategies as a string.
-// +kubebuilder:validation:Enum=MPS
 type MigDeviceSharingStrategy string
 
-// TimeSliceDuration encodes the valid timeslice duration as a string.
-// +kubebuilder:validation:Enum=Default;Short;Medium;Long
-type TimeSliceDuration string
+// TimeSliceInterval encodes the valid timeslice duration as a string.
+type TimeSliceInterval string
 
 // MpsPerDevicePinnedMemoryLimit holds the string representation of the limits across multiple devices.
 type MpsPerDevicePinnedMemoryLimit map[string]resource.Quantity
 
 // GpuSharing holds the current sharing strategy for GPUs and its settings.
-// +kubebuilder:validation:MaxProperties=2
 type GpuSharing struct {
-	// +kubebuilder:default=TimeSlicing
-	// +kubebuilder:validation:Required
 	Strategy          GpuSharingStrategy `json:"strategy"`
 	TimeSlicingConfig *TimeSlicingConfig `json:"timeSlicingConfig,omitempty"`
 	MpsConfig         *MpsConfig         `json:"mpsConfig,omitempty"`
 }
 
 // MigDeviceSharing holds the current sharing strategy for MIG Devices and its settings.
-// +kubebuilder:validation:MaxProperties=2
 type MigDeviceSharing struct {
-	// +kubebuilder:default=TimeSlicing
-	// +kubebuilder:validation:Required
 	Strategy  GpuSharingStrategy `json:"strategy"`
 	MpsConfig *MpsConfig         `json:"mpsConfig,omitempty"`
 }
 
-// TimeSlicingSettings provides the settings for CUDA time-slicing..
+// TimeSlicingSettings provides the settings for CUDA time-slicing.
 type TimeSlicingConfig struct {
-	// +kubebuilder:default=Default
-	TimeSlice *TimeSliceDuration `json:"timeSlice,omitempty"`
+	Interval *TimeSliceInterval `json:"timeSlice,omitempty"`
 }
 
 // MpsConfig provides the configuring for an MPS control daemon.
@@ -101,8 +91,7 @@ type MpsConfig struct {
 // IsTimeSlicing checks if the TimeSlicing strategy is applied.
 func (s *GpuSharing) IsTimeSlicing() bool {
 	if s == nil {
-		// TimeSlicing is the default strategy
-		return true
+		return false
 	}
 	return s.Strategy == TimeSlicingStrategy
 }
@@ -131,12 +120,13 @@ func (s *MigDeviceSharing) IsMps() bool {
 // GetTimeSlicingConfig returns the timeslicing config that applies to the given strategy.
 func (s *GpuSharing) GetTimeSlicingConfig() (*TimeSlicingConfig, error) {
 	if s == nil {
-		// TimeSlicing is the default strategy
-		dts := DefaultTimeSlice
-		return &TimeSlicingConfig{&dts}, nil
+		return nil, fmt.Errorf("no sharing set to get config from")
 	}
 	if s.Strategy != TimeSlicingStrategy {
 		return nil, fmt.Errorf("strategy is not set to '%v'", TimeSlicingStrategy)
+	}
+	if s.MpsConfig != nil {
+		return nil, fmt.Errorf("cannot use MpsConfig with the '%v' strategy", TimeSlicingStrategy)
 	}
 	return s.TimeSlicingConfig, nil
 }
@@ -172,7 +162,7 @@ func (s *MigDeviceSharing) GetMpsConfig() (*MpsConfig, error) {
 }
 
 // Int returns the integer representations of a timeslice duration.
-func (c TimeSliceDuration) Int() int {
+func (c TimeSliceInterval) Int() int {
 	switch c {
 	case DefaultTimeSlice:
 		return 0

@@ -14,7 +14,7 @@
 # limitations under the License.
 **/
 
-package sharing_test
+package v1alpha1_test
 
 import (
 	"testing"
@@ -22,7 +22,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/api/resource"
 
-	"github.com/NVIDIA/k8s-dra-driver/api/utils/sharing"
+	configapi "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/v1alpha1"
 )
 
 func TestMpsPerDevicePinnedMemoryLimitNormalize(t *testing.T) {
@@ -30,7 +30,7 @@ func TestMpsPerDevicePinnedMemoryLimitNormalize(t *testing.T) {
 		description          string
 		uuids                []string
 		memoryLimit          *resource.Quantity
-		perDeviceMemoryLimit sharing.MpsPerDevicePinnedMemoryLimit
+		perDeviceMemoryLimit configapi.MpsPerDevicePinnedMemoryLimit
 		expectedError        error
 		expectedLimits       map[string]string
 	}{
@@ -40,18 +40,18 @@ func TestMpsPerDevicePinnedMemoryLimitNormalize(t *testing.T) {
 		},
 		{
 			description: "no uuids, invalid device index",
-			perDeviceMemoryLimit: sharing.MpsPerDevicePinnedMemoryLimit{
+			perDeviceMemoryLimit: configapi.MpsPerDevicePinnedMemoryLimit{
 				"0": resource.MustParse("1Gi"),
 			},
-			expectedError: sharing.ErrInvalidDeviceSelector,
+			expectedError: configapi.ErrInvalidDeviceSelector,
 		},
 		{
 			description: "no uuids, default is overridden",
 			memoryLimit: ptr(resource.MustParse("2Gi")),
-			perDeviceMemoryLimit: sharing.MpsPerDevicePinnedMemoryLimit{
+			perDeviceMemoryLimit: configapi.MpsPerDevicePinnedMemoryLimit{
 				"0": resource.MustParse("1Gi"),
 			},
-			expectedError: sharing.ErrInvalidDeviceSelector,
+			expectedError: configapi.ErrInvalidDeviceSelector,
 		},
 		{
 			description: "uuids, default is set",
@@ -65,21 +65,21 @@ func TestMpsPerDevicePinnedMemoryLimitNormalize(t *testing.T) {
 			description:   "uuids, default is too low",
 			uuids:         []string{"UUID0"},
 			memoryLimit:   ptr(resource.MustParse("1M")),
-			expectedError: sharing.ErrInvalidLimit,
+			expectedError: configapi.ErrInvalidLimit,
 		},
 		{
 			description: "uuids, override is too low",
 			uuids:       []string{"UUID0"},
-			perDeviceMemoryLimit: sharing.MpsPerDevicePinnedMemoryLimit{
+			perDeviceMemoryLimit: configapi.MpsPerDevicePinnedMemoryLimit{
 				"UUID0": resource.MustParse("1M"),
 			},
-			expectedError: sharing.ErrInvalidLimit,
+			expectedError: configapi.ErrInvalidLimit,
 		},
 		{
 			description: "uuids, default is overridden",
 			uuids:       []string{"UUID0"},
 			memoryLimit: ptr(resource.MustParse("2Gi")),
-			perDeviceMemoryLimit: sharing.MpsPerDevicePinnedMemoryLimit{
+			perDeviceMemoryLimit: configapi.MpsPerDevicePinnedMemoryLimit{
 				"0": resource.MustParse("1Gi"),
 			},
 			expectedLimits: map[string]string{
@@ -90,7 +90,7 @@ func TestMpsPerDevicePinnedMemoryLimitNormalize(t *testing.T) {
 			description: "uuids, default is overridden by uuid",
 			uuids:       []string{"UUID0"},
 			memoryLimit: ptr(resource.MustParse("2Gi")),
-			perDeviceMemoryLimit: sharing.MpsPerDevicePinnedMemoryLimit{
+			perDeviceMemoryLimit: configapi.MpsPerDevicePinnedMemoryLimit{
 				"UUID0": resource.MustParse("1Gi"),
 			},
 			expectedLimits: map[string]string{
@@ -101,19 +101,19 @@ func TestMpsPerDevicePinnedMemoryLimitNormalize(t *testing.T) {
 			description: "uuids, default is overridden, invalid UUID",
 			uuids:       []string{"UUID0"},
 			memoryLimit: ptr(resource.MustParse("2Gi")),
-			perDeviceMemoryLimit: sharing.MpsPerDevicePinnedMemoryLimit{
+			perDeviceMemoryLimit: configapi.MpsPerDevicePinnedMemoryLimit{
 				"UUID1": resource.MustParse("1Gi"),
 			},
-			expectedError: sharing.ErrInvalidDeviceSelector,
+			expectedError: configapi.ErrInvalidDeviceSelector,
 		},
 		{
 			description: "uuids, default is overridden, invalid index",
 			uuids:       []string{"UUID0"},
 			memoryLimit: ptr(resource.MustParse("2Gi")),
-			perDeviceMemoryLimit: sharing.MpsPerDevicePinnedMemoryLimit{
+			perDeviceMemoryLimit: configapi.MpsPerDevicePinnedMemoryLimit{
 				"1": resource.MustParse("1Gi"),
 			},
-			expectedError: sharing.ErrInvalidDeviceSelector,
+			expectedError: configapi.ErrInvalidDeviceSelector,
 		},
 		{
 			description: "unit conversion Mi to M",

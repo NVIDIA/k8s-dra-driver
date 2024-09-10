@@ -15,6 +15,6 @@
  */
 
 // +k8s:deepcopy-gen=package
-// +groupName=gpu.resource.nvidia.com
+// +groupName=gpu.nvidia.com
 
 package v1alpha1
