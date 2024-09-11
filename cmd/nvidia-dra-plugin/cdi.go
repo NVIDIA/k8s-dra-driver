@@ -221,10 +221,8 @@ func (cdi *CDIHandler) CreateClaimSpecFile(claimUID string, preparedDevices Prep
 			},
 		}
 
-		// Generate edits for the MPS control daemon if configured for the group.
-		if group.MpsControlDaemon != nil {
-			claimDeviceEdits.Append(group.MpsControlDaemon.GetCDIContainerEdits())
-		}
+		// Apply any edits passed back as part of the device config state.
+		claimDeviceEdits.Append(group.ConfigState.containerEdits)
 
 		// Apply edits to all devices.
 		for _, device := range group.Devices {

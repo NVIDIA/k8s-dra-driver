@@ -19,9 +19,12 @@ package main
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"os"
 	"os/exec"
+	"slices"
 	"strings"
 	"text/template"
 	"time"
@@ -64,17 +67,16 @@ type MpsManager struct {
 }
 
 type MpsControlDaemon struct {
-	nodeName    string
-	namespace   string
-	name        string
-	rootDir     string
-	pipeDir     string
-	shmDir      string
-	logDir      string
-	claim       *ClaimInfo
-	deviceGroup *PreparedDeviceGroup
-	config      *configapi.MpsConfig
-	manager     *MpsManager
+	id        string
+	nodeName  string
+	namespace string
+	name      string
+	rootDir   string
+	pipeDir   string
+	shmDir    string
+	logDir    string
+	devices   UUIDProvider
+	manager   *MpsManager
 }
 
 type MpsControlDaemonTemplateData struct {
@@ -96,26 +98,20 @@ func NewTimeSlicingManager(deviceLib *deviceLib) *TimeSlicingManager {
 	}
 }
 
-func (t *TimeSlicingManager) SetTimeSlice(group *PreparedDeviceGroup, config *configapi.TimeSlicingConfig) error {
-	// Only set the time slice on full GPUs in the group, not MIG devices
-	var filteredGroup PreparedDeviceGroup
-	for _, d := range group.Devices {
-		if d.Type() == GpuDeviceType {
-			filteredGroup.Devices = append(filteredGroup.Devices, d)
-		}
+func (t *TimeSlicingManager) SetTimeSlice(devices UUIDProvider, config *configapi.TimeSlicingConfig) error {
+	// Ensure all devices are full devices
+	if !slices.Equal(devices.UUIDs(), devices.GpuUUIDs()) {
+		return fmt.Errorf("can only set the time-slice interval on full GPUs")
 	}
 
-	interval := configapi.DefaultTimeSlice
-	if config != nil && config.Interval != nil {
-		interval = *config.Interval
-	}
-
-	err := t.nvdevlib.setComputeMode(filteredGroup.UUIDs(), "DEFAULT")
+	// Set the compute mode of the GPU to DEFAULT.
+	err := t.nvdevlib.setComputeMode(devices.UUIDs(), "DEFAULT")
 	if err != nil {
 		return fmt.Errorf("error setting compute mode: %w", err)
 	}
 
-	err = t.nvdevlib.setTimeSlice(filteredGroup.UUIDs(), interval.Int())
+	// Set the time slice based on the config provided.
+	err = t.nvdevlib.setTimeSlice(devices.UUIDs(), config.Interval.Int())
 	if err != nil {
 		return fmt.Errorf("error setting time slice: %w", err)
 	}
@@ -133,24 +129,31 @@ func NewMpsManager(config *Config, deviceLib *deviceLib, controlFilesRoot, hostD
 	}
 }
 
-func (m *MpsManager) NewMpsControlDaemon(claim *ClaimInfo, deviceGroup *PreparedDeviceGroup, config *configapi.MpsConfig) *MpsControlDaemon {
+func (m *MpsManager) NewMpsControlDaemon(claimUID string, devices UUIDProvider) *MpsControlDaemon {
+	id := m.GetMpsControlDaemonID(claimUID, devices)
+
 	return &MpsControlDaemon{
-		nodeName:    m.config.flags.nodeName,
-		namespace:   m.config.flags.namespace,
-		name:        fmt.Sprintf(MpsControlDaemonNameFmt, claim.UID),
-		claim:       claim,
-		rootDir:     fmt.Sprintf("%s/%s", m.controlFilesRoot, claim.UID),
-		pipeDir:     fmt.Sprintf("%s/%s/%s", m.controlFilesRoot, claim.UID, "pipe"),
-		shmDir:      fmt.Sprintf("%s/%s/%s", m.controlFilesRoot, claim.UID, "shm"),
-		logDir:      fmt.Sprintf("%s/%s/%s", m.controlFilesRoot, claim.UID, "log"),
-		deviceGroup: deviceGroup,
-		config:      config,
-		manager:     m,
+		id:        id,
+		nodeName:  m.config.flags.nodeName,
+		namespace: m.config.flags.namespace,
+		name:      fmt.Sprintf(MpsControlDaemonNameFmt, id),
+		rootDir:   fmt.Sprintf("%s/%s", m.controlFilesRoot, id),
+		pipeDir:   fmt.Sprintf("%s/%s/%s", m.controlFilesRoot, id, "pipe"),
+		shmDir:    fmt.Sprintf("%s/%s/%s", m.controlFilesRoot, id, "shm"),
+		logDir:    fmt.Sprintf("%s/%s/%s", m.controlFilesRoot, id, "log"),
+		devices:   devices,
+		manager:   m,
 	}
 }
 
-func (m *MpsManager) IsControlDaemonStarted(ctx context.Context, claim *ClaimInfo) (bool, error) {
-	name := fmt.Sprintf(MpsControlDaemonNameFmt, claim.UID)
+func (m *MpsManager) GetMpsControlDaemonID(claimUID string, devices UUIDProvider) string {
+	combined := strings.Join(devices.UUIDs(), ",")
+	hash := sha256.Sum256([]byte(combined))
+	return fmt.Sprintf("%s-%s", claimUID, hex.EncodeToString(hash[:])[:5])
+}
+
+func (m *MpsManager) IsControlDaemonStarted(ctx context.Context, id string) (bool, error) {
+	name := fmt.Sprintf(MpsControlDaemonNameFmt, id)
 	_, err := m.config.clientsets.Core.AppsV1().Deployments(m.config.flags.namespace).Get(ctx, name, metav1.GetOptions{})
 	if errors.IsNotFound(err) {
 		return false, nil
@@ -161,8 +164,8 @@ func (m *MpsManager) IsControlDaemonStarted(ctx context.Context, claim *ClaimInf
 	return true, nil
 }
 
-func (m *MpsManager) IsControlDaemonStopped(ctx context.Context, claim *ClaimInfo) (bool, error) {
-	name := fmt.Sprintf(MpsControlDaemonNameFmt, claim.UID)
+func (m *MpsManager) IsControlDaemonStopped(ctx context.Context, id string) (bool, error) {
+	name := fmt.Sprintf(MpsControlDaemonNameFmt, id)
 	_, err := m.config.clientsets.Core.AppsV1().Deployments(m.config.flags.namespace).Get(ctx, name, metav1.GetOptions{})
 	if errors.IsNotFound(err) {
 		return true, nil
@@ -173,8 +176,12 @@ func (m *MpsManager) IsControlDaemonStopped(ctx context.Context, claim *ClaimInf
 	return false, nil
 }
 
-func (m *MpsControlDaemon) Start(ctx context.Context) error {
-	isStarted, err := m.manager.IsControlDaemonStarted(ctx, m.claim)
+func (m *MpsControlDaemon) GetID() string {
+	return m.id
+}
+
+func (m *MpsControlDaemon) Start(ctx context.Context, config *configapi.MpsConfig) error {
+	isStarted, err := m.manager.IsControlDaemonStarted(ctx, m.id)
 	if err != nil {
 		return fmt.Errorf("error checking if control daemon already started: %w", err)
 	}
@@ -183,9 +190,9 @@ func (m *MpsControlDaemon) Start(ctx context.Context) error {
 		return nil
 	}
 
-	klog.Infof("Starting MPS control daemon for '%v', with settings: %+v", m.claim.UID, m.config)
+	klog.Infof("Starting MPS control daemon for '%v', with settings: %+v", m.id, config)
 
-	deviceUUIDs := m.deviceGroup.UUIDs()
+	deviceUUIDs := m.devices.UUIDs()
 	templateData := MpsControlDaemonTemplateData{
 		NodeName:                        m.nodeName,
 		MpsControlDaemonNamespace:       m.namespace,
@@ -199,12 +206,12 @@ func (m *MpsControlDaemon) Start(ctx context.Context) error {
 		MpsLogDirectory:                 m.logDir,
 	}
 
-	if m.config != nil && m.config.DefaultActiveThreadPercentage != nil {
-		templateData.DefaultActiveThreadPercentage = fmt.Sprintf("%d", *m.config.DefaultActiveThreadPercentage)
+	if config != nil && config.DefaultActiveThreadPercentage != nil {
+		templateData.DefaultActiveThreadPercentage = fmt.Sprintf("%d", *config.DefaultActiveThreadPercentage)
 	}
 
-	if m.config != nil {
-		limits, err := m.config.DefaultPerDevicePinnedMemoryLimit.Normalize(deviceUUIDs, m.config.DefaultPinnedDeviceMemoryLimit)
+	if config != nil {
+		limits, err := config.DefaultPerDevicePinnedMemoryLimit.Normalize(deviceUUIDs, config.DefaultPinnedDeviceMemoryLimit)
 		if err != nil {
 			return fmt.Errorf("error transforming DefaultPerDevicePinnedMemoryLimit into string: %w", err)
 		}
@@ -260,7 +267,7 @@ func (m *MpsControlDaemon) Start(ctx context.Context) error {
 		return fmt.Errorf("error mounting %v as tmpfs: %w", m.shmDir, err)
 	}
 
-	err = m.manager.nvdevlib.setComputeMode(m.deviceGroup.GpuUUIDs(), "EXCLUSIVE_PROCESS")
+	err = m.manager.nvdevlib.setComputeMode(m.devices.GpuUUIDs(), "EXCLUSIVE_PROCESS")
 	if err != nil {
 		return fmt.Errorf("error setting compute mode: %w", err)
 	}
@@ -361,7 +368,7 @@ func (m *MpsControlDaemon) Stop(ctx context.Context) error {
 		return nil
 	}
 
-	klog.Infof("Stopping MPS control daemon for claim '%v'", m.claim.UID)
+	klog.Infof("Stopping MPS control daemon for '%v'", m.id)
 
 	deletePolicy := metav1.DeletePropagationForeground
 	deleteOptions := metav1.DeleteOptions{

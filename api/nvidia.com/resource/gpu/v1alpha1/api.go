@@ -31,6 +31,13 @@ const (
 	MigDeviceConfigKind = "MigDeviceConfig"
 )
 
+// Interface defines the set of common APIs for all configs
+// +k8s:deepcopy-gen=false
+type Interface interface {
+	Normalize() error
+	Validate() error
+}
+
 // Decoder implements a decoder for objects in this API group.
 var Decoder runtime.Decoder
 

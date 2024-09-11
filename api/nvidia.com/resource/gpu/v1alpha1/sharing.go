@@ -74,7 +74,7 @@ type MigDeviceSharing struct {
 
 // TimeSlicingSettings provides the settings for CUDA time-slicing.
 type TimeSlicingConfig struct {
-	Interval *TimeSliceInterval `json:"timeSlice,omitempty"`
+	Interval *TimeSliceInterval `json:"interval,omitempty"`
 }
 
 // MpsConfig provides the configuring for an MPS control daemon.
@@ -162,8 +162,8 @@ func (s *MigDeviceSharing) GetMpsConfig() (*MpsConfig, error) {
 }
 
 // Int returns the integer representations of a timeslice duration.
-func (c TimeSliceInterval) Int() int {
-	switch c {
+func (t TimeSliceInterval) Int() int {
+	switch t {
 	case DefaultTimeSlice:
 		return 0
 	case ShortTimeSlice:

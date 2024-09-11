@@ -31,20 +31,19 @@ func (s GpuSharingStrategy) Validate() error {
 
 // Validate ensures that MigDeviceSharingStrategy has a valid set of values.
 func (s MigDeviceSharingStrategy) Validate() error {
-	switch s {
-	case MpsStrategy:
+	if s == MpsStrategy {
 		return nil
 	}
 	return fmt.Errorf("unknown GPU sharing strategy: %v", s)
 }
 
 // Validate ensures that TimeSliceInterval has a valid set of values.
-func (d TimeSliceInterval) Validate() error {
-	switch d {
+func (t TimeSliceInterval) Validate() error {
+	switch t {
 	case DefaultTimeSlice, ShortTimeSlice, MediumTimeSlice, LongTimeSlice:
 		return nil
 	}
-	return fmt.Errorf("unknown time-slice interval: %v", d)
+	return fmt.Errorf("unknown time-slice interval: %v", t)
 }
 
 // Validate ensures that TimeSlicingConfig has a valid set of values.
@@ -84,8 +83,7 @@ func (s *MigDeviceSharing) Validate() error {
 	if err := s.Strategy.Validate(); err != nil {
 		return err
 	}
-	switch {
-	case s.IsMps():
+	if s.IsMps() {
 		return s.MpsConfig.Validate()
 	}
 	return fmt.Errorf("invalid MIG device sharing settings: %v", s)

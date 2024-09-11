@@ -18,6 +18,7 @@ package v1alpha1
 
 import (
 	"fmt"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 )
@@ -48,7 +49,7 @@ func DefaultGpuConfig() *GpuConfig {
 }
 
 // Normalize updates a GpuConfig config with implied default values based on other settings.
-func (c *GpuConfig) Normalize() {
+func (c *GpuConfig) Normalize() error {
 	if c.Sharing == nil {
 		c.Sharing = &GpuSharing{
 			Strategy: TimeSlicingStrategy,
@@ -62,6 +63,7 @@ func (c *GpuConfig) Normalize() {
 	if c.Sharing.Strategy == MpsStrategy && c.Sharing.MpsConfig == nil {
 		c.Sharing.MpsConfig = &MpsConfig{}
 	}
+	return nil
 }
 
 // Validate ensures that GpuConfig has a valid set of values.

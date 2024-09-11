@@ -18,6 +18,7 @@ package v1alpha1
 
 import (
 	"fmt"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -41,13 +42,14 @@ func DefaultMigDeviceConfig() *MigDeviceConfig {
 }
 
 // Normalize updates a MigDeviceConfig config with implied default values based on other settings.
-func (c *MigDeviceConfig) Normalize() {
+func (c *MigDeviceConfig) Normalize() error {
 	if c.Sharing == nil {
-		return
+		return nil
 	}
 	if c.Sharing.Strategy == MpsStrategy && c.Sharing.MpsConfig == nil {
 		c.Sharing.MpsConfig = &MpsConfig{}
 	}
+	return nil
 }
 
 // Validate ensures that MigDeviceConfig has a valid set of values.

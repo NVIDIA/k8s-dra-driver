@@ -22,9 +22,8 @@ const (
 	UnknownDeviceType = "unknown"
 )
 
-// ClaimInfo holds the identifying information about a claim.
-type ClaimInfo struct {
-	Namespace string `json:"namespace"`
-	Name      string `json:"name"`
-	UID       string `json:"uid"`
+type UUIDProvider interface {
+	UUIDs() []string
+	GpuUUIDs() []string
+	MigDeviceUUIDs() []string
 }
