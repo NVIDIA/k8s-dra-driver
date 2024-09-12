@@ -229,7 +229,7 @@ func (s *DeviceState) prepareDevices(ctx context.Context, claim *resourceapi.Res
 				if _, ok := c.Config.(*configapi.GpuConfig); ok && device.Type() != GpuDeviceType {
 					return nil, fmt.Errorf("cannot apply GPU config to MIG device from request: %v", result.Request)
 				}
-				if _, ok := c.Config.(*configapi.MigDeviceConfig); ok && device.Type() == MigDeviceType {
+				if _, ok := c.Config.(*configapi.MigDeviceConfig); ok && device.Type() != MigDeviceType {
 					return nil, fmt.Errorf("cannot apply MIG device config to GPU from request: %v", result.Request)
 				}
 				configResultsMap[c.Config] = append(configResultsMap[c.Config], &result)
@@ -239,7 +239,7 @@ func (s *DeviceState) prepareDevices(ctx context.Context, claim *resourceapi.Res
 				if _, ok := c.Config.(*configapi.GpuConfig); ok && device.Type() != GpuDeviceType {
 					continue
 				}
-				if _, ok := c.Config.(*configapi.MigDeviceConfig); ok && device.Type() == MigDeviceType {
+				if _, ok := c.Config.(*configapi.MigDeviceConfig); ok && device.Type() != MigDeviceType {
 					continue
 				}
 				configResultsMap[c.Config] = append(configResultsMap[c.Config], &result)
@@ -317,7 +317,7 @@ func (s *DeviceState) prepareDevices(ctx context.Context, claim *resourceapi.Res
 				}
 			}
 
-			preparedDeviceGroup.Devices = append(preparedDeviceGroup.Devices, &preparedDevice)
+			preparedDeviceGroup.Devices = append(preparedDeviceGroup.Devices, preparedDevice)
 		}
 
 		preparedDevices = append(preparedDevices, &preparedDeviceGroup)
@@ -335,7 +335,7 @@ func (s *DeviceState) unprepareDevices(ctx context.Context, claimUID string, dev
 
 		// Go back to default time-slicing for all full GPUs.
 		tsc := configapi.DefaultGpuConfig().Sharing.TimeSlicingConfig
-		if err := s.tsManager.SetTimeSlice(group, tsc); err != nil {
+		if err := s.tsManager.SetTimeSlice(group.Devices.Gpus(), tsc); err != nil {
 			return fmt.Errorf("error setting timeslice for devices: %w", err)
 		}
 	}
@@ -367,15 +367,17 @@ func (s *DeviceState) applyConfig(ctx context.Context, config configapi.Interfac
 	// Declare a device group atate object to populate.
 	var configState DeviceConfigState
 
-	// Apply time-slicing settings.
+	// Apply time-slicing settings (if available).
 	if sharing.IsTimeSlicing() {
 		tsc, err := sharing.GetTimeSlicingConfig()
 		if err != nil {
 			return nil, fmt.Errorf("error getting timeslice config for requests '%v' in claim '%v': %w", requests, claim.UID, err)
 		}
-		err = s.tsManager.SetTimeSlice(allocatableDevices, tsc)
-		if err != nil {
-			return nil, fmt.Errorf("error setting timeslice config for requests '%v' in claim '%v': %w", requests, claim.UID, err)
+		if tsc != nil {
+			err = s.tsManager.SetTimeSlice(allocatableDevices, tsc)
+			if err != nil {
+				return nil, fmt.Errorf("error setting timeslice config for requests '%v' in claim '%v': %w", requests, claim.UID, err)
+			}
 		}
 	}
 

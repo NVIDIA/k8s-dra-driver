@@ -38,6 +38,9 @@ func DefaultMigDeviceConfig() *MigDeviceConfig {
 			APIVersion: GroupName + "/" + Version,
 			Kind:       MigDeviceConfigKind,
 		},
+		Sharing: &MigDeviceSharing{
+			Strategy: TimeSlicingStrategy,
+		},
 	}
 }
 

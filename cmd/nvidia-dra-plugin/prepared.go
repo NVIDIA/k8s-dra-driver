@@ -20,6 +20,7 @@ import (
 	drapbv1 "k8s.io/kubelet/pkg/apis/dra/v1alpha4"
 )
 
+type PreparedDeviceList []PreparedDevice
 type PreparedDevices []*PreparedDeviceGroup
 type PreparedClaims map[string]PreparedDevices
 
@@ -39,8 +40,8 @@ type PreparedMigDevice struct {
 }
 
 type PreparedDeviceGroup struct {
-	Devices     []*PreparedDevice `json:"devices"`
-	ConfigState DeviceConfigState `json:"configState"`
+	Devices     PreparedDeviceList `json:"devices"`
+	ConfigState DeviceConfigState  `json:"configState"`
 }
 
 func (d PreparedDevice) Type() string {
@@ -73,6 +74,26 @@ func (d *PreparedDevice) CanonicalIndex() string {
 	panic("unexpected type for AllocatableDevice")
 }
 
+func (l PreparedDeviceList) Gpus() PreparedDeviceList {
+	var devices PreparedDeviceList
+	for _, device := range l {
+		if device.Type() == GpuDeviceType {
+			devices = append(devices, device)
+		}
+	}
+	return devices
+}
+
+func (l PreparedDeviceList) MigDevices() PreparedDeviceList {
+	var devices PreparedDeviceList
+	for _, device := range l {
+		if device.Type() == MigDeviceType {
+			devices = append(devices, device)
+		}
+	}
+	return devices
+}
+
 func (d PreparedDevices) GetDevices() []*drapbv1.Device {
 	var devices []*drapbv1.Device
 	for _, group := range d {
@@ -81,9 +102,9 @@ func (d PreparedDevices) GetDevices() []*drapbv1.Device {
 	return devices
 }
 
-func (d *PreparedDeviceGroup) GetDevices() []*drapbv1.Device {
+func (g *PreparedDeviceGroup) GetDevices() []*drapbv1.Device {
 	var devices []*drapbv1.Device
-	for _, device := range d.Devices {
+	for _, device := range g.Devices {
 		switch device.Type() {
 		case GpuDeviceType:
 			devices = append(devices, device.Gpu.Device)
@@ -94,6 +115,30 @@ func (d *PreparedDeviceGroup) GetDevices() []*drapbv1.Device {
 	return devices
 }
 
+func (l PreparedDeviceList) UUIDs() []string {
+	return append(l.GpuUUIDs(), l.MigDeviceUUIDs()...)
+}
+
+func (g *PreparedDeviceGroup) UUIDs() []string {
+	return append(g.GpuUUIDs(), g.MigDeviceUUIDs()...)
+}
+
+func (d PreparedDevices) UUIDs() []string {
+	return append(d.GpuUUIDs(), d.MigDeviceUUIDs()...)
+}
+
+func (l PreparedDeviceList) GpuUUIDs() []string {
+	var uuids []string
+	for _, device := range l.Gpus() {
+		uuids = append(uuids, device.Gpu.Info.UUID)
+	}
+	return uuids
+}
+
+func (g *PreparedDeviceGroup) GpuUUIDs() []string {
+	return g.Devices.Gpus().UUIDs()
+}
+
 func (d PreparedDevices) GpuUUIDs() []string {
 	var uuids []string
 	for _, group := range d {
@@ -102,14 +147,16 @@ func (d PreparedDevices) GpuUUIDs() []string {
 	return uuids
 }
 
-func (d *PreparedDeviceGroup) GpuUUIDs() []string {
+func (l PreparedDeviceList) MigDeviceUUIDs() []string {
 	var uuids []string
-	for _, device := range d.Devices {
-		if device.Type() == GpuDeviceType {
-			uuids = append(uuids, device.Gpu.Info.UUID)
-		}
+	for _, device := range l.MigDevices() {
+		uuids = append(uuids, device.Mig.Info.UUID)
 	}
 	return uuids
+}
+
+func (g *PreparedDeviceGroup) MigDeviceUUIDs() []string {
+	return g.Devices.MigDevices().UUIDs()
 }
 
 func (d PreparedDevices) MigDeviceUUIDs() []string {
@@ -118,22 +165,4 @@ func (d PreparedDevices) MigDeviceUUIDs() []string {
 		uuids = append(uuids, group.MigDeviceUUIDs()...)
 	}
 	return uuids
-}
-
-func (d *PreparedDeviceGroup) MigDeviceUUIDs() []string {
-	var uuids []string
-	for _, device := range d.Devices {
-		if device.Type() == MigDeviceType {
-			uuids = append(uuids, device.Mig.Info.UUID)
-		}
-	}
-	return uuids
-}
-
-func (d *PreparedDeviceGroup) UUIDs() []string {
-	return append(d.GpuUUIDs(), d.MigDeviceUUIDs()...)
-}
-
-func (d PreparedDevices) UUIDs() []string {
-	return append(d.GpuUUIDs(), d.MigDeviceUUIDs()...)
 }

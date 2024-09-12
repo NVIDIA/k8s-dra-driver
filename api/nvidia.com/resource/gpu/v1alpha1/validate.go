@@ -31,7 +31,8 @@ func (s GpuSharingStrategy) Validate() error {
 
 // Validate ensures that MigDeviceSharingStrategy has a valid set of values.
 func (s MigDeviceSharingStrategy) Validate() error {
-	if s == MpsStrategy {
+	switch s {
+	case TimeSlicingStrategy, MpsStrategy:
 		return nil
 	}
 	return fmt.Errorf("unknown GPU sharing strategy: %v", s)
@@ -82,6 +83,9 @@ func (s *GpuSharing) Validate() error {
 func (s *MigDeviceSharing) Validate() error {
 	if err := s.Strategy.Validate(); err != nil {
 		return err
+	}
+	if s.IsTimeSlicing() {
+		return nil
 	}
 	if s.IsMps() {
 		return s.MpsConfig.Validate()
