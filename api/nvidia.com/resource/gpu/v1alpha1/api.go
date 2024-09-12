@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2024, NVIDIA CORPORATION.  All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,42 +16,54 @@
 
 package v1alpha1
 
-const (
-	GroupName = "gpu.resource.nvidia.com"
-	Version   = "v1alpha1"
-
-	GpuClaimParametersKind       = "GpuClaimParameters"
-	MigDeviceClaimParametersKind = "MigDeviceClaimParameters"
+import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/runtime/serializer/json"
 )
 
-func UpdateDeviceClassParametersSpecWithDefaults(oldspec *DeviceClassParametersSpec) *DeviceClassParametersSpec {
-	newspec := &DeviceClassParametersSpec{}
-	if oldspec != nil {
-		newspec = oldspec.DeepCopy()
-	}
-	if newspec.Shareable == nil {
-		shareable := true
-		newspec.Shareable = &shareable
-	}
-	return newspec
+const (
+	GroupName = "gpu.nvidia.com"
+	Version   = "v1alpha1"
+
+	GpuConfigKind       = "GpuConfig"
+	MigDeviceConfigKind = "MigDeviceConfig"
+)
+
+// Interface defines the set of common APIs for all configs
+// +k8s:deepcopy-gen=false
+type Interface interface {
+	Normalize() error
+	Validate() error
 }
 
-func UpdateGpuClaimParametersSpecWithDefaults(oldspec *GpuClaimParametersSpec) *GpuClaimParametersSpec {
-	newspec := &GpuClaimParametersSpec{}
-	if oldspec != nil {
-		newspec = oldspec.DeepCopy()
-	}
-	if newspec.Count == nil {
-		count := 1
-		newspec.Count = &count
-	}
-	return newspec
-}
+// Decoder implements a decoder for objects in this API group.
+var Decoder runtime.Decoder
 
-func UpdateMigDeviceClaimParametersSpecWithDefaults(oldspec *MigDeviceClaimParametersSpec) *MigDeviceClaimParametersSpec {
-	newspec := &MigDeviceClaimParametersSpec{}
-	if oldspec != nil {
-		newspec = oldspec.DeepCopy()
+func init() {
+	// Create a new scheme and add our types to it. If at some point in the
+	// future a new version of the configuration API becomes necessary, then
+	// conversion functions can be generated and registered to continue
+	// supporting older versions.
+	scheme := runtime.NewScheme()
+	schemeGroupVersion := schema.GroupVersion{
+		Group:   GroupName,
+		Version: Version,
 	}
-	return newspec
+	scheme.AddKnownTypes(schemeGroupVersion,
+		&GpuConfig{},
+		&MigDeviceConfig{},
+	)
+	metav1.AddToGroupVersion(scheme, schemeGroupVersion)
+
+	// Set up a json serializer to decode our types.
+	Decoder = json.NewSerializerWithOptions(
+		json.DefaultMetaFactory,
+		scheme,
+		scheme,
+		json.SerializerOptions{
+			Pretty: true, Strict: true,
+		},
+	)
 }

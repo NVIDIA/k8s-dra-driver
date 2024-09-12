@@ -1,6 +1,5 @@
-# One pod, 2 containers
-# Each asking for a compute slice of a shared MIG device
-# Run as deployment with 6 replicas
+# One pod, 1 container
+# Run as deployment with 1 replica
 
 ---
 apiVersion: v1
@@ -9,95 +8,78 @@ metadata:
   name: gpu-test5
 
 ---
-apiVersion: gpu.resource.nvidia.com/v1alpha1
-kind: MigDeviceClaimParameters
-metadata:
-  namespace: gpu-test5
-  name: shared-2g.10gb
-spec:
-  profile: "2g.10gb"
-  uninitialized: true
-
----
-apiVersion: resource.k8s.io/v1alpha2
+apiVersion: resource.k8s.io/v1alpha3
 kind: ResourceClaimTemplate
 metadata:
   namespace: gpu-test5
-  name: shared-2g.10gb
+  name: multiple-gpus
 spec:
   spec:
-    resourceClassName: gpu.nvidia.com
-    parametersRef:
-      apiGroup: gpu.resource.nvidia.com
-      kind: MigDeviceClaimParameters
-      name: shared-2g.10gb
+    devices:
+      requests:
+      - name: ts-gpu
+        deviceClassName: gpu.nvidia.com
+      - name: mps-gpu
+        deviceClassName: gpu.nvidia.com
+      config:
+      - requests: ["ts-gpu"]
+        opaque:
+          driver: gpu.nvidia.com
+          parameters:
+            apiVersion: gpu.nvidia.com/v1alpha1
+            kind: GpuConfig
+            sharing:
+              strategy: TimeSlicing
+              timeSlicingConfig:
+                interval: Long
+      - requests: ["mps-gpu"]
+        opaque:
+          driver: gpu.nvidia.com
+          parameters:
+            apiVersion: gpu.nvidia.com/v1alpha1
+            kind: GpuConfig
+            sharing:
+              strategy: MPS
+              mpsConfig:
+                defaultActiveThreadPercentage: 50
+                defaultPinnedDeviceMemoryLimit: 10Gi
 
 ---
-apiVersion: gpu.resource.nvidia.com/v1alpha1
-kind: ComputeInstanceClaimParameters
+apiVersion: v1
+kind: Pod
 metadata:
   namespace: gpu-test5
-  name: 1c.2g.10gb
+  name: pod0
 spec:
-  profile: "1c.2g.10gb"
-  migDeviceClaimName: "shared-2g.10gb"
-
----
-apiVersion: resource.k8s.io/v1alpha2
-kind: ResourceClaimTemplate
-metadata:
-  namespace: gpu-test5
-  name: 1c.2g.10gb
-spec:
-  spec:
-    resourceClassName: gpu.nvidia.com
-    parametersRef:
-      apiGroup: gpu.resource.nvidia.com
-      kind: ComputeInstanceClaimParameters
-      name: 1c.2g.10gb
-
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  namespace: gpu-test5
-  name: pod
-  labels:
-    app: gpu-test5-pod
-spec:
-  replicas: 6
-  selector:
-    matchLabels:
-      app: pod
-  template:
-    metadata:
-      labels:
-        app: pod
-    spec:
-      containers:
-      - name: ctr0
-        image: ubuntu:22.04
-        command: ["bash", "-c"]
-        args: ["nvidia-smi -L; sleep 9999"]
-        resources:
-          claims:
-          - name: shared-2g
-          - name: 1c-0
-      - name: ctr1
-        image: ubuntu:22.04
-        command: ["bash", "-c"]
-        args: ["nvidia-smi -L; sleep 9999"]
-        resources:
-          claims:
-          - name: shared-2g
-          - name: 1c-1
-      resourceClaims:
-      - name: shared-2g
-        source:
-          resourceClaimTemplateName: shared-2g.10gb
-      - name: 1c-0
-        source:
-          resourceClaimTemplateName: 1c.2g.10gb
-      - name: 1c-1
-        source:
-          resourceClaimTemplateName: 1c.2g.10gb
+  containers:
+  - name: ts-ctr0
+    image: nvcr.io/nvidia/k8s/cuda-sample:nbody-cuda11.7.1-ubuntu18.04
+    args: ["--benchmark", "--numbodies=4226000"]
+    resources:
+      claims:
+      - name: shared-gpus
+        request: ts-gpu
+  - name: ts-ctr1
+    image: nvcr.io/nvidia/k8s/cuda-sample:nbody-cuda11.7.1-ubuntu18.04
+    args: ["--benchmark", "--numbodies=4226000"]
+    resources:
+      claims:
+      - name: shared-gpus
+        request: ts-gpu
+  - name: mps-ctr0
+    image: nvcr.io/nvidia/k8s/cuda-sample:nbody-cuda11.7.1-ubuntu18.04
+    args: ["--benchmark", "--numbodies=4226000"]
+    resources:
+      claims:
+      - name: shared-gpus
+        request: mps-gpu
+  - name: mps-ctr1
+    image: nvcr.io/nvidia/k8s/cuda-sample:nbody-cuda11.7.1-ubuntu18.04
+    args: ["--benchmark", "--numbodies=4226000"]
+    resources:
+      claims:
+      - name: shared-gpus
+        request: mps-gpu
+  resourceClaims:
+  - name: shared-gpus
+    resourceClaimTemplateName: multiple-gpus

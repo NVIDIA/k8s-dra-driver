@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2024, NVIDIA CORPORATION.  All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,16 @@
  * limitations under the License.
  */
 
-// +k8s:deepcopy-gen=package
-// +groupName=gpu.nvidia.com
+package main
 
-package v1alpha1
+const (
+	GpuDeviceType     = "gpu"
+	MigDeviceType     = "mig"
+	UnknownDeviceType = "unknown"
+)
+
+type UUIDProvider interface {
+	UUIDs() []string
+	GpuUUIDs() []string
+	MigDeviceUUIDs() []string
+}
