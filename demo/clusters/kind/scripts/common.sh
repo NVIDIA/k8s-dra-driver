@@ -38,7 +38,8 @@ DRIVER_IMAGE_VERSION=$(from_versions_mk "VERSION")
 # The kubernetes tag to build the kind cluster from
 # From https://github.com/kubernetes/kubernetes/tags
 # See also https://hub.docker.com/r/kindest/node/tags
-: ${KIND_K8S_TAG:="v1.29.1"}
+: ${KIND_K8S_REPO:="https://github.com/kubernetes/kubernetes.git"}
+: ${KIND_K8S_TAG:="v1.31.0"}
 
 # The name of the kind cluster to create
 : ${KIND_CLUSTER_NAME:="${DRIVER_NAME}-cluster"}

@@ -1,6 +1,0 @@
----
-apiVersion: resource.k8s.io/v1alpha2
-kind: ResourceClass
-metadata:
-  name: gpu.nvidia.com
-driverName: gpu.resource.nvidia.com

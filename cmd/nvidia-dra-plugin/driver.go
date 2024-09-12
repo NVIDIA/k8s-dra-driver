@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022-2023, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2022-2024, NVIDIA CORPORATION.  All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,94 +20,67 @@ import (
 	"context"
 	"fmt"
 	"sync"
-	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/watch"
-	"k8s.io/client-go/util/retry"
+	coreclientset "k8s.io/client-go/kubernetes"
+	"k8s.io/dynamic-resource-allocation/kubeletplugin"
 	"k8s.io/klog/v2"
-	drapbv1 "k8s.io/kubelet/pkg/apis/dra/v1alpha3"
-
-	nascrd "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1"
-	nasclient "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/nas/v1alpha1/client"
-)
-
-const (
-	CleanupTimeoutSecondsOnError = 5
+	drapbv1 "k8s.io/kubelet/pkg/apis/dra/v1alpha4"
 )
 
 type driver struct {
 	sync.Mutex
-	nascr     *nascrd.NodeAllocationState
-	nasclient *nasclient.Client
-	state     *DeviceState
+	doneCh chan struct{}
+	client coreclientset.Interface
+	plugin kubeletplugin.DRAPlugin
+	state  *DeviceState
 }
 
 func NewDriver(ctx context.Context, config *Config) (*driver, error) {
-	var d *driver
-	client := nasclient.New(config.nascr, config.clientsets.Nvidia.NasV1alpha1())
-	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		err := client.GetOrCreate(ctx)
-		if err != nil {
-			return err
-		}
+	driver := &driver{
+		client: config.clientsets.Core,
+	}
 
-		err = client.UpdateStatus(ctx, nascrd.NodeAllocationStateStatusNotReady)
-		if err != nil {
-			return err
-		}
-
-		state, err := NewDeviceState(ctx, config)
-		if err != nil {
-			return err
-		}
-
-		err = client.Update(ctx, state.GetUpdatedSpec(&config.nascr.Spec))
-		if err != nil {
-			return err
-		}
-
-		err = client.UpdateStatus(ctx, nascrd.NodeAllocationStateStatusReady)
-		if err != nil {
-			return err
-		}
-
-		d = &driver{
-			nascr:     config.nascr,
-			nasclient: client,
-			state:     state,
-		}
-
-		return nil
-	})
+	state, err := NewDeviceState(ctx, config)
 	if err != nil {
 		return nil, err
 	}
+	driver.state = state
 
-	go d.CleanupStaleStateContinuously(ctx)
+	plugin, err := kubeletplugin.Start(
+		ctx,
+		driver,
+		kubeletplugin.KubeClient(driver.client),
+		kubeletplugin.NodeName(config.flags.nodeName),
+		kubeletplugin.DriverName(DriverName),
+		kubeletplugin.RegistrarSocketPath(PluginRegistrationPath),
+		kubeletplugin.PluginSocketPath(DriverPluginSocketPath),
+		kubeletplugin.KubeletPluginSocketPath(DriverPluginSocketPath))
+	if err != nil {
+		return nil, err
+	}
+	driver.plugin = plugin
 
-	return d, nil
+	var resources kubeletplugin.Resources
+	for _, device := range state.allocatable {
+		resources.Devices = append(resources.Devices, device.GetDevice())
+	}
+	plugin.PublishResources(ctx, resources)
+
+	return driver, nil
 }
 
 func (d *driver) Shutdown(ctx context.Context) error {
-	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		err := d.nasclient.Get(ctx)
-		if err != nil {
-			return err
-		}
-		return d.nasclient.UpdateStatus(ctx, nascrd.NodeAllocationStateStatusNotReady)
-	})
+	close(d.doneCh)
+	return nil
 }
 
 func (d *driver) NodePrepareResources(ctx context.Context, req *drapbv1.NodePrepareResourcesRequest) (*drapbv1.NodePrepareResourcesResponse, error) {
 	klog.Infof("NodePrepareResource is called: number of claims: %d", len(req.Claims))
 	preparedResources := &drapbv1.NodePrepareResourcesResponse{Claims: map[string]*drapbv1.NodePrepareResourceResponse{}}
 
-	// In production version some common operations of d.nodePrepareResources
-	// could be done outside of this loop, for instance updating the CR could
-	// be done once after all HW was prepared.
 	for _, claim := range req.Claims {
-		preparedResources.Claims[claim.Uid] = d.nodePrepareResource(ctx, claim)
+		preparedResources.Claims[claim.UID] = d.nodePrepareResource(ctx, claim)
 	}
 
 	return preparedResources, nil
@@ -117,11 +90,8 @@ func (d *driver) NodeUnprepareResources(ctx context.Context, req *drapbv1.NodeUn
 	klog.Infof("NodeUnprepareResource is called: number of claims: %d", len(req.Claims))
 	unpreparedResources := &drapbv1.NodeUnprepareResourcesResponse{Claims: map[string]*drapbv1.NodeUnprepareResourceResponse{}}
 
-	// In production version some common operations of d.nodeUnprepareResources
-	// could be done outside of this loop, for instance updating the CR could
-	// be done once after all HW was prepared.
 	for _, claim := range req.Claims {
-		unpreparedResources.Claims[claim.Uid] = d.nodeUnprepareResource(ctx, claim)
+		unpreparedResources.Claims[claim.UID] = d.nodeUnprepareResource(ctx, claim)
 	}
 
 	return unpreparedResources, nil
@@ -131,284 +101,48 @@ func (d *driver) nodePrepareResource(ctx context.Context, claim *drapbv1.Claim) 
 	d.Lock()
 	defer d.Unlock()
 
-	isPrepared, prepared, err := d.isPrepared(ctx, claim.Uid)
+	resourceClaim, err := d.client.ResourceV1alpha3().ResourceClaims(claim.Namespace).Get(
+		ctx,
+		claim.Name,
+		metav1.GetOptions{})
 	if err != nil {
 		return &drapbv1.NodePrepareResourceResponse{
-			Error: fmt.Sprintf("error checking if claim is already prepared: %v", err),
+			Error: fmt.Sprintf("failed to fetch ResourceClaim %s in namespace %s", claim.Name, claim.Namespace),
 		}
 	}
 
-	if isPrepared {
-		klog.Infof("Returning cached devices for claim '%v': %s", claim.Uid, prepared)
-		return &drapbv1.NodePrepareResourceResponse{CDIDevices: prepared}
-	}
-
-	prepared, err = d.prepare(ctx, claim.Uid)
+	prepared, err := d.state.Prepare(resourceClaim)
 	if err != nil {
 		return &drapbv1.NodePrepareResourceResponse{
-			Error: fmt.Sprintf("error preparing devices for claim %v: %v", claim.Uid, err),
+			Error: fmt.Sprintf("error preparing devices for claim %v: %v", claim.UID, err),
 		}
 	}
 
-	klog.Infof("Returning newly prepared devices for claim '%v': %s", claim.Uid, prepared)
-	return &drapbv1.NodePrepareResourceResponse{CDIDevices: prepared}
+	klog.Infof("Returning newly prepared devices for claim '%v': %v", claim.UID, prepared)
+	return &drapbv1.NodePrepareResourceResponse{Devices: prepared}
 }
 
 func (d *driver) nodeUnprepareResource(ctx context.Context, claim *drapbv1.Claim) *drapbv1.NodeUnprepareResourceResponse {
 	d.Lock()
 	defer d.Unlock()
 
-	isUnprepared, err := d.isUnprepared(ctx, claim.Uid)
-	if err != nil {
+	if err := d.state.Unprepare(ctx, claim.UID); err != nil {
 		return &drapbv1.NodeUnprepareResourceResponse{
-			Error: fmt.Sprintf("error checking if claim is already unprepared: %v", err),
-		}
-	}
-
-	if isUnprepared {
-		klog.Infof("Already unprepared, nothing to do for claim '%v'", claim.Uid)
-		return &drapbv1.NodeUnprepareResourceResponse{}
-	}
-
-	err = d.unprepare(ctx, claim.Uid)
-	if err != nil {
-		return &drapbv1.NodeUnprepareResourceResponse{
-			Error: fmt.Sprintf("error unpreparing devices for claim %v: %v", claim.Uid, err),
+			Error: fmt.Sprintf("error unpreparing devices for claim %v: %v", claim.UID, err),
 		}
 	}
 
 	return &drapbv1.NodeUnprepareResourceResponse{}
 }
 
-func (d *driver) isPrepared(ctx context.Context, claimUID string) (bool, []string, error) {
-	err := d.nasclient.Get(ctx)
-	if err != nil {
-		return false, nil, err
-	}
-	if _, exists := d.nascr.Spec.PreparedClaims[claimUID]; exists {
-		return true, d.state.cdi.GetClaimDevices(claimUID), nil
-	}
-	return false, nil, nil
-}
-
-func (d *driver) isUnprepared(ctx context.Context, claimUID string) (bool, error) {
-	err := d.nasclient.Get(ctx)
-	if err != nil {
-		return false, err
-	}
-	if _, exists := d.nascr.Spec.PreparedClaims[claimUID]; !exists {
-		return true, nil
-	}
-	return false, nil
-}
-
-func (d *driver) prepare(ctx context.Context, claimUID string) ([]string, error) {
-	var err error
-	var prepared []string
-	err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		err = d.nasclient.Get(ctx)
-		if err != nil {
-			return err
-		}
-
-		prepared, err = d.state.Prepare(ctx, claimUID, d.nascr.Spec.AllocatedClaims[claimUID])
-		if err != nil {
-			return err
-		}
-
-		err = d.nasclient.Update(ctx, d.state.GetUpdatedSpec(&d.nascr.Spec))
-		if err != nil {
-			return err
-		}
-
-		return nil
-	})
-	if err != nil {
-		return nil, err
-	}
-	return prepared, nil
-}
-
-func (d *driver) unprepare(ctx context.Context, claimUID string) error {
-	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		err := d.nasclient.Get(ctx)
-		if err != nil {
-			return err
-		}
-
-		err = d.state.Unprepare(ctx, claimUID)
-		if err != nil {
-			return err
-		}
-
-		err = d.nasclient.Update(ctx, d.state.GetUpdatedSpec(&d.nascr.Spec))
-		if err != nil {
-			return err
-		}
-
-		return nil
-	})
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (d *driver) CleanupStaleStateContinuously(ctx context.Context) {
-	for {
-		resourceVersion, err := d.cleanupStaleStateOnce(ctx)
-		if err != nil {
-			klog.Errorf("Error cleaning up stale claim state: %v", err)
-		}
-
-		err = d.cleanupStaleStateContinuously(ctx, resourceVersion, err)
-		if err != nil {
-			klog.Errorf("Error cleaning up stale claim state: %v", err)
-			time.Sleep(CleanupTimeoutSecondsOnError * time.Second)
-		}
-	}
-}
-
-func (d *driver) cleanupStaleStateOnce(ctx context.Context) (string, error) {
-	listOptions := metav1.ListOptions{
-		FieldSelector: fmt.Sprintf("metadata.name=%s", d.nascr.Name),
-	}
-
-	list, err := d.nasclient.List(ctx, listOptions)
-	if err != nil {
-		return "", fmt.Errorf("error listing allocation state: %w", err)
-	}
-
-	if len(list.Items) != 1 {
-		return "", fmt.Errorf("unexpected number of allocation state objects from list: %v", len(list.Items))
-	}
-	nas := list.Items[0]
-
-	err = d.cleanupStaleState(ctx, &nas)
-	if err != nil {
-		return "", err
-	}
-
-	return list.ResourceVersion, nil
-}
-
-func (d *driver) cleanupStaleStateContinuously(ctx context.Context, resourceVersion string, previousError error) error {
-	watchOptions := metav1.ListOptions{
-		Watch:           true,
-		ResourceVersion: resourceVersion,
-		FieldSelector:   fmt.Sprintf("metadata.name=%s", d.nascr.Name),
-	}
-
-	if previousError != nil {
-		timeout := int64(CleanupTimeoutSecondsOnError)
-		watchOptions.TimeoutSeconds = &timeout
-	}
-
-	watcher, err := d.nasclient.Watch(ctx, watchOptions)
-	if err != nil {
-		return fmt.Errorf("error setting up watch to cleanup allocations: %w", err)
-	}
-	defer watcher.Stop()
-
-	for event := range watcher.ResultChan() {
-		if event.Type != watch.Modified {
-			continue
-		}
-
-		nas, ok := event.Object.(*nascrd.NodeAllocationState)
-		if !ok {
-			return fmt.Errorf("unexpected error decoding object from watcher")
-		}
-
-		err = d.cleanupStaleState(ctx, nas)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (d *driver) cleanupStaleState(ctx context.Context, nas *nascrd.NodeAllocationState) error {
-	var wg sync.WaitGroup
-	var errorChans []chan error
-	errorCounts := make(chan int)
-
-	caErrors := d.cleanupClaimAllocations(ctx, nas, &wg)
-	errorChans = append(errorChans, caErrors)
-	go func() {
-		count := 0
-		for err := range caErrors {
-			klog.Errorf("Error cleaning up claim allocations: %v", err)
-			count++
-		}
-		errorCounts <- count
-	}()
-
-	cdiErrors := d.cleanupCDIFiles(nas, &wg)
-	errorChans = append(errorChans, cdiErrors)
-	go func() {
-		count := 0
-		for err := range cdiErrors {
-			klog.Errorf("Error cleaning up CDI files: %v", err)
-			count++
-		}
-		errorCounts <- count
-	}()
-
-	mpsErrors := d.cleanupMpsControlDaemonArtifacts(nas, &wg)
-	errorChans = append(errorChans, mpsErrors)
-	go func() {
-		count := 0
-		for err := range mpsErrors {
-			klog.Errorf("Error cleaning up MPS control daemon artifacts: %v", err)
-			count++
-		}
-		errorCounts <- count
-	}()
-
-	wg.Wait()
-	sumErrors := 0
-	for i := range errorChans {
-		close(errorChans[i])
-		sumErrors += <-errorCounts
-	}
-
-	if sumErrors != 0 {
-		return fmt.Errorf("encountered %v errors", sumErrors)
-	}
-
-	return nil
-}
-
-func (d *driver) cleanupClaimAllocations(ctx context.Context, nas *nascrd.NodeAllocationState, wg *sync.WaitGroup) chan error {
-	errors := make(chan error)
-	for claimUID := range nas.Spec.PreparedClaims {
-		if _, exists := nas.Spec.AllocatedClaims[claimUID]; !exists {
-			wg.Add(1)
-			go func(claimUID string) {
-				defer wg.Done()
-				klog.Infof("Attempting to unprepare resources for claim %v", claimUID)
-				err := d.unprepare(ctx, claimUID)
-				if err != nil {
-					errors <- fmt.Errorf("error unpreparing resources for claim %v: %w", claimUID, err)
-					return
-				}
-				klog.Infof("Successfully unprepared resources for claim %v", claimUID)
-			}(claimUID)
-		}
-	}
-	return errors
-}
-
-func (d *driver) cleanupCDIFiles(nas *nascrd.NodeAllocationState, wg *sync.WaitGroup) chan error {
+func (d *driver) cleanupCDIFiles(wg *sync.WaitGroup) chan error {
 	// TODO: implement loop to remove CDI files from the CDI path for claimUIDs
 	// that have been removed from the AllocatedClaims map.
 	errors := make(chan error)
 	return errors
 }
 
-func (d *driver) cleanupMpsControlDaemonArtifacts(nas *nascrd.NodeAllocationState, wg *sync.WaitGroup) chan error {
+func (d *driver) cleanupMpsControlDaemonArtifacts(wg *sync.WaitGroup) chan error {
 	// TODO: implement loop to remove mpsControlDaemon folders from the mps
 	// path for claimUIDs that have been removed from the AllocatedClaims map.
 	errors := make(chan error)

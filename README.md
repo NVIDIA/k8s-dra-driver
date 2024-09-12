@@ -63,7 +63,7 @@ Here's a demo showing how to install and configure DRA, and run a pod in a `kind
 Below are the detailed, step-by-step instructions.
 
 First, create a `kind` cluster to run the demo:
-```console
+```bash
 ./demo/clusters/kind/create-cluster.sh
 ```
 
@@ -91,13 +91,10 @@ nvidia-dra-driver   nvidia-dra-plugin-lt7qh                    1/1     Running  
 
 ### Run the examples by following the steps in the demo script
 Finally, you can run the various examples contained in the `demo/specs/quickstart` folder.
-The `README` in that directory shows the full script of the demo you can walk through.
+With the most recent updates for Kubernetes v1.31, only the first 3 examples in
+this folder are currently functional.
 
-```console
-cat demo/specs/quickstart/README.md
-```
-
-Deploy the example pods in the demo directory:
+You can run them as follows:
 ```console
 kubectl apply --filename=demo/specs/quickstart/gpu-test{1,2,3}.yaml
 ```

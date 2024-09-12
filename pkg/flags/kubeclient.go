@@ -25,8 +25,6 @@ import (
 	coreclientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-
-	nvclientset "github.com/NVIDIA/k8s-dra-driver/pkg/nvidia.com/resource/clientset/versioned"
 )
 
 type KubeClientConfig struct {
@@ -36,8 +34,7 @@ type KubeClientConfig struct {
 }
 
 type ClientSets struct {
-	Core   coreclientset.Interface
-	Nvidia nvclientset.Interface
+	Core coreclientset.Interface
 }
 
 func (k *KubeClientConfig) Flags() []cli.Flag {
@@ -103,13 +100,7 @@ func (k *KubeClientConfig) NewClientSets() (ClientSets, error) {
 		return ClientSets{}, fmt.Errorf("create core client: %w", err)
 	}
 
-	nvclient, err := nvclientset.NewForConfig(csconfig)
-	if err != nil {
-		return ClientSets{}, fmt.Errorf("create nvidia.com client: %w", err)
-	}
-
 	return ClientSets{
-		Core:   coreclient,
-		Nvidia: nvclient,
+		Core: coreclient,
 	}, nil
 }
