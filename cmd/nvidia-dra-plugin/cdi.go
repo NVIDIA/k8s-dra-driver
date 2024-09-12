@@ -196,13 +196,8 @@ func (cdi *CDIHandler) CreateStandardDeviceSpecFile(allocatable AllocatableDevic
 	}
 	spec.Raw().Version = minVersion
 
-	// Generate a transient name for the base spec file.
-	specName, err := cdiapi.GenerateNameForTransientSpec(spec.Raw(), cdiBaseSpecIdentifier)
-	if err != nil {
-		return fmt.Errorf("failed to generate Spec name: %w", err)
-	}
-
 	// Write the spec out to disk.
+	specName := cdiapi.GenerateTransientSpecName(cdiVendor, cdiDeviceClass, cdiBaseSpecIdentifier)
 	return cdi.cache.WriteSpec(spec.Raw(), specName)
 }
 
@@ -262,13 +257,8 @@ func (cdi *CDIHandler) CreateClaimSpecFile(claimUID string, preparedDevices Prep
 	}
 	spec.Raw().Version = minVersion
 
-	// Generate a transient name for the claim specific spec file.
-	specName, err := cdiapi.GenerateNameForTransientSpec(spec.Raw(), claimUID)
-	if err != nil {
-		return fmt.Errorf("failed to generate Spec name: %w", err)
-	}
-
 	// Write the spec out to disk.
+	specName := cdiapi.GenerateTransientSpecName(cdiVendor, cdiClaimClass, claimUID)
 	return cdi.cache.WriteSpec(spec.Raw(), specName)
 }
 
