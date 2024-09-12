@@ -111,7 +111,7 @@ func (d *driver) nodePrepareResource(ctx context.Context, claim *drapbv1.Claim) 
 		}
 	}
 
-	prepared, err := d.state.Prepare(resourceClaim)
+	prepared, err := d.state.Prepare(ctx, resourceClaim)
 	if err != nil {
 		return &drapbv1.NodePrepareResourceResponse{
 			Error: fmt.Sprintf("error preparing devices for claim %v: %v", claim.UID, err),
@@ -135,16 +135,16 @@ func (d *driver) nodeUnprepareResource(ctx context.Context, claim *drapbv1.Claim
 	return &drapbv1.NodeUnprepareResourceResponse{}
 }
 
-func (d *driver) cleanupCDIFiles(wg *sync.WaitGroup) chan error {
-	// TODO: implement loop to remove CDI files from the CDI path for claimUIDs
-	// that have been removed from the AllocatedClaims map.
-	errors := make(chan error)
-	return errors
-}
-
-func (d *driver) cleanupMpsControlDaemonArtifacts(wg *sync.WaitGroup) chan error {
-	// TODO: implement loop to remove mpsControlDaemon folders from the mps
-	// path for claimUIDs that have been removed from the AllocatedClaims map.
-	errors := make(chan error)
-	return errors
-}
+// TODO: implement loop to remove CDI files from the CDI path for claimUIDs
+//       that have been removed from the AllocatedClaims map.
+// func (d *driver) cleanupCDIFiles(wg *sync.WaitGroup) chan error {
+// 	errors := make(chan error)
+// 	return errors
+// }
+//
+// TODO: implement loop to remove mpsControlDaemon folders from the mps
+//       path for claimUIDs that have been removed from the AllocatedClaims map.
+// func (d *driver) cleanupMpsControlDaemonArtifacts(wg *sync.WaitGroup) chan error {
+// 	errors := make(chan error)
+// 	return errors
+// }

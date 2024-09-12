@@ -19,7 +19,6 @@ package main
 import (
 	"fmt"
 	"io"
-	"strconv"
 	"strings"
 
 	"github.com/sirupsen/logrus"
@@ -29,6 +28,7 @@ import (
 	"github.com/NVIDIA/nvidia-container-toolkit/pkg/nvcdi"
 	"github.com/NVIDIA/nvidia-container-toolkit/pkg/nvcdi/spec"
 	transformroot "github.com/NVIDIA/nvidia-container-toolkit/pkg/nvcdi/transform/root"
+	"k8s.io/klog/v2"
 	cdiapi "tags.cncf.io/container-device-interface/pkg/cdi"
 	cdiparser "tags.cncf.io/container-device-interface/pkg/parser"
 	cdispec "tags.cncf.io/container-device-interface/specs-go"
@@ -141,37 +141,32 @@ func NewCDIHandler(opts ...cdiOption) (*CDIHandler, error) {
 }
 
 func (cdi *CDIHandler) CreateStandardDeviceSpecFile(allocatable AllocatableDevices) error {
+	// Initialize NVML in order to get the device edits.
+	if r := cdi.nvml.Init(); r != nvml.SUCCESS {
+		return fmt.Errorf("failed to initialize NVML: %v", r)
+	}
+	defer func() {
+		if r := cdi.nvml.Shutdown(); r != nvml.SUCCESS {
+			klog.Warningf("failed to shutdown NVML: %v", r)
+		}
+	}()
+
 	// Generate the set of common edits.
 	commonEdits, err := cdi.nvcdiDevice.GetCommonEdits()
 	if err != nil {
 		return fmt.Errorf("failed to get common CDI spec edits: %w", err)
 	}
 
-	// Generate device specs for all full GPUs.
-	var indices []string
+	// Generate device specs for all full GPUs and MIG devices.
+	var deviceSpecs []cdispec.Device
 	for _, device := range allocatable {
-		indices = append(indices, strconv.Itoa(device.GpuInfo.index))
+		dspecs, err := cdi.nvcdiDevice.GetDeviceSpecsByID(device.CanonicalIndex())
+		if err != nil {
+			return fmt.Errorf("unable to get device spec for %s: %w", device.CanonicalName(), err)
+		}
+		dspecs[0].Name = device.CanonicalName()
+		deviceSpecs = append(deviceSpecs, dspecs[0])
 	}
-	deviceSpecs, err := cdi.nvcdiDevice.GetDeviceSpecsByID(indices...)
-	if err != nil {
-		return fmt.Errorf("unable to get CDI spec edits for full GPUs: %w", err)
-	}
-	for i := range deviceSpecs {
-		deviceSpecs[i].Name = fmt.Sprintf("gpu-%s", deviceSpecs[i].Name)
-	}
-
-	// TODO: MIG is not yet supported with structured parameters.
-	// Refactor this to generate devices specs for all MIG devices.
-	//
-	// var indices []string
-	// for _, device := range devices.Mig.Devices {
-	// 	index := fmt.Sprintf("%d:%d", device.Info.parent.index, device.Info.index)
-	// 	indices = append(indices, index)
-	// }
-	// migSpecs, err := cdi.nvcdiClaim.GetDeviceSpecsByID(indices...)
-	// if err != nil {
-	// 	return fmt.Errorf("unable to get CDI spec edits for MIG Devices: %w", err)
-	// }
 
 	// Generate base spec from commonEdits and deviceEdits.
 	spec, err := spec.New(
@@ -211,28 +206,35 @@ func (cdi *CDIHandler) CreateStandardDeviceSpecFile(allocatable AllocatableDevic
 	return cdi.cache.WriteSpec(spec.Raw(), specName)
 }
 
-func (cdi *CDIHandler) CreateClaimSpecFile(claimUID string, devices *PreparedDevices) error {
-	// Gather all claim specific container edits together.
-	// Include at least one edit so that this file always gets created without error.
-	claimEdits := cdiapi.ContainerEdits{
-		ContainerEdits: &cdispec.ContainerEdits{
-			Env: []string{
-				fmt.Sprintf("NVIDIA_VISIBLE_DEVICES=%s", strings.Join(devices.UUIDs(), ",")),
+func (cdi *CDIHandler) CreateClaimSpecFile(claimUID string, preparedDevices PreparedDevices) error {
+	// Generate claim specific specs for each device.
+	var deviceSpecs []cdispec.Device
+	for _, group := range preparedDevices {
+		// Include this per-device, rather than as a top-level edit so that
+		// each device spec is never empty and the spec file gets created
+		// without error.
+		claimDeviceEdits := cdiapi.ContainerEdits{
+			ContainerEdits: &cdispec.ContainerEdits{
+				Env: []string{
+					fmt.Sprintf("NVIDIA_VISIBLE_DEVICES=%s", strings.Join(preparedDevices.UUIDs(), ",")),
+				},
 			},
-		},
-	}
+		}
 
-	// Generate devices for the MPS control daemon if configured.
-	if devices.MpsControlDaemon != nil {
-		claimEdits.Append(devices.MpsControlDaemon.GetCDIContainerEdits())
-	}
+		// Generate edits for the MPS control daemon if configured for the group.
+		if group.MpsControlDaemon != nil {
+			claimDeviceEdits.Append(group.MpsControlDaemon.GetCDIContainerEdits())
+		}
 
-	// Create a single device spec for all of the edits associated with this claim.
-	deviceSpecs := []cdispec.Device{
-		{
-			Name:           claimUID,
-			ContainerEdits: *claimEdits.ContainerEdits,
-		},
+		// Apply edits to all devices.
+		for _, device := range group.Devices {
+			deviceSpec := cdispec.Device{
+				Name:           fmt.Sprintf("%s-%s", claimUID, device.CanonicalName()),
+				ContainerEdits: *claimDeviceEdits.ContainerEdits,
+			}
+
+			deviceSpecs = append(deviceSpecs, deviceSpec)
+		}
 	}
 
 	// Generate the claim specific device spec for this driver.
@@ -286,6 +288,6 @@ func (cdi *CDIHandler) GetStandardDevices(devices []string) []string {
 	return cdiDevices
 }
 
-func (cdi *CDIHandler) GetClaimDevice(claimUID string) string {
-	return cdiparser.QualifiedName(cdiVendor, cdiClaimClass, claimUID)
+func (cdi *CDIHandler) GetClaimDevice(claimUID string, device string) string {
+	return cdiparser.QualifiedName(cdiVendor, cdiClaimClass, fmt.Sprintf("%s-%s", claimUID, device))
 }

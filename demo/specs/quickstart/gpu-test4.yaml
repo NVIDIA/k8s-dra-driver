@@ -9,101 +9,39 @@ metadata:
   name: gpu-test4
 
 ---
-apiVersion: gpu.resource.nvidia.com/v1alpha1
-kind: GpuClaimParameters
-metadata:
-  namespace: gpu-test4
-  name: mig-enabled-gpu
-spec:
-  count: 1
-  selector:
-    migEnabled: true
-
----
-apiVersion: resource.k8s.io/v1alpha2
+apiVersion: resource.k8s.io/v1alpha3
 kind: ResourceClaimTemplate
 metadata:
   namespace: gpu-test4
-  name: mig-enabled-gpu
+  name: mig-devices
 spec:
   spec:
-    resourceClassName: gpu.nvidia.com
-    parametersRef:
-      apiGroup: gpu.resource.nvidia.com
-      kind: GpuClaimParameters
-      name: mig-enabled-gpu
+    devices:
+      requests:
+      - name: mig-1g-5gb-0
+        deviceClassName: mig.nvidia.com
+        selectors:
+        - cel:
+            expression: "device.attributes['gpu.nvidia.com'].profile == '1g.5gb'"
+      - name: mig-1g-5gb-1
+        deviceClassName: mig.nvidia.com
+        selectors:
+        - cel:
+            expression: "device.attributes['gpu.nvidia.com'].profile == '1g.5gb'"
+      - name: mig-2g-10gb
+        deviceClassName: mig.nvidia.com
+        selectors:
+        - cel:
+            expression: "device.attributes['gpu.nvidia.com'].profile == '2g.10gb'"
+      - name: mig-3g-20gb
+        deviceClassName: mig.nvidia.com
+        selectors:
+        - cel:
+            expression: "device.attributes['gpu.nvidia.com'].profile == '3g.20gb'"
 
----
-apiVersion: gpu.resource.nvidia.com/v1alpha1
-kind: MigDeviceClaimParameters
-metadata:
-  namespace: gpu-test4
-  name: mig-1g.5gb
-spec:
-  profile: "1g.5gb"
-  gpuClaimName: "mig-enabled-gpu"
-
----
-apiVersion: resource.k8s.io/v1alpha2
-kind: ResourceClaimTemplate
-metadata:
-  namespace: gpu-test4
-  name: mig-1g.5gb
-spec:
-  spec:
-    resourceClassName: gpu.nvidia.com
-    parametersRef:
-      apiGroup: gpu.resource.nvidia.com
-      kind: MigDeviceClaimParameters
-      name: mig-1g.5gb
-
----
-apiVersion: gpu.resource.nvidia.com/v1alpha1
-kind: MigDeviceClaimParameters
-metadata:
-  namespace: gpu-test4
-  name: mig-2g.10gb
-spec:
-  profile: "2g.10gb"
-  gpuClaimName: "mig-enabled-gpu"
-
----
-apiVersion: resource.k8s.io/v1alpha2
-kind: ResourceClaimTemplate
-metadata:
-  namespace: gpu-test4
-  name: mig-2g.10gb
-spec:
-  spec:
-    resourceClassName: gpu.nvidia.com
-    parametersRef:
-      apiGroup: gpu.resource.nvidia.com
-      kind: MigDeviceClaimParameters
-      name: mig-2g.10gb
-
----
-apiVersion: gpu.resource.nvidia.com/v1alpha1
-kind: MigDeviceClaimParameters
-metadata:
-  namespace: gpu-test4
-  name: mig-3g.20gb
-spec:
-  profile: "3g.20gb"
-  gpuClaimName: "mig-enabled-gpu"
-
----
-apiVersion: resource.k8s.io/v1alpha2
-kind: ResourceClaimTemplate
-metadata:
-  namespace: gpu-test4
-  name: mig-3g.20gb
-spec:
-  spec:
-    resourceClassName: gpu.nvidia.com
-    parametersRef:
-      apiGroup: gpu.resource.nvidia.com
-      kind: MigDeviceClaimParameters
-      name: mig-3g.20gb
+      constraints:
+      - requests: []
+        matchAttribute: "gpu.nvidia.com/parentUUID"
 
 ---
 apiVersion: apps/v1
@@ -124,21 +62,8 @@ spec:
         app: pod
     spec:
       resourceClaims:
-      - name: mig-enabled-gpu
-        source:
-          resourceClaimTemplateName: mig-enabled-gpu
-      - name: mig-1g-0
-        source:
-          resourceClaimTemplateName: mig-1g.5gb
-      - name: mig-1g-1
-        source:
-          resourceClaimTemplateName: mig-1g.5gb
-      - name: mig-2g
-        source:
-          resourceClaimTemplateName: mig-2g.10gb
-      - name: mig-3g
-        source:
-          resourceClaimTemplateName: mig-3g.20gb
+      - name: mig-devices
+        resourceClaimTemplateName: mig-devices
       containers:
       - name: ctr0
         image: ubuntu:22.04
@@ -146,29 +71,29 @@ spec:
         args: ["nvidia-smi -L; sleep 9999"]
         resources:
           claims:
-          - name: mig-enabled-gpu
-          - name: mig-3g
+          - name: mig-devices
+            request: mig-1g-5gb-0
       - name: ctr1
         image: ubuntu:22.04
         command: ["bash", "-c"]
         args: ["nvidia-smi -L; sleep 9999"]
         resources:
           claims:
-          - name: mig-enabled-gpu
-          - name: mig-2g
+          - name: mig-devices
+            request: mig-1g-5gb-1
       - name: ctr2
         image: ubuntu:22.04
         command: ["bash", "-c"]
         args: ["nvidia-smi -L; sleep 9999"]
         resources:
           claims:
-          - name: mig-enabled-gpu
-          - name: mig-1g-0
+          - name: mig-devices
+            request: mig-2g-10gb
       - name: ctr3
         image: ubuntu:22.04
         command: ["bash", "-c"]
         args: ["nvidia-smi -L; sleep 9999"]
         resources:
           claims:
-          - name: mig-enabled-gpu
-          - name: mig-1g-1
+          - name: mig-devices
+            request: mig-3g-20gb

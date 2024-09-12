@@ -1,12 +1,16 @@
-#### Show current state of the cluster
+#### Apply the half-balanced mig-parted config
 ```console
-kubectl get pod -A
+sudo -E nvidia-mig-parted apply -f mig-parted-config.yaml -c half-balanced
 ```
 
 #### Show the current MIG configuration of the machine
 ```console
-nvidia-smi --query-gpu=index,name,uuid,mig.mode.current --format=csv
 nvidia-smi -L
+```
+
+#### Show current state of the cluster
+```console
+kubectl get pod -A
 ```
 
 #### Deploy the 4 example apps discussed in the slides

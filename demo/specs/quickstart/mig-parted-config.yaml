@@ -1,0 +1,17 @@
+version: v1
+mig-configs:
+  all-disabled:
+    - devices: all
+      mig-enabled: false
+
+  half-balanced:
+    - devices: [0, 1, 2, 3]
+      mig-enabled: true
+      mig-devices:
+        "1g.5gb": 2
+        "2g.10gb": 1
+        "3g.20gb": 1
+        
+    - devices: [4, 5, 6, 7]
+      mig-enabled: false
+

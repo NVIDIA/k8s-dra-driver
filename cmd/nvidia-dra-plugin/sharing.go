@@ -65,17 +65,17 @@ type MpsManager struct {
 }
 
 type MpsControlDaemon struct {
-	nodeName  string
-	namespace string
-	name      string
-	rootDir   string
-	pipeDir   string
-	shmDir    string
-	logDir    string
-	claim     *types.ClaimInfo
-	devices   *PreparedDevices
-	config    *sharing.MpsConfig
-	manager   *MpsManager
+	nodeName    string
+	namespace   string
+	name        string
+	rootDir     string
+	pipeDir     string
+	shmDir      string
+	logDir      string
+	claim       *types.ClaimInfo
+	deviceGroup *PreparedDeviceGroup
+	config      *sharing.MpsConfig
+	manager     *MpsManager
 }
 
 type MpsControlDaemonTemplateData struct {
@@ -97,9 +97,13 @@ func NewTimeSlicingManager(deviceLib *deviceLib) *TimeSlicingManager {
 	}
 }
 
-func (t *TimeSlicingManager) SetTimeSlice(devices *PreparedDevices, config *sharing.TimeSlicingConfig) error {
-	if devices.Mig != nil {
-		return fmt.Errorf("setting a TimeSlice duration on MIG devices is unsupported")
+func (t *TimeSlicingManager) SetTimeSlice(group *PreparedDeviceGroup, config *sharing.TimeSlicingConfig) error {
+	// Only set the time slice on full GPUs in the group, not MIG devices
+	var filteredGroup PreparedDeviceGroup
+	for _, d := range group.Devices {
+		if d.Type() == types.GpuDeviceType {
+			filteredGroup.Devices = append(filteredGroup.Devices, d)
+		}
 	}
 
 	timeSlice := sharing.DefaultTimeSlice
@@ -107,12 +111,12 @@ func (t *TimeSlicingManager) SetTimeSlice(devices *PreparedDevices, config *shar
 		timeSlice = *config.TimeSlice
 	}
 
-	err := t.nvdevlib.setComputeMode(devices.UUIDs(), "DEFAULT")
+	err := t.nvdevlib.setComputeMode(filteredGroup.UUIDs(), "DEFAULT")
 	if err != nil {
 		return fmt.Errorf("error setting compute mode: %w", err)
 	}
 
-	err = t.nvdevlib.setTimeSlice(devices.UUIDs(), timeSlice.Int())
+	err = t.nvdevlib.setTimeSlice(filteredGroup.UUIDs(), timeSlice.Int())
 	if err != nil {
 		return fmt.Errorf("error setting time slice: %w", err)
 	}
@@ -130,19 +134,19 @@ func NewMpsManager(config *Config, deviceLib *deviceLib, controlFilesRoot, hostD
 	}
 }
 
-func (m *MpsManager) NewMpsControlDaemon(claim *types.ClaimInfo, devices *PreparedDevices, config *sharing.MpsConfig) *MpsControlDaemon {
+func (m *MpsManager) NewMpsControlDaemon(claim *types.ClaimInfo, deviceGroup *PreparedDeviceGroup, config *sharing.MpsConfig) *MpsControlDaemon {
 	return &MpsControlDaemon{
-		nodeName:  m.config.flags.nodeName,
-		namespace: m.config.flags.namespace,
-		name:      fmt.Sprintf(MpsControlDaemonNameFmt, claim.UID),
-		claim:     claim,
-		rootDir:   fmt.Sprintf("%s/%s", m.controlFilesRoot, claim.UID),
-		pipeDir:   fmt.Sprintf("%s/%s/%s", m.controlFilesRoot, claim.UID, "pipe"),
-		shmDir:    fmt.Sprintf("%s/%s/%s", m.controlFilesRoot, claim.UID, "shm"),
-		logDir:    fmt.Sprintf("%s/%s/%s", m.controlFilesRoot, claim.UID, "log"),
-		devices:   devices,
-		config:    config,
-		manager:   m,
+		nodeName:    m.config.flags.nodeName,
+		namespace:   m.config.flags.namespace,
+		name:        fmt.Sprintf(MpsControlDaemonNameFmt, claim.UID),
+		claim:       claim,
+		rootDir:     fmt.Sprintf("%s/%s", m.controlFilesRoot, claim.UID),
+		pipeDir:     fmt.Sprintf("%s/%s/%s", m.controlFilesRoot, claim.UID, "pipe"),
+		shmDir:      fmt.Sprintf("%s/%s/%s", m.controlFilesRoot, claim.UID, "shm"),
+		logDir:      fmt.Sprintf("%s/%s/%s", m.controlFilesRoot, claim.UID, "log"),
+		deviceGroup: deviceGroup,
+		config:      config,
+		manager:     m,
 	}
 }
 
@@ -182,7 +186,7 @@ func (m *MpsControlDaemon) Start(ctx context.Context) error {
 
 	klog.Infof("Starting MPS control daemon for '%v', with settings: %+v", m.claim.UID, m.config)
 
-	deviceUUIDs := m.devices.UUIDs()
+	deviceUUIDs := m.deviceGroup.UUIDs()
 	templateData := MpsControlDaemonTemplateData{
 		NodeName:                        m.nodeName,
 		MpsControlDaemonNamespace:       m.namespace,
@@ -257,11 +261,9 @@ func (m *MpsControlDaemon) Start(ctx context.Context) error {
 		return fmt.Errorf("error mounting %v as tmpfs: %w", m.shmDir, err)
 	}
 
-	if m.devices.Type() == types.GpuDeviceType {
-		err = m.manager.nvdevlib.setComputeMode(m.devices.UUIDs(), "EXCLUSIVE_PROCESS")
-		if err != nil {
-			return fmt.Errorf("error setting compute mode: %w", err)
-		}
+	err = m.manager.nvdevlib.setComputeMode(m.deviceGroup.GpuUUIDs(), "EXCLUSIVE_PROCESS")
+	if err != nil {
+		return fmt.Errorf("error setting compute mode: %w", err)
 	}
 
 	_, err = m.manager.config.clientsets.Core.AppsV1().Deployments(m.namespace).Create(ctx, &deployment, metav1.CreateOptions{})
