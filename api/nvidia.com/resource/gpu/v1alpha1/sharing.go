@@ -106,7 +106,10 @@ func (s *GpuSharing) IsMps() bool {
 
 // IsTimeSlicing checks if the TimeSlicing strategy is applied.
 func (s *MigDeviceSharing) IsTimeSlicing() bool {
-	return false
+	if s == nil {
+		return false
+	}
+	return s.Strategy == TimeSlicingStrategy
 }
 
 // IsMps checks if the MPS strategy is applied.
