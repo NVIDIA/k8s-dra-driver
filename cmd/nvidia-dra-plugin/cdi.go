@@ -19,7 +19,6 @@ package main
 import (
 	"fmt"
 	"io"
-	"strings"
 
 	"github.com/sirupsen/logrus"
 
@@ -211,7 +210,7 @@ func (cdi *CDIHandler) CreateClaimSpecFile(claimUID string, preparedDevices Prep
 		claimDeviceEdits := cdiapi.ContainerEdits{
 			ContainerEdits: &cdispec.ContainerEdits{
 				Env: []string{
-					fmt.Sprintf("NVIDIA_VISIBLE_DEVICES=%s", strings.Join(preparedDevices.UUIDs(), ",")),
+					"NVIDIA_VISIBLE_DEVICES=void",
 				},
 			},
 		}
