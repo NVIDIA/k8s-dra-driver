@@ -21,12 +21,10 @@ endif
 MKDIR    ?= mkdir
 
 ##### Global variables #####
-include $(CURDIR)/common.mk
 include $(CURDIR)/versions.mk
 
 ifeq ($(IMAGE_NAME),)
-REGISTRY ?= nvcr.io/nvidia/cloud-native
-IMAGE_NAME = $(REGISTRY)/k8s-dra-driver
+IMAGE_NAME := $(REGISTRY)/$(DRIVER_NAME)
 endif
 
 IMAGE_VERSION := $(VERSION)
@@ -102,10 +100,10 @@ $(DEFAULT_PUSH_TARGET): DIST = $(DEFAULT_PUSH_TARGET)
 REGCTL ?= regctl
 $(PUSH_TARGETS): push-%:
 	$(REGCTL) \
-	        image copy \
-	        $(IMAGE) $(OUT_IMAGE)
+		image copy \
+		$(IMAGE) $(OUT_IMAGE)
 
 push-short:
 	$(REGCTL) \
-	        image copy \
-	        $(IMAGE) $(OUT_IMAGE_NAME):$(OUT_IMAGE_VERSION)
+		image copy \
+		$(IMAGE) $(OUT_IMAGE_NAME):$(OUT_IMAGE_VERSION)
