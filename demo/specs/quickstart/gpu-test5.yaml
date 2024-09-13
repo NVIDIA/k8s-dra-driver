@@ -53,28 +53,28 @@ metadata:
 spec:
   containers:
   - name: ts-ctr0
-    image: nvcr.io/nvidia/k8s/cuda-sample:nbody-cuda11.7.1-ubuntu18.04
+    image: nvcr.io/nvidia/k8s/cuda-sample:nbody-cuda11.6.0-ubuntu18.04
     args: ["--benchmark", "--numbodies=4226000"]
     resources:
       claims:
       - name: shared-gpus
         request: ts-gpu
   - name: ts-ctr1
-    image: nvcr.io/nvidia/k8s/cuda-sample:nbody-cuda11.7.1-ubuntu18.04
+    image: nvcr.io/nvidia/k8s/cuda-sample:nbody-cuda11.6.0-ubuntu18.04
     args: ["--benchmark", "--numbodies=4226000"]
     resources:
       claims:
       - name: shared-gpus
         request: ts-gpu
   - name: mps-ctr0
-    image: nvcr.io/nvidia/k8s/cuda-sample:nbody-cuda11.7.1-ubuntu18.04
+    image: nvcr.io/nvidia/k8s/cuda-sample:nbody-cuda11.6.0-ubuntu18.04
     args: ["--benchmark", "--numbodies=4226000"]
     resources:
       claims:
       - name: shared-gpus
         request: mps-gpu
   - name: mps-ctr1
-    image: nvcr.io/nvidia/k8s/cuda-sample:nbody-cuda11.7.1-ubuntu18.04
+    image: nvcr.io/nvidia/k8s/cuda-sample:nbody-cuda11.6.0-ubuntu18.04
     args: ["--benchmark", "--numbodies=4226000"]
     resources:
       claims:
