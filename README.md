@@ -2,7 +2,7 @@
 
 This DRA resource driver is currently under active development and not yet
 designed for production use.
-We will continually be force pushing over `main` until we have something more stable.
+We may (at times) decide to push commits over `main` until we have something more stable.
 Use at your own risk.
 
 A document and demo of the DRA support for GPUs provided by this repo can be found below:
@@ -32,7 +32,7 @@ First since we'll launch kind with GPU support, ensure that the following prereq
    Container Runtime to use volume mounts to select devices to inject into a
    container.
    ``` console
-   sudo nvidia-ctk config --set accept-nvidia-visible-devices-as-volume-mounts=true --in-place
+   sudo nvidia-ctk config --in-place --set accept-nvidia-visible-devices-as-volume-mounts=true
    ```
 
 1. Show the current set of GPUs on the machine:
