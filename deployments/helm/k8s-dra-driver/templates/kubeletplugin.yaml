@@ -53,8 +53,15 @@ spec:
           {{- toYaml .Values.kubeletPlugin.containers.plugin.securityContext | nindent 10 }}
         image: {{ include "k8s-dra-driver.fullimage" . }}
         imagePullPolicy: {{ .Values.image.pullPolicy }}
-        command:
-        - nvidia-dra-plugin
+        command: ["bash", "-c"]
+        args:
+        - |-
+          trap 'exit 0' TERM
+          cp /proc/driver/nvidia/params root/gpu-params
+          sed -i 's/^ModifyDeviceFiles: 1$/ModifyDeviceFiles: 0/' root/gpu-params
+          mount --bind root/gpu-params /proc/driver/nvidia/params
+          nvidia-dra-plugin &
+          wait
         resources:
           {{- toYaml .Values.kubeletPlugin.containers.plugin.resources | nindent 10 }}
         env:
