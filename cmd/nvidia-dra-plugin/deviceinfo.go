@@ -63,6 +63,10 @@ type MigDevicePlacement struct {
 	nvml.GpuInstancePlacement
 }
 
+type ImexChannelInfo struct {
+	Channel int `json:"channel"`
+}
+
 func (p MigProfileInfo) String() string {
 	return p.profile.String()
 }
@@ -75,12 +79,20 @@ func (d *MigDeviceInfo) CanonicalName() string {
 	return fmt.Sprintf("gpu-%d-mig-%d-%d-%d", d.parent.index, d.giInfo.ProfileId, d.placement.Start, d.placement.Size)
 }
 
+func (d *ImexChannelInfo) CanonicalName() string {
+	return fmt.Sprintf("imex-channel-%d", d.Channel)
+}
+
 func (d *GpuInfo) CanonicalIndex() string {
 	return fmt.Sprintf("%d", d.index)
 }
 
 func (d *MigDeviceInfo) CanonicalIndex() string {
 	return fmt.Sprintf("%d:%d", d.parent.index, d.index)
+}
+
+func (d *ImexChannelInfo) CanonicalIndex() string {
+	return fmt.Sprintf("%d", d.Channel)
 }
 
 func (d *GpuInfo) GetDevice() resourceapi.Device {
@@ -183,6 +195,23 @@ func (d *MigDeviceInfo) GetDevice() resourceapi.Device {
 	for i := d.placement.Start; i < d.placement.Start+d.placement.Size; i++ {
 		capacity := resourceapi.QualifiedName(fmt.Sprintf("memorySlice%d", i))
 		device.Basic.Capacity[capacity] = *resource.NewQuantity(1, resource.BinarySI)
+	}
+	return device
+}
+
+func (d *ImexChannelInfo) GetDevice() resourceapi.Device {
+	device := resourceapi.Device{
+		Name: d.CanonicalName(),
+		Basic: &resourceapi.BasicDevice{
+			Attributes: map[resourceapi.QualifiedName]resourceapi.DeviceAttribute{
+				"type": {
+					StringValue: ptr.To(ImexChannelType),
+				},
+				"channel": {
+					IntValue: ptr.To(int64(d.Channel)),
+				},
+			},
+		},
 	}
 	return device
 }

@@ -19,6 +19,7 @@ package main
 const (
 	GpuDeviceType     = "gpu"
 	MigDeviceType     = "mig"
+	ImexChannelType   = "imex-channel"
 	UnknownDeviceType = "unknown"
 )
 

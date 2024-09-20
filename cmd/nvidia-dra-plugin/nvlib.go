@@ -23,6 +23,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"golang.org/x/sys/unix"
 	"k8s.io/klog/v2"
 
 	nvdev "github.com/NVIDIA/go-nvlib/pkg/nvlib/device"
@@ -33,6 +34,7 @@ type deviceLib struct {
 	nvdev.Interface
 	nvmllib           nvml.Interface
 	driverLibraryPath string
+	devRoot           string
 	nvidiaSMIPath     string
 }
 
@@ -56,6 +58,7 @@ func newDeviceLib(driverRoot root) (*deviceLib, error) {
 		Interface:         nvdev.New(nvmllib),
 		nvmllib:           nvmllib,
 		driverLibraryPath: driverLibraryPath,
+		devRoot:           driverRoot.getDevRoot(),
 		nvidiaSMIPath:     nvidiaSMIPath,
 	}
 	return &d, nil
@@ -134,6 +137,20 @@ func (l deviceLib) enumerateAllPossibleDevices() (AllocatableDevices, error) {
 	})
 	if err != nil {
 		return nil, fmt.Errorf("error visiting devices: %w", err)
+	}
+
+	imexChannelCount, err := l.getImexChannelCount()
+	if err != nil {
+		return nil, fmt.Errorf("error getting IMEX channel count: %w", err)
+	}
+	for i := 0; i < imexChannelCount; i++ {
+		imexChannelInfo := &ImexChannelInfo{
+			Channel: i,
+		}
+		deviceInfo := &AllocatableDevice{
+			ImexChannel: imexChannelInfo,
+		}
+		alldevices[imexChannelInfo.CanonicalName()] = deviceInfo
 	}
 
 	return alldevices, nil
@@ -375,6 +392,39 @@ func walkMigDevices(d nvml.Device, f func(i int, d nvml.Device) error) error {
 			return err
 		}
 	}
+	return nil
+}
+
+func (l deviceLib) getImexChannelCount() (int, error) {
+	// TODO: Pull this value from /proc/driver/nvidia/params
+	return 2048, nil
+}
+
+func (l deviceLib) createImexChannelDevice(channel int) error {
+	// Construct the properties of the device node to create.
+	path := fmt.Sprintf("/dev/nvidia-caps-imex-channels/channel%d", channel)
+	path = filepath.Join(l.devRoot, path)
+	mode := uint32(unix.S_IFCHR | 0666)
+
+	// TODO: Pull the major value from /proc/devices
+	major := 236
+	dev := unix.Mkdev(uint32(major), uint32(channel))
+
+	// Recursively create any parent directories of the channel.
+	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+		return fmt.Errorf("error creating directory for IMEX channel device nodes: %w", err)
+	}
+
+	// Remove the channel if it already exists.
+	if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("error removing existing IMEX channel device node: %w", err)
+	}
+
+	// Create the device node using syscall.Mknod
+	if err := unix.Mknod(path, mode, int(dev)); err != nil {
+		return fmt.Errorf("mknod of IMEX channel failed: %w", err)
+	}
+
 	return nil
 }
 
