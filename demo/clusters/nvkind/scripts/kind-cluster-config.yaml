@@ -48,6 +48,8 @@ nodes:
 - role: worker
   labels:
     node-role.x-k8s.io/worker: ""
+    nvidia.com/gpu.clusteruuid: "0f884867-ba2f-4294-9155-b495ff367eea"
+    nvidia.com/gpu.cliquid: "{{ add 1 (mod $gpu 2) }}"
   kubeadmConfigPatches:
   - |
     kind: JoinConfiguration
