@@ -1,0 +1,1 @@
+../../kind/scripts/common.sh
