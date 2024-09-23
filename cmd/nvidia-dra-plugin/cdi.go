@@ -19,6 +19,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"path/filepath"
 
 	"github.com/sirupsen/logrus"
 
@@ -139,6 +140,21 @@ func NewCDIHandler(opts ...cdiOption) (*CDIHandler, error) {
 	return h, nil
 }
 
+func (cdi *CDIHandler) GetImexChannelContainerEdits(info *ImexChannelInfo) *cdiapi.ContainerEdits {
+	channelPath := fmt.Sprintf("/dev/nvidia-caps-imex-channels/channel%d", info.Channel)
+
+	return &cdiapi.ContainerEdits{
+		ContainerEdits: &cdispec.ContainerEdits{
+			DeviceNodes: []*cdispec.DeviceNode{
+				{
+					Path:     channelPath,
+					HostPath: filepath.Join(cdi.devRoot, channelPath),
+				},
+			},
+		},
+	}
+}
+
 func (cdi *CDIHandler) CreateStandardDeviceSpecFile(allocatable AllocatableDevices) error {
 	// Initialize NVML in order to get the device edits.
 	if r := cdi.nvml.Init(); r != nvml.SUCCESS {
@@ -159,6 +175,9 @@ func (cdi *CDIHandler) CreateStandardDeviceSpecFile(allocatable AllocatableDevic
 	// Generate device specs for all full GPUs and MIG devices.
 	var deviceSpecs []cdispec.Device
 	for _, device := range allocatable {
+		if device.Type() == ImexChannelType {
+			continue
+		}
 		dspecs, err := cdi.nvcdiDevice.GetDeviceSpecsByID(device.CanonicalIndex())
 		if err != nil {
 			return fmt.Errorf("unable to get device spec for %s: %w", device.CanonicalName(), err)
@@ -266,15 +285,13 @@ func (cdi *CDIHandler) DeleteClaimSpecFile(claimUID string) error {
 	return cdi.cache.RemoveSpec(specName)
 }
 
-func (cdi *CDIHandler) GetStandardDevices(devices []string) []string {
-	var cdiDevices []string
-	for _, device := range devices {
-		cdiDevice := cdiparser.QualifiedName(cdiVendor, cdiDeviceClass, device)
-		cdiDevices = append(cdiDevices, cdiDevice)
+func (cdi *CDIHandler) GetStandardDevice(device *AllocatableDevice) string {
+	if device.Type() == ImexChannelType {
+		return ""
 	}
-	return cdiDevices
+	return cdiparser.QualifiedName(cdiVendor, cdiDeviceClass, device.CanonicalName())
 }
 
-func (cdi *CDIHandler) GetClaimDevice(claimUID string, device string) string {
-	return cdiparser.QualifiedName(cdiVendor, cdiClaimClass, fmt.Sprintf("%s-%s", claimUID, device))
+func (cdi *CDIHandler) GetClaimDevice(claimUID string, device *AllocatableDevice) string {
+	return cdiparser.QualifiedName(cdiVendor, cdiClaimClass, fmt.Sprintf("%s-%s", claimUID, device.CanonicalName()))
 }

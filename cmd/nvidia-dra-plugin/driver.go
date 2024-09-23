@@ -63,6 +63,11 @@ func NewDriver(ctx context.Context, config *Config) (*driver, error) {
 
 	var resources kubeletplugin.Resources
 	for _, device := range state.allocatable {
+		// Explicitly exclude IMEX channels from being advertised here. They
+		// are instead advertised in as a network resource from the control plane.
+		if device.Type() == ImexChannelType {
+			continue
+		}
 		resources.Devices = append(resources.Devices, device.GetDevice())
 	}
 	plugin.PublishResources(ctx, resources)

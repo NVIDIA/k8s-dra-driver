@@ -23,8 +23,9 @@ import (
 type AllocatableDevices map[string]*AllocatableDevice
 
 type AllocatableDevice struct {
-	Gpu *GpuInfo
-	Mig *MigDeviceInfo
+	Gpu         *GpuInfo
+	Mig         *MigDeviceInfo
+	ImexChannel *ImexChannelInfo
 }
 
 func (d AllocatableDevice) Type() string {
@@ -33,6 +34,9 @@ func (d AllocatableDevice) Type() string {
 	}
 	if d.Mig != nil {
 		return MigDeviceType
+	}
+	if d.ImexChannel != nil {
+		return ImexChannelType
 	}
 	return UnknownDeviceType
 }
@@ -43,6 +47,8 @@ func (d *AllocatableDevice) CanonicalName() string {
 		return d.Gpu.CanonicalName()
 	case MigDeviceType:
 		return d.Mig.CanonicalName()
+	case ImexChannelType:
+		return d.ImexChannel.CanonicalName()
 	}
 	panic("unexpected type for AllocatableDevice")
 }
@@ -53,6 +59,8 @@ func (d *AllocatableDevice) CanonicalIndex() string {
 		return d.Gpu.CanonicalIndex()
 	case MigDeviceType:
 		return d.Mig.CanonicalIndex()
+	case ImexChannelType:
+		return d.ImexChannel.CanonicalIndex()
 	}
 	panic("unexpected type for AllocatableDevice")
 }
@@ -63,6 +71,8 @@ func (d *AllocatableDevice) GetDevice() resourceapi.Device {
 		return d.Gpu.GetDevice()
 	case MigDeviceType:
 		return d.Mig.GetDevice()
+	case ImexChannelType:
+		return d.ImexChannel.GetDevice()
 	}
 	panic("unexpected type for AllocatableDevice")
 }

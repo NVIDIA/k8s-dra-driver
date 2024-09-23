@@ -29,6 +29,8 @@ helm upgrade -i --create-namespace --namespace nvidia-dra-driver nvidia ${PROJEC
     ${NVIDIA_DRIVER_ROOT:+--set nvidiaDriverRoot=${NVIDIA_DRIVER_ROOT}} \
     --wait
 
+kubectl apply -f "${CURRENT_DIR}/scripts/imex-resourceslice.yaml"
+
 set +x
 printf '\033[0;32m'
 echo "Driver installation complete:"

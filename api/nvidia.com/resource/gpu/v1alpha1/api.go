@@ -27,8 +27,9 @@ const (
 	GroupName = "gpu.nvidia.com"
 	Version   = "v1alpha1"
 
-	GpuConfigKind       = "GpuConfig"
-	MigDeviceConfigKind = "MigDeviceConfig"
+	GpuConfigKind         = "GpuConfig"
+	MigDeviceConfigKind   = "MigDeviceConfig"
+	ImexChannelConfigKind = "ImexChannelConfig"
 )
 
 // Interface defines the set of common APIs for all configs
@@ -54,6 +55,7 @@ func init() {
 	scheme.AddKnownTypes(schemeGroupVersion,
 		&GpuConfig{},
 		&MigDeviceConfig{},
+		&ImexChannelConfig{},
 	)
 	metav1.AddToGroupVersion(scheme, schemeGroupVersion)
 

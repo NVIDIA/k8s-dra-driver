@@ -215,6 +215,10 @@ func (s *DeviceState) prepareDevices(ctx context.Context, claim *resourceapi.Res
 		Requests: []string{},
 		Config:   configapi.DefaultMigDeviceConfig(),
 	})
+	configs = slices.Insert(configs, 0, &OpaqueDeviceConfig{
+		Requests: []string{},
+		Config:   configapi.DefaultImexChannelConfig(),
+	})
 
 	// Look through the configs and figure out which one will be applied to
 	// each device allocation result based on their order of precedence and type.
@@ -227,10 +231,13 @@ func (s *DeviceState) prepareDevices(ctx context.Context, claim *resourceapi.Res
 		for _, c := range slices.Backward(configs) {
 			if slices.Contains(c.Requests, result.Request) {
 				if _, ok := c.Config.(*configapi.GpuConfig); ok && device.Type() != GpuDeviceType {
-					return nil, fmt.Errorf("cannot apply GPU config to MIG device from request: %v", result.Request)
+					return nil, fmt.Errorf("cannot apply GPU config to request: %v", result.Request)
 				}
 				if _, ok := c.Config.(*configapi.MigDeviceConfig); ok && device.Type() != MigDeviceType {
-					return nil, fmt.Errorf("cannot apply MIG device config to GPU from request: %v", result.Request)
+					return nil, fmt.Errorf("cannot apply MIG device config to request: %v", result.Request)
+				}
+				if _, ok := c.Config.(*configapi.ImexChannelConfig); ok && device.Type() != ImexChannelType {
+					return nil, fmt.Errorf("cannot apply Imex Channel config to request: %v", result.Request)
 				}
 				configResultsMap[c.Config] = append(configResultsMap[c.Config], &result)
 				break
@@ -240,6 +247,9 @@ func (s *DeviceState) prepareDevices(ctx context.Context, claim *resourceapi.Res
 					continue
 				}
 				if _, ok := c.Config.(*configapi.MigDeviceConfig); ok && device.Type() != MigDeviceType {
+					continue
+				}
+				if _, ok := c.Config.(*configapi.ImexChannelConfig); ok && device.Type() != ImexChannelType {
 					continue
 				}
 				configResultsMap[c.Config] = append(configResultsMap[c.Config], &result)
@@ -259,6 +269,8 @@ func (s *DeviceState) prepareDevices(ctx context.Context, claim *resourceapi.Res
 		case *configapi.GpuConfig:
 			config = castConfig
 		case *configapi.MigDeviceConfig:
+			config = castConfig
+		case *configapi.ImexChannelConfig:
 			config = castConfig
 		default:
 			return nil, fmt.Errorf("runtime object is not a recognized configuration")
@@ -293,8 +305,13 @@ func (s *DeviceState) prepareDevices(ctx context.Context, claim *resourceapi.Res
 		}
 
 		for _, result := range results {
-			cdiDevices := s.cdi.GetStandardDevices([]string{result.Device})
-			cdiDevices = append(cdiDevices, s.cdi.GetClaimDevice(string(claim.UID), result.Device))
+			cdiDevices := []string{}
+			if d := s.cdi.GetStandardDevice(s.allocatable[result.Device]); d != "" {
+				cdiDevices = append(cdiDevices, d)
+			}
+			if d := s.cdi.GetClaimDevice(string(claim.UID), s.allocatable[result.Device]); d != "" {
+				cdiDevices = append(cdiDevices, d)
+			}
 
 			device := &drapbv1.Device{
 				RequestNames: []string{result.Request},
@@ -313,6 +330,11 @@ func (s *DeviceState) prepareDevices(ctx context.Context, claim *resourceapi.Res
 			case MigDeviceType:
 				preparedDevice.Mig = &PreparedMigDevice{
 					Info:   s.allocatable[result.Device].Mig,
+					Device: device,
+				}
+			case ImexChannelType:
+				preparedDevice.ImexChannel = &PreparedImexChannel{
+					Info:   s.allocatable[result.Device].ImexChannel,
 					Device: device,
 				}
 			}
@@ -343,15 +365,19 @@ func (s *DeviceState) unprepareDevices(ctx context.Context, claimUID string, dev
 }
 
 func (s *DeviceState) applyConfig(ctx context.Context, config configapi.Interface, claim *resourceapi.ResourceClaim, results []*resourceapi.DeviceRequestAllocationResult) (*DeviceConfigState, error) {
-	// Get the sharing interface from the config interface based on its type.
-	var sharing configapi.Sharing
 	switch castConfig := config.(type) {
 	case *configapi.GpuConfig:
-		sharing = castConfig.Sharing
+		return s.applySharingConfig(ctx, castConfig.Sharing, claim, results)
 	case *configapi.MigDeviceConfig:
-		sharing = castConfig.Sharing
+		return s.applySharingConfig(ctx, castConfig.Sharing, claim, results)
+	case *configapi.ImexChannelConfig:
+		return s.applyImexChannelConfig(ctx, castConfig, claim, results)
+	default:
+		return nil, fmt.Errorf("unknown config type: %T", castConfig)
 	}
+}
 
+func (s *DeviceState) applySharingConfig(ctx context.Context, config configapi.Sharing, claim *resourceapi.ResourceClaim, results []*resourceapi.DeviceRequestAllocationResult) (*DeviceConfigState, error) {
 	// Get the list of claim requests this config is being applied over.
 	var requests []string
 	for _, r := range results {
@@ -364,12 +390,12 @@ func (s *DeviceState) applyConfig(ctx context.Context, config configapi.Interfac
 		allocatableDevices[r.Device] = s.allocatable[r.Device]
 	}
 
-	// Declare a device group atate object to populate.
+	// Declare a device group state object to populate.
 	var configState DeviceConfigState
 
 	// Apply time-slicing settings (if available).
-	if sharing.IsTimeSlicing() {
-		tsc, err := sharing.GetTimeSlicingConfig()
+	if config.IsTimeSlicing() {
+		tsc, err := config.GetTimeSlicingConfig()
 		if err != nil {
 			return nil, fmt.Errorf("error getting timeslice config for requests '%v' in claim '%v': %w", requests, claim.UID, err)
 		}
@@ -382,8 +408,8 @@ func (s *DeviceState) applyConfig(ctx context.Context, config configapi.Interfac
 	}
 
 	// Apply MPS settings.
-	if sharing.IsMps() {
-		mpsc, err := sharing.GetMpsConfig()
+	if config.IsMps() {
+		mpsc, err := config.GetMpsConfig()
 		if err != nil {
 			return nil, fmt.Errorf("error getting MPS configuration: %w", err)
 		}
@@ -396,6 +422,22 @@ func (s *DeviceState) applyConfig(ctx context.Context, config configapi.Interfac
 		}
 		configState.MpsControlDaemonID = mpsControlDaemon.GetID()
 		configState.containerEdits = mpsControlDaemon.GetCDIContainerEdits()
+	}
+
+	return &configState, nil
+}
+
+func (s *DeviceState) applyImexChannelConfig(ctx context.Context, config *configapi.ImexChannelConfig, claim *resourceapi.ResourceClaim, results []*resourceapi.DeviceRequestAllocationResult) (*DeviceConfigState, error) {
+	// Declare a device group state object to populate.
+	var configState DeviceConfigState
+
+	// Create any necessary IMEX channels and gather their CDI container edits.
+	for _, r := range results {
+		imexChannel := s.allocatable[r.Device].ImexChannel
+		if err := s.nvdevlib.createImexChannelDevice(imexChannel.Channel); err != nil {
+			return nil, fmt.Errorf("error creating IMEX channel device: %w", err)
+		}
+		configState.containerEdits = configState.containerEdits.Append(s.cdi.GetImexChannelContainerEdits(imexChannel))
 	}
 
 	return &configState, nil

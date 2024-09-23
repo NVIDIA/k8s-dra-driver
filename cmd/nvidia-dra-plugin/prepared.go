@@ -25,8 +25,9 @@ type PreparedDevices []*PreparedDeviceGroup
 type PreparedClaims map[string]PreparedDevices
 
 type PreparedDevice struct {
-	Gpu *PreparedGpu       `json:"gpu"`
-	Mig *PreparedMigDevice `json:"mig"`
+	Gpu         *PreparedGpu         `json:"gpu"`
+	Mig         *PreparedMigDevice   `json:"mig"`
+	ImexChannel *PreparedImexChannel `json:"imexChannel"`
 }
 
 type PreparedGpu struct {
@@ -37,6 +38,11 @@ type PreparedGpu struct {
 type PreparedMigDevice struct {
 	Info   *MigDeviceInfo  `json:"info"`
 	Device *drapbv1.Device `json:"device"`
+}
+
+type PreparedImexChannel struct {
+	Info   *ImexChannelInfo `json:"info"`
+	Device *drapbv1.Device  `json:"device"`
 }
 
 type PreparedDeviceGroup struct {
@@ -51,6 +57,9 @@ func (d PreparedDevice) Type() string {
 	if d.Mig != nil {
 		return MigDeviceType
 	}
+	if d.ImexChannel != nil {
+		return ImexChannelType
+	}
 	return UnknownDeviceType
 }
 
@@ -60,6 +69,8 @@ func (d *PreparedDevice) CanonicalName() string {
 		return d.Gpu.Info.CanonicalName()
 	case MigDeviceType:
 		return d.Mig.Info.CanonicalName()
+	case ImexChannelType:
+		return d.ImexChannel.Info.CanonicalName()
 	}
 	panic("unexpected type for AllocatableDevice")
 }
@@ -70,6 +81,8 @@ func (d *PreparedDevice) CanonicalIndex() string {
 		return d.Gpu.Info.CanonicalIndex()
 	case MigDeviceType:
 		return d.Mig.Info.CanonicalIndex()
+	case ImexChannelType:
+		return d.ImexChannel.Info.CanonicalIndex()
 	}
 	panic("unexpected type for AllocatableDevice")
 }
@@ -94,6 +107,16 @@ func (l PreparedDeviceList) MigDevices() PreparedDeviceList {
 	return devices
 }
 
+func (l PreparedDeviceList) ImexChannels() PreparedDeviceList {
+	var devices PreparedDeviceList
+	for _, device := range l {
+		if device.Type() == ImexChannelType {
+			devices = append(devices, device)
+		}
+	}
+	return devices
+}
+
 func (d PreparedDevices) GetDevices() []*drapbv1.Device {
 	var devices []*drapbv1.Device
 	for _, group := range d {
@@ -110,6 +133,8 @@ func (g *PreparedDeviceGroup) GetDevices() []*drapbv1.Device {
 			devices = append(devices, device.Gpu.Device)
 		case MigDeviceType:
 			devices = append(devices, device.Mig.Device)
+		case ImexChannelType:
+			devices = append(devices, device.ImexChannel.Device)
 		}
 	}
 	return devices
