@@ -1,0 +1,187 @@
+---
+apiVersion: resource.k8s.io/v1alpha3
+kind: ResourceSlice
+metadata:
+  name: imex-domain-0f884867-ba2f-4294-9155-b495ff367eea-1
+spec:
+  devices:
+  - name: imex-channel-0
+    basic:
+      attributes:
+        type:
+          string: "imex-channel"
+        channel:
+          int: 0
+  - name: imex-channel-1
+    basic:
+      attributes:
+        type:
+          string: "imex-channel"
+        channel:
+          int: 1
+  - name: imex-channel-2
+    basic:
+      attributes:
+        type:
+          string: "imex-channel"
+        channel:
+          int: 2
+  - name: imex-channel-3
+    basic:
+      attributes:
+        type:
+          string: "imex-channel"
+        channel:
+          int: 3
+  - name: imex-channel-4
+    basic:
+      attributes:
+        type:
+          string: "imex-channel"
+        channel:
+          int: 4
+  - name: imex-channel-5
+    basic:
+      attributes:
+        type:
+          string: "imex-channel"
+        channel:
+          int: 5
+  - name: imex-channel-6
+    basic:
+      attributes:
+        type:
+          string: "imex-channel"
+        channel:
+          int: 6
+  - name: imex-channel-7
+    basic:
+      attributes:
+        type:
+          string: "imex-channel"
+        channel:
+          int: 7
+  - name: imex-channel-8
+    basic:
+      attributes:
+        type:
+          string: "imex-channel"
+        channel:
+          int: 8
+  - name: imex-channel-9
+    basic:
+      attributes:
+        type:
+          string: "imex-channel"
+        channel:
+          int: 9
+  driver: gpu.nvidia.com
+  nodeSelector: 
+    nodeSelectorTerms:
+    - matchExpressions:
+      - key: "nvidia.com/gpu.clusteruuid"
+        operator: In
+        values:
+        - "0f884867-ba2f-4294-9155-b495ff367eea"
+      - key: "nvidia.com/gpu.cliqueid"
+        operator: In
+        values:
+        - "1"
+  pool:
+    generation: 0
+    name: imex-domain-0f884867-ba2f-4294-9155-b495ff367eea-1
+    resourceSliceCount: 1
+
+---
+apiVersion: resource.k8s.io/v1alpha3
+kind: ResourceSlice
+metadata:
+  name: imex-domain-0f884867-ba2f-4294-9155-b495ff367eea-2
+spec:
+  devices:
+  - name: imex-channel-0
+    basic:
+      attributes:
+        type:
+          string: "imex-channel"
+        channel:
+          int: 0
+  - name: imex-channel-1
+    basic:
+      attributes:
+        type:
+          string: "imex-channel"
+        channel:
+          int: 1
+  - name: imex-channel-2
+    basic:
+      attributes:
+        type:
+          string: "imex-channel"
+        channel:
+          int: 2
+  - name: imex-channel-3
+    basic:
+      attributes:
+        type:
+          string: "imex-channel"
+        channel:
+          int: 3
+  - name: imex-channel-4
+    basic:
+      attributes:
+        type:
+          string: "imex-channel"
+        channel:
+          int: 4
+  - name: imex-channel-5
+    basic:
+      attributes:
+        type:
+          string: "imex-channel"
+        channel:
+          int: 5
+  - name: imex-channel-6
+    basic:
+      attributes:
+        type:
+          string: "imex-channel"
+        channel:
+          int: 6
+  - name: imex-channel-7
+    basic:
+      attributes:
+        type:
+          string: "imex-channel"
+        channel:
+          int: 7
+  - name: imex-channel-8
+    basic:
+      attributes:
+        type:
+          string: "imex-channel"
+        channel:
+          int: 8
+  - name: imex-channel-9
+    basic:
+      attributes:
+        type:
+          string: "imex-channel"
+        channel:
+          int: 9
+  driver: gpu.nvidia.com
+  nodeSelector: 
+    nodeSelectorTerms:
+    - matchExpressions:
+      - key: "nvidia.com/gpu.clusteruuid"
+        operator: In
+        values:
+        - "0f884867-ba2f-4294-9155-b495ff367eea"
+      - key: "nvidia.com/gpu.cliqueid"
+        operator: In
+        values:
+        - "2"
+  pool:
+    generation: 0
+    name: imex-domain-0f884867-ba2f-4294-9155-b495ff367eea-2
+    resourceSliceCount: 1
