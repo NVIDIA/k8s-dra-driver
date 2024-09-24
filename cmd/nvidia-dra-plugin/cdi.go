@@ -175,7 +175,7 @@ func (cdi *CDIHandler) CreateStandardDeviceSpecFile(allocatable AllocatableDevic
 	// Generate device specs for all full GPUs and MIG devices.
 	var deviceSpecs []cdispec.Device
 	for _, device := range allocatable {
-		if device.Type() == ImexChannelType {
+		if device.Type() == ImexChannelType || device.Type() == VfioPciDeviceType {
 			continue
 		}
 		dspecs, err := cdi.nvcdiDevice.GetDeviceSpecsByID(device.CanonicalIndex())
