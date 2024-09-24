@@ -139,6 +139,12 @@ func (l deviceLib) enumerateAllPossibleDevices() (AllocatableDevices, error) {
 			}
 			alldevices[gpuInfo.CanonicalName()] = deviceInfo
 		}
+		vfioPciDeviceInfo := &AllocatableDevice{
+			VfioPci: &VfioPciDeviceInfo{
+				parent: gpuInfo,
+			},
+		}
+		alldevices[vfioPciDeviceInfo.CanonicalName()] = vfioPciDeviceInfo
 
 		return nil
 	})
@@ -161,6 +167,10 @@ func (l deviceLib) enumerateAllPossibleDevices() (AllocatableDevices, error) {
 	}
 
 	return alldevices, nil
+}
+
+func getPciAddressFromNvmlPciInfo(info nvml.PciInfo) string {
+	return fmt.Sprintf("%04x:%02x:%02x.0", info.Domain, info.Bus, info.Device)
 }
 
 func (l deviceLib) getGpuInfo(index int, device nvdev.Device) (*GpuInfo, error) {
@@ -204,6 +214,11 @@ func (l deviceLib) getGpuInfo(index int, device nvdev.Device) (*GpuInfo, error) 
 	if ret != nvml.SUCCESS {
 		return nil, fmt.Errorf("error getting CUDA driver version: %w", err)
 	}
+	pciInfo, ret := l.nvmllib.DeviceGetPciInfo(device)
+	if ret != nvml.SUCCESS {
+		return nil, fmt.Errorf("error getting PCI info for device %d: %w", index, err)
+	}
+	pciAddress := getPciAddressFromNvmlPciInfo(pciInfo)
 
 	var migProfiles []*MigProfileInfo
 	for i := 0; i < nvml.GPU_INSTANCE_PROFILE_COUNT; i++ {
@@ -271,6 +286,7 @@ func (l deviceLib) getGpuInfo(index int, device nvdev.Device) (*GpuInfo, error) 
 		driverVersion:         driverVersion,
 		cudaDriverVersion:     fmt.Sprintf("%v.%v", cudaDriverVersion/1000, (cudaDriverVersion%1000)/10),
 		migProfiles:           migProfiles,
+		pciAddress:            pciAddress,
 	}
 
 	return gpuInfo, nil

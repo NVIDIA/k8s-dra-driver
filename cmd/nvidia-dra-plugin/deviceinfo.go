@@ -40,6 +40,7 @@ type GpuInfo struct {
 	driverVersion         string
 	cudaDriverVersion     string
 	migProfiles           []*MigProfileInfo
+	pciAddress            string
 }
 
 type MigDeviceInfo struct {
@@ -67,6 +68,10 @@ type ImexChannelInfo struct {
 	Channel int `json:"channel"`
 }
 
+type VfioPciDeviceInfo struct {
+	parent *GpuInfo
+}
+
 func (p MigProfileInfo) String() string {
 	return p.profile.String()
 }
@@ -83,6 +88,10 @@ func (d *ImexChannelInfo) CanonicalName() string {
 	return fmt.Sprintf("imex-channel-%d", d.Channel)
 }
 
+func (d *VfioPciDeviceInfo) CanonicalName() string {
+	return fmt.Sprintf("gpu-%d-vfio-pci", d.parent.index)
+}
+
 func (d *GpuInfo) CanonicalIndex() string {
 	return fmt.Sprintf("%d", d.index)
 }
@@ -93,6 +102,10 @@ func (d *MigDeviceInfo) CanonicalIndex() string {
 
 func (d *ImexChannelInfo) CanonicalIndex() string {
 	return fmt.Sprintf("%d", d.Channel)
+}
+
+func (d *VfioPciDeviceInfo) CanonicalIndex() string {
+	return d.parent.CanonicalIndex()
 }
 
 func (d *GpuInfo) GetDevice() resourceapi.Device {
@@ -129,6 +142,9 @@ func (d *GpuInfo) GetDevice() resourceapi.Device {
 				},
 				"cudaDriverVersion": {
 					VersionValue: ptr.To(semver.MustParse(d.cudaDriverVersion).String()),
+				},
+				"pciAddress": {
+					StringValue: &d.pciAddress,
 				},
 			},
 			Capacity: map[resourceapi.QualifiedName]resource.Quantity{
@@ -209,6 +225,38 @@ func (d *ImexChannelInfo) GetDevice() resourceapi.Device {
 				},
 				"channel": {
 					IntValue: ptr.To(int64(d.Channel)),
+				},
+			},
+		},
+	}
+	return device
+}
+
+func (d *VfioPciDeviceInfo) GetDevice() resourceapi.Device {
+	device := resourceapi.Device{
+		Name: d.CanonicalName(),
+		Basic: &resourceapi.BasicDevice{
+			Attributes: map[resourceapi.QualifiedName]resourceapi.DeviceAttribute{
+				"type": {
+					StringValue: ptr.To(VfioPciDeviceType),
+				},
+				"parentUuid": {
+					StringValue: &d.parent.UUID,
+				},
+				"parentIndex": {
+					IntValue: ptr.To(int64(d.parent.index)),
+				},
+				"productName": {
+					StringValue: &d.parent.productName,
+				},
+				"brand": {
+					StringValue: &d.parent.brand,
+				},
+				"architecture": {
+					StringValue: &d.parent.architecture,
+				},
+				"pciAddress": {
+					StringValue: &d.parent.pciAddress,
 				},
 			},
 		},
