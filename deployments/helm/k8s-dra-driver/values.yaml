@@ -34,7 +34,7 @@ selectorLabelsOverride: {}
 
 allowDefaultNamespace: false
 
-deviceClasses: ["gpu", "mig", "imex"]
+deviceClasses: ["gpu", "mig", "imex", "vfiopci"]
 
 # Masking of the params file is typically done to allow nvkind to
 # selectively exclude certain GPUs from being visible to the
