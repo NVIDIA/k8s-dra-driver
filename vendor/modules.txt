@@ -1,7 +1,7 @@
 # github.com/Masterminds/semver v1.5.0
 ## explicit
 github.com/Masterminds/semver
-# github.com/NVIDIA/go-nvlib v0.6.0
+# github.com/NVIDIA/go-nvlib v0.6.1
 ## explicit; go 1.20
 github.com/NVIDIA/go-nvlib/pkg/nvlib/device
 github.com/NVIDIA/go-nvlib/pkg/nvlib/info
@@ -9,7 +9,7 @@ github.com/NVIDIA/go-nvlib/pkg/nvlib/info
 ## explicit; go 1.20
 github.com/NVIDIA/go-nvml/pkg/dl
 github.com/NVIDIA/go-nvml/pkg/nvml
-# github.com/NVIDIA/nvidia-container-toolkit v1.16.1
+# github.com/NVIDIA/nvidia-container-toolkit v1.16.2
 ## explicit; go 1.20
 github.com/NVIDIA/nvidia-container-toolkit/internal/config/image
 github.com/NVIDIA/nvidia-container-toolkit/internal/discover
@@ -198,7 +198,7 @@ github.com/stretchr/testify/require
 # github.com/syndtr/gocapability v0.0.0-20200815063812-42c35b437635
 ## explicit
 github.com/syndtr/gocapability/capability
-# github.com/urfave/cli/v2 v2.27.2
+# github.com/urfave/cli/v2 v2.27.4
 ## explicit; go 1.18
 github.com/urfave/cli/v2
 # github.com/x448/float16 v0.8.4
@@ -221,7 +221,7 @@ go.uber.org/zap/internal/exit
 go.uber.org/zap/internal/pool
 go.uber.org/zap/internal/stacktrace
 go.uber.org/zap/zapcore
-# golang.org/x/mod v0.19.0
+# golang.org/x/mod v0.20.0
 ## explicit; go 1.18
 golang.org/x/mod/semver
 # golang.org/x/net v0.26.0
@@ -236,7 +236,7 @@ golang.org/x/net/trace
 ## explicit; go 1.18
 golang.org/x/oauth2
 golang.org/x/oauth2/internal
-# golang.org/x/sys v0.22.0
+# golang.org/x/sys v0.24.0
 ## explicit; go 1.18
 golang.org/x/sys/plan9
 golang.org/x/sys/unix

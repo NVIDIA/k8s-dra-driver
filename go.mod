@@ -4,14 +4,14 @@ go 1.23.1
 
 require (
 	github.com/Masterminds/semver v1.5.0
-	github.com/NVIDIA/go-nvlib v0.6.0
+	github.com/NVIDIA/go-nvlib v0.6.1
 	github.com/NVIDIA/go-nvml v0.12.4-0
-	github.com/NVIDIA/nvidia-container-toolkit v1.16.1
+	github.com/NVIDIA/nvidia-container-toolkit v1.16.2
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.9.0
-	github.com/urfave/cli/v2 v2.27.2
-	golang.org/x/sys v0.22.0
+	github.com/urfave/cli/v2 v2.27.4
+	golang.org/x/sys v0.24.0
 	k8s.io/api v0.31.0
 	k8s.io/apimachinery v0.31.0
 	k8s.io/client-go v0.31.0
@@ -72,7 +72,7 @@ require (
 	github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.26.0 // indirect
-	golang.org/x/mod v0.19.0 // indirect
+	golang.org/x/mod v0.20.0 // indirect
 	golang.org/x/net v0.26.0 // indirect
 	golang.org/x/oauth2 v0.21.0 // indirect
 	golang.org/x/term v0.21.0 // indirect
