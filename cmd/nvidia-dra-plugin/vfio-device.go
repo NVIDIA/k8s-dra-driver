@@ -5,7 +5,6 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	configapi "github.com/NVIDIA/k8s-dra-driver/api/nvidia.com/resource/gpu/v1alpha1"
 	cdiapi "tags.cncf.io/container-device-interface/pkg/cdi"
 	cdispec "tags.cncf.io/container-device-interface/specs-go"
 )
@@ -75,36 +74,36 @@ func (vm *VfioPciManager) loadVfioPciModule() error {
 func init() {
 }
 
-func (vm *VfioPciManager) Configure(vfioPciDevice *VfioPciDeviceInfo, config *configapi.VfioPciConfig) error {
-	perGpuLock.Get(vfioPciDevice.parent.pciAddress).Lock()
-	defer perGpuLock.Get(vfioPciDevice.parent.pciAddress).Unlock()
+func (vm *VfioPciManager) Configure(info *GpuInfo) error {
+	perGpuLock.Get(info.pciAddress).Lock()
+	defer perGpuLock.Get(info.pciAddress).Unlock()
 
-	driver, err := getDriver(vm.pciDevicesRoot, vfioPciDevice.parent.pciAddress)
+	driver, err := getDriver(vm.pciDevicesRoot, info.pciAddress)
 	if err != nil {
 		return err
 	}
 	if driver == vm.driver {
 		return nil
 	}
-	err = changeDriver(vm.pciDevicesRoot, vfioPciDevice.parent.pciAddress, vm.driver)
+	err = changeDriver(vm.pciDevicesRoot, info.pciAddress, vm.driver)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (vm *VfioPciManager) Unconfigure(vfioPciDevice *VfioPciDeviceInfo) error {
-	perGpuLock.Get(vfioPciDevice.parent.pciAddress).Lock()
-	defer perGpuLock.Get(vfioPciDevice.parent.pciAddress).Unlock()
+func (vm *VfioPciManager) Unconfigure(info *GpuInfo) error {
+	perGpuLock.Get(info.pciAddress).Lock()
+	defer perGpuLock.Get(info.pciAddress).Unlock()
 
-	driver, err := getDriver(vm.pciDevicesRoot, vfioPciDevice.parent.pciAddress)
+	driver, err := getDriver(vm.pciDevicesRoot, info.pciAddress)
 	if err != nil {
 		return err
 	}
 	if driver == nvidiaDriver {
 		return nil
 	}
-	err = changeDriver(vm.pciDevicesRoot, vfioPciDevice.parent.pciAddress, nvidiaDriver)
+	err = changeDriver(vm.pciDevicesRoot, info.pciAddress, nvidiaDriver)
 	if err != nil {
 		return err
 	}
@@ -160,40 +159,20 @@ func (vm *VfioPciManager) getIommuGroupForVfioPciDevice(pciAddress string) strin
 
 }
 
-func (vm *VfioPciManager) GetCommonCDIContainerEdits() *cdiapi.ContainerEdits {
-	vfioVfioDevicePath := filepath.Join(vm.vfioDevicesRoot, "vfio")
+func (vm *VfioPciManager) GetCDIContainerEdits(info *GpuInfo) *cdiapi.ContainerEdits {
+	iommuGroup := vm.getIommuGroupForVfioPciDevice(info.pciAddress)
+	vfioDevicePath := filepath.Join(vm.vfioDevicesRoot, iommuGroup)
 	return &cdiapi.ContainerEdits{
 		ContainerEdits: &cdispec.ContainerEdits{
 			DeviceNodes: []*cdispec.DeviceNode{
 				{
-					Path: vfioVfioDevicePath,
+					Path: vfioDevicePath,
 				},
 			},
 			Mounts: []*cdispec.Mount{
 				{
-					ContainerPath: vfioVfioDevicePath,
-					HostPath:      vfioVfioDevicePath,
-					Options:       []string{"mrw"},
-				},
-			},
-		},
-	}
-}
-
-func (vm *VfioPciManager) GetCDIContainerEdits(info *VfioPciDeviceInfo) *cdiapi.ContainerEdits {
-	iommuGroup := vm.getIommuGroupForVfioPciDevice(info.parent.pciAddress)
-	vfioPciDevicePath := filepath.Join(vm.vfioDevicesRoot, iommuGroup)
-	return &cdiapi.ContainerEdits{
-		ContainerEdits: &cdispec.ContainerEdits{
-			DeviceNodes: []*cdispec.DeviceNode{
-				{
-					Path: vfioPciDevicePath,
-				},
-			},
-			Mounts: []*cdispec.Mount{
-				{
-					ContainerPath: vfioPciDevicePath,
-					HostPath:      vfioPciDevicePath,
+					ContainerPath: vfioDevicePath,
+					HostPath:      vfioDevicePath,
 					Options:       []string{"mrw"},
 				},
 			},

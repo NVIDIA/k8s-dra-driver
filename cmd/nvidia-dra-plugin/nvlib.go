@@ -139,12 +139,6 @@ func (l deviceLib) enumerateAllPossibleDevices() (AllocatableDevices, error) {
 			}
 			alldevices[gpuInfo.CanonicalName()] = deviceInfo
 		}
-		vfioPciDeviceInfo := &AllocatableDevice{
-			VfioPci: &VfioPciDeviceInfo{
-				parent: gpuInfo,
-			},
-		}
-		alldevices[vfioPciDeviceInfo.CanonicalName()] = vfioPciDeviceInfo
 
 		return nil
 	})
