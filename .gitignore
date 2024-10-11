@@ -1,5 +1,6 @@
 .cache/
 .bash_history
+/nvidia-dra-controller
 /nvidia-dra-plugin
 .idea
 [._]*.sw[a-p]

@@ -70,7 +70,10 @@ func NewDriver(ctx context.Context, config *Config) (*driver, error) {
 		}
 		resources.Devices = append(resources.Devices, device.GetDevice())
 	}
-	plugin.PublishResources(ctx, resources)
+
+	if err := plugin.PublishResources(ctx, resources); err != nil {
+		return nil, err
+	}
 
 	return driver, nil
 }
