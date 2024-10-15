@@ -96,6 +96,10 @@ kubeletPlugin:
     plugin:
       securityContext:
         privileged: true
+        allowPrivilegeEscalation: true
+        runAsNonRoot: false
+        runAsUser: 0
+        runAsGroup: 0
       resources: {}
   affinity:
     nodeAffinity:
