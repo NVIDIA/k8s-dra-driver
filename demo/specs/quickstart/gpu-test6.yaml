@@ -1,6 +1,5 @@
-# One pod, 4 containers
-# Each asking for a different MIG device on a shared mig-enabled GPU
-# Run as deployment with 4 replicas
+# Run as a deployment with 4 replicas
+# Each replica shares a mig-enabled GPU using Time-Slicing
 
 ---
 apiVersion: v1
@@ -9,43 +8,34 @@ metadata:
   name: gpu-test6
 
 ---
-apiVersion: gpu.resource.nvidia.com/v1alpha1
-kind: GpuClaimParameters
-metadata:
-  namespace: gpu-test6
-  name: a100
-spec:
-  count: 1
-  selector:
-    andExpression:
-    - productName: "*a100*"
-    - orExpression:
-      - index: 0
-      - index: 2
-      - index: 4
-      - index: 6
-    - orExpression:
-      - migEnabled: true
-      - migEnabled: false
-  sharing:
-    strategy: TimeSlicing
-    timeSlicingConfig:
-      timeSlice: Long
-
----
-apiVersion: resource.k8s.io/v1alpha2
+apiVersion: resource.k8s.io/v1alpha3
 kind: ResourceClaimTemplate
 metadata:
   namespace: gpu-test6
-  name: a100
+  name: mig-devices
 spec:
   spec:
-    resourceClassName: gpu.nvidia.com
-    parametersRef:
-      apiGroup: gpu.resource.nvidia.com
-      kind: GpuClaimParameters
-      name: a100
-
+    devices:
+      requests:
+      - name: mig-1g-5gb
+        deviceClassName: mig.nvidia.com
+        selectors:
+        - cel:
+            expression: "device.attributes['gpu.nvidia.com'].profile == '1g.5gb'"
+      config:
+      - requests: ["mig-1g-5gb"]
+        opaque:
+          driver: mig.nvidia.com
+          parameters:
+            apiVersion: gpu.nvidia.com/v1alpha1
+            kind: GpuConfig
+            sharing:
+              strategy: TimeSlicing
+              timeSlicingConfig:
+                interval: Long
+      constraints:
+      - requests: []
+        matchAttribute: "gpu.nvidia.com/parentUUID"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -65,9 +55,8 @@ spec:
         app: pod
     spec:
       resourceClaims:
-      - name: a100
-        source:
-          resourceClaimTemplateName: a100
+      - name: mig-ts-gpu
+        resourceClaimTemplateName: mig-devices
       containers:
       - name: ctr
         image: ubuntu:22.04
@@ -75,4 +64,5 @@ spec:
         args: ["nvidia-smi -L; trap 'exit 0' TERM; sleep 9999 & wait"]
         resources:
           claims:
-          - name: a100
+          - name: mig-ts-gpu
+            request: mig-1g-5gb
