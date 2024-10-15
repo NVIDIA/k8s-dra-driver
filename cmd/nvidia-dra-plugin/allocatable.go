@@ -111,7 +111,7 @@ func (d AllocatableDevices) PciAddresses() []string {
 	var pciAddresses []string
 	for _, device := range d {
 		if device.Type() == GpuDeviceType {
-			pciAddresses = append(pciAddresses, device.Gpu.pciAddress)
+			pciAddresses = append(pciAddresses, device.Gpu.PciAddress)
 		}
 	}
 	return pciAddresses

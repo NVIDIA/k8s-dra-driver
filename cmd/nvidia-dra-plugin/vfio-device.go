@@ -75,17 +75,17 @@ func init() {
 }
 
 func (vm *VfioPciManager) Configure(info *GpuInfo) error {
-	perGpuLock.Get(info.pciAddress).Lock()
-	defer perGpuLock.Get(info.pciAddress).Unlock()
+	perGpuLock.Get(info.PciAddress).Lock()
+	defer perGpuLock.Get(info.PciAddress).Unlock()
 
-	driver, err := getDriver(vm.pciDevicesRoot, info.pciAddress)
+	driver, err := getDriver(vm.pciDevicesRoot, info.PciAddress)
 	if err != nil {
 		return err
 	}
 	if driver == vm.driver {
 		return nil
 	}
-	err = changeDriver(vm.pciDevicesRoot, info.pciAddress, vm.driver)
+	err = changeDriver(info.PciAddress, vm.driver)
 	if err != nil {
 		return err
 	}
@@ -93,17 +93,17 @@ func (vm *VfioPciManager) Configure(info *GpuInfo) error {
 }
 
 func (vm *VfioPciManager) Unconfigure(info *GpuInfo) error {
-	perGpuLock.Get(info.pciAddress).Lock()
-	defer perGpuLock.Get(info.pciAddress).Unlock()
+	perGpuLock.Get(info.PciAddress).Lock()
+	defer perGpuLock.Get(info.PciAddress).Unlock()
 
-	driver, err := getDriver(vm.pciDevicesRoot, info.pciAddress)
+	driver, err := getDriver(vm.pciDevicesRoot, info.PciAddress)
 	if err != nil {
 		return err
 	}
 	if driver == nvidiaDriver {
 		return nil
 	}
-	err = changeDriver(vm.pciDevicesRoot, info.pciAddress, nvidiaDriver)
+	err = changeDriver(info.PciAddress, nvidiaDriver)
 	if err != nil {
 		return err
 	}
@@ -119,20 +119,20 @@ func getDriver(pciDevicesRoot, pciAddress string) (string, error) {
 	return driver, nil
 }
 
-func changeDriver(pciDevicesRoot, pciAddress, driver string) error {
-	err := unbindFromDriver(pciDevicesRoot, pciAddress, driver)
+func changeDriver(pciAddress, driver string) error {
+	err := unbindFromDriver(pciAddress, driver)
 	if err != nil {
 		return err
 	}
-	err = bindToDriver(pciDevicesRoot, pciAddress, driver)
+	err = bindToDriver(pciAddress, driver)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func unbindFromDriver(pciDevicesRoot, pciAddress, driverResetRetries string) error {
-	cmd := exec.Command(unbindFromDriverScript, pciDevicesRoot, pciAddress, driverResetRetries) //nolint:gosec
+func unbindFromDriver(pciAddress, driverResetRetries string) error {
+	cmd := exec.Command(unbindFromDriverScript, pciAddress, driverResetRetries) //nolint:gosec
 	_, err := cmd.CombinedOutput()
 	if err != nil {
 		return err
@@ -140,8 +140,8 @@ func unbindFromDriver(pciDevicesRoot, pciAddress, driverResetRetries string) err
 	return nil
 }
 
-func bindToDriver(pciDevicesRoot, pciAddress, driver string) error {
-	cmd := exec.Command(bindToDriverScript, pciDevicesRoot, pciAddress, driver) //nolint:gosec
+func bindToDriver(pciAddress, driver string) error {
+	cmd := exec.Command(bindToDriverScript, pciAddress, driver) //nolint:gosec
 	_, err := cmd.CombinedOutput()
 	if err != nil {
 		return err
@@ -160,20 +160,13 @@ func (vm *VfioPciManager) getIommuGroupForVfioPciDevice(pciAddress string) strin
 }
 
 func (vm *VfioPciManager) GetCDIContainerEdits(info *GpuInfo) *cdiapi.ContainerEdits {
-	iommuGroup := vm.getIommuGroupForVfioPciDevice(info.pciAddress)
+	iommuGroup := vm.getIommuGroupForVfioPciDevice(info.PciAddress)
 	vfioDevicePath := filepath.Join(vm.vfioDevicesRoot, iommuGroup)
 	return &cdiapi.ContainerEdits{
 		ContainerEdits: &cdispec.ContainerEdits{
 			DeviceNodes: []*cdispec.DeviceNode{
 				{
 					Path: vfioDevicePath,
-				},
-			},
-			Mounts: []*cdispec.Mount{
-				{
-					ContainerPath: vfioDevicePath,
-					HostPath:      vfioDevicePath,
-					Options:       []string{"mrw"},
 				},
 			},
 		},

@@ -280,7 +280,7 @@ func (l deviceLib) getGpuInfo(index int, device nvdev.Device) (*GpuInfo, error) 
 		driverVersion:         driverVersion,
 		cudaDriverVersion:     fmt.Sprintf("%v.%v", cudaDriverVersion/1000, (cudaDriverVersion%1000)/10),
 		migProfiles:           migProfiles,
-		pciAddress:            pciAddress,
+		PciAddress:            pciAddress,
 	}
 
 	return gpuInfo, nil

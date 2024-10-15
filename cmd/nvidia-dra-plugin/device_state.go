@@ -493,7 +493,8 @@ func (s *DeviceState) applyGpuDriverConfig(ctx context.Context, config *configap
 
 	if config.Driver == configapi.VfioPciDriver {
 		// Apply VfioPci settings.
-		for _, info := range allocatableDevices {
+		for _, r := range results {
+			info := allocatableDevices[r.Device]
 			err := s.vfioPciManager.Configure(info.Gpu)
 			if err != nil {
 				return err

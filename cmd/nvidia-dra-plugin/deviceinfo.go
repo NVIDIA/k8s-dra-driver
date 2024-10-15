@@ -40,7 +40,7 @@ type GpuInfo struct {
 	driverVersion         string
 	cudaDriverVersion     string
 	migProfiles           []*MigProfileInfo
-	pciAddress            string
+	PciAddress            string `json:"pciAddress"`
 }
 
 type MigDeviceInfo struct {
@@ -132,7 +132,7 @@ func (d *GpuInfo) GetDevice() resourceapi.Device {
 					VersionValue: ptr.To(semver.MustParse(d.cudaDriverVersion).String()),
 				},
 				"pciAddress": {
-					StringValue: &d.pciAddress,
+					StringValue: &d.PciAddress,
 				},
 			},
 			Capacity: map[resourceapi.QualifiedName]resource.Quantity{

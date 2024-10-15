@@ -207,7 +207,7 @@ func (d PreparedDevices) MigDeviceUUIDs() []string {
 func (l PreparedDeviceList) PciAddresses() []string {
 	var pciAddresses []string
 	for _, device := range l.Gpus() {
-		pciAddresses = append(pciAddresses, device.Gpu.Info.pciAddress)
+		pciAddresses = append(pciAddresses, device.Gpu.Info.PciAddress)
 	}
 	return pciAddresses
 }

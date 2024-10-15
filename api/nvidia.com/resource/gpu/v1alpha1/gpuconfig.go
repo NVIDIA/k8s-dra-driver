@@ -84,19 +84,21 @@ func (c *GpuConfig) Normalize() error {
 
 // Validate ensures that GpuConfig has a valid set of values.
 func (c *GpuConfig) Validate() error {
-	if c.DriverConfig != nil {
-		if c.DriverConfig.Driver != NvidiaDriver && c.Sharing != nil {
-			return fmt.Errorf("sharing strategy cannot be provided while using non-nvidia driver")
+	if c.DriverConfig.Driver == NvidiaDriver {
+		if c.Sharing == nil {
+			return fmt.Errorf("no sharing strategy set")
 		}
-		if err := c.DriverConfig.Validate(); err != nil {
+		if err := c.Sharing.Validate(); err != nil {
 			return err
 		}
+	} else {
+		if c.Sharing != nil {
+			return fmt.Errorf("sharing strategy cannot be provided while using non-nvidia driver")
+		}
 	}
-	if c.Sharing == nil {
-		return fmt.Errorf("no sharing strategy set")
-	}
-	if err := c.Sharing.Validate(); err != nil {
+	if err := c.DriverConfig.Validate(); err != nil {
 		return err
 	}
+
 	return nil
 }
