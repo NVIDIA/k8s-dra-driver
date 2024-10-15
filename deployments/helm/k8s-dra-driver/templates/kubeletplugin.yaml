@@ -103,6 +103,12 @@ spec:
         - name: driver-root
           mountPath: /driver-root
           readOnly: true
+        - name: sysfs
+          mountPath: /sys
+          readOnly: false
+        - name: dev-vfio
+          mountPath: /dev/vfio
+          readOnly: false
       volumes:
       - name: plugins-registry
         hostPath:
@@ -116,6 +122,12 @@ spec:
       - name: driver-root
         hostPath:
           path: {{ .Values.nvidiaDriverRoot }}
+      - name: sysfs
+        hostPath:
+          path: /sys
+      - name: dev-vfio
+        hostPath:
+          path: /dev/vfio
       {{- with .Values.kubeletPlugin.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
