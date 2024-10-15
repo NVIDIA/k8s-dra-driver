@@ -17,6 +17,8 @@
 package main
 
 import (
+	"slices"
+
 	resourceapi "k8s.io/api/resource/v1alpha3"
 )
 
@@ -84,6 +86,7 @@ func (d AllocatableDevices) GpuUUIDs() []string {
 			uuids = append(uuids, device.Gpu.UUID)
 		}
 	}
+	slices.Sort(uuids)
 	return uuids
 }
 
@@ -94,9 +97,12 @@ func (d AllocatableDevices) MigDeviceUUIDs() []string {
 			uuids = append(uuids, device.Mig.UUID)
 		}
 	}
+	slices.Sort(uuids)
 	return uuids
 }
 
 func (d AllocatableDevices) UUIDs() []string {
-	return append(d.GpuUUIDs(), d.MigDeviceUUIDs()...)
+	uuids := append(d.GpuUUIDs(), d.MigDeviceUUIDs()...)
+	slices.Sort(uuids)
+	return uuids
 }

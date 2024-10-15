@@ -17,6 +17,8 @@
 package main
 
 import (
+	"slices"
+
 	drapbv1 "k8s.io/kubelet/pkg/apis/dra/v1alpha4"
 )
 
@@ -141,15 +143,21 @@ func (g *PreparedDeviceGroup) GetDevices() []*drapbv1.Device {
 }
 
 func (l PreparedDeviceList) UUIDs() []string {
-	return append(l.GpuUUIDs(), l.MigDeviceUUIDs()...)
+	uuids := append(l.GpuUUIDs(), l.MigDeviceUUIDs()...)
+	slices.Sort(uuids)
+	return uuids
 }
 
 func (g *PreparedDeviceGroup) UUIDs() []string {
-	return append(g.GpuUUIDs(), g.MigDeviceUUIDs()...)
+	uuids := append(g.GpuUUIDs(), g.MigDeviceUUIDs()...)
+	slices.Sort(uuids)
+	return uuids
 }
 
 func (d PreparedDevices) UUIDs() []string {
-	return append(d.GpuUUIDs(), d.MigDeviceUUIDs()...)
+	uuids := append(d.GpuUUIDs(), d.MigDeviceUUIDs()...)
+	slices.Sort(uuids)
+	return uuids
 }
 
 func (l PreparedDeviceList) GpuUUIDs() []string {
@@ -157,6 +165,7 @@ func (l PreparedDeviceList) GpuUUIDs() []string {
 	for _, device := range l.Gpus() {
 		uuids = append(uuids, device.Gpu.Info.UUID)
 	}
+	slices.Sort(uuids)
 	return uuids
 }
 
@@ -169,6 +178,7 @@ func (d PreparedDevices) GpuUUIDs() []string {
 	for _, group := range d {
 		uuids = append(uuids, group.GpuUUIDs()...)
 	}
+	slices.Sort(uuids)
 	return uuids
 }
 
@@ -177,6 +187,7 @@ func (l PreparedDeviceList) MigDeviceUUIDs() []string {
 	for _, device := range l.MigDevices() {
 		uuids = append(uuids, device.Mig.Info.UUID)
 	}
+	slices.Sort(uuids)
 	return uuids
 }
 
@@ -189,5 +200,6 @@ func (d PreparedDevices) MigDeviceUUIDs() []string {
 	for _, group := range d {
 		uuids = append(uuids, group.MigDeviceUUIDs()...)
 	}
+	slices.Sort(uuids)
 	return uuids
 }
