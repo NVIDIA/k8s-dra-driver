@@ -17,10 +17,12 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"golang.org/x/sys/unix"
@@ -28,6 +30,11 @@ import (
 
 	nvdev "github.com/NVIDIA/go-nvlib/pkg/nvlib/device"
 	"github.com/NVIDIA/go-nvml/pkg/nvml"
+)
+
+const (
+	procDevicesPath                  = "/proc/devices"
+	nvidiaCapsImexChannelsDeviceName = "nvidia-caps-imex-channels"
 )
 
 type deviceLib struct {
@@ -400,14 +407,61 @@ func (l deviceLib) getImexChannelCount() (int, error) {
 	return 2048, nil
 }
 
+func (l deviceLib) getImexChannelMajor() (int, error) {
+	file, err := os.Open(procDevicesPath)
+	if err != nil {
+		return -1, err
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	foundCharDevices := false
+
+	for scanner.Scan() {
+		line := scanner.Text()
+
+		// Ignore empty lines
+		if line == "" {
+			continue
+		}
+
+		// Check for any line with text followed by a colon (header)
+		if strings.Contains(line, ":") {
+			// Stop if we've already found the character devices section and reached another section
+			if foundCharDevices {
+				break
+			}
+			// Check if we entered the character devices section
+			if strings.HasSuffix(line, ":") && strings.HasPrefix(line, "Character") {
+				foundCharDevices = true
+			}
+			// Continue to the next line, regardless
+			continue
+		}
+
+		// If we've passed the character devices section, check for nvidiaCapsImexChannelsDeviceName
+		if foundCharDevices {
+			parts := strings.Fields(line)
+			if len(parts) == 2 && parts[1] == nvidiaCapsImexChannelsDeviceName {
+				return strconv.Atoi(parts[0])
+			}
+		}
+	}
+
+	return -1, scanner.Err()
+}
+
 func (l deviceLib) createImexChannelDevice(channel int) error {
 	// Construct the properties of the device node to create.
 	path := fmt.Sprintf("/dev/nvidia-caps-imex-channels/channel%d", channel)
 	path = filepath.Join(l.devRoot, path)
 	mode := uint32(unix.S_IFCHR | 0666)
 
-	// TODO: Pull the major value from /proc/devices
-	major := 236
+	// Get the IMEX channel major and build a /dev device from it
+	major, err := l.getImexChannelMajor()
+	if err != nil {
+		return fmt.Errorf("error getting IMEX channel major: %w", err)
+	}
 	dev := unix.Mkdev(uint32(major), uint32(channel))
 
 	// Recursively create any parent directories of the channel.
