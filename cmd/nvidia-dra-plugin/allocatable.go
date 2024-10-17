@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2022-2024, NVIDIA CORPORATION.  All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -105,4 +105,14 @@ func (d AllocatableDevices) UUIDs() []string {
 	uuids := append(d.GpuUUIDs(), d.MigDeviceUUIDs()...)
 	slices.Sort(uuids)
 	return uuids
+}
+
+func (d AllocatableDevices) PciAddresses() []string {
+	var pciAddresses []string
+	for _, device := range d {
+		if device.Type() == GpuDeviceType {
+			pciAddresses = append(pciAddresses, device.Gpu.PciAddress)
+		}
+	}
+	return pciAddresses
 }

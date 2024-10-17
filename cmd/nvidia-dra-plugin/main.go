@@ -50,6 +50,9 @@ type Flags struct {
 	containerDriverRoot string
 	hostDriverRoot      string
 	nvidiaCTKPath       string
+	pciDevicesRoot      string
+	sysModulesRoot      string
+	vfioDevicesRoot     string
 }
 
 type Config struct {
