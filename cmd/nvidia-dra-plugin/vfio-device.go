@@ -1,3 +1,19 @@
+/*
+ * Copyright (c) 2024, NVIDIA CORPORATION.  All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package main
 
 import (
@@ -36,6 +52,7 @@ func NewVfioPciManager() *VfioPciManager {
 	}
 }
 
+// Init ensures the vfio-pci module is loaded on the host.
 func (vm *VfioPciManager) Init() error {
 	if !vm.isVfioPCIModuleLoaded() {
 		err := vm.loadVfioPciModule()
@@ -45,6 +62,7 @@ func (vm *VfioPciManager) Init() error {
 	}
 	return nil
 }
+
 func (vm *VfioPciManager) isVfioPCIModuleLoaded() bool {
 	modules, err := os.ReadDir(vm.sysModulesRoot)
 	if err != nil {
@@ -71,9 +89,7 @@ func (vm *VfioPciManager) loadVfioPciModule() error {
 	return nil
 }
 
-func init() {
-}
-
+// Configure binds the GPU to the vfio-pci driver.
 func (vm *VfioPciManager) Configure(info *GpuInfo) error {
 	perGpuLock.Get(info.PciAddress).Lock()
 	defer perGpuLock.Get(info.PciAddress).Unlock()
@@ -92,6 +108,7 @@ func (vm *VfioPciManager) Configure(info *GpuInfo) error {
 	return nil
 }
 
+// Unconfigure binds the GPU to the nvidia driver.
 func (vm *VfioPciManager) Unconfigure(info *GpuInfo) error {
 	perGpuLock.Get(info.PciAddress).Lock()
 	defer perGpuLock.Get(info.PciAddress).Unlock()
@@ -159,6 +176,7 @@ func (vm *VfioPciManager) getIommuGroupForVfioPciDevice(pciAddress string) strin
 
 }
 
+// GetCDIContainerEdits returns the CDI spec for a container to have access to the GPU while bound on vfio-pci driver.
 func (vm *VfioPciManager) GetCDIContainerEdits(info *GpuInfo) *cdiapi.ContainerEdits {
 	iommuGroup := vm.getIommuGroupForVfioPciDevice(info.PciAddress)
 	vfioDevicePath := filepath.Join(vm.vfioDevicesRoot, iommuGroup)

@@ -26,12 +26,12 @@ const (
 	VfioPciDriver GpuDriver = "vfio-pci"
 )
 
-// GpuDriverConfig holds the set of parameters for configuring a GPU.
+// GpuDriverConfig holds the set of parameters for configuring a GPU with a driver.
 type GpuDriverConfig struct {
 	Driver GpuDriver `json:"driver"`
 }
 
-// DefaultGpuDriverConfig provides the default GPU configuration.
+// DefaultGpuDriverConfig provides the default configuration of a GPU with a driver.
 func DefaultGpuDriverConfig() *GpuDriverConfig {
 	return &GpuDriverConfig{
 		Driver: NvidiaDriver,

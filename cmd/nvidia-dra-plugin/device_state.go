@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2022-2024, NVIDIA CORPORATION.  All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -39,7 +39,7 @@ type OpaqueDeviceConfig struct {
 
 type DeviceConfigState struct {
 	MpsControlDaemonID string               `json:"mpsControlDaemonID"`
-	GpuConfig          *configapi.GpuConfig `json:"deviceConfig"`
+	GpuConfig          *configapi.GpuConfig `json:"deviceConfig,omitempty"`
 	containerEdits     *cdiapi.ContainerEdits
 }
 
@@ -368,15 +368,17 @@ func (s *DeviceState) unprepareDevices(ctx context.Context, claimUID string, dev
 	return nil
 }
 func (s *DeviceState) unprepareGpus(ctx context.Context, config *configapi.GpuConfig, devices PreparedDeviceList) error {
-	// Only unprepare if gpu was bound to vfio-pci driver.
-	if config.DriverConfig.Driver != configapi.VfioPciDriver {
-		return nil
-	}
-
-	for _, device := range devices {
-		if err := s.vfioPciManager.Unconfigure(device.Gpu.Info); err != nil {
-			return fmt.Errorf("error unconfiguring vfio-pci device: %w", err)
+	if config.DriverConfig.Driver == configapi.VfioPciDriver {
+		for _, device := range devices {
+			if err := s.vfioPciManager.Unconfigure(device.Gpu.Info); err != nil {
+				return fmt.Errorf("error unconfiguring vfio-pci device: %w", err)
+			}
 		}
+	}
+	// Go back to default time-slicing for all full GPUs.
+	tsc := configapi.DefaultGpuConfig().Sharing.TimeSlicingConfig
+	if err := s.tsManager.SetTimeSlice(devices, tsc); err != nil {
+		return fmt.Errorf("error setting timeslice for devices: %w", err)
 	}
 	return nil
 }
@@ -394,7 +396,7 @@ func (s *DeviceState) applyConfig(ctx context.Context, config configapi.Interfac
 	case *configapi.ImexChannelConfig:
 		err = s.applyImexChannelConfig(ctx, castConfig, claim, results, &configState)
 	default:
-		return nil, fmt.Errorf("unknown config type: %T", castConfig)
+		err = fmt.Errorf("unknown config type: %T", castConfig)
 	}
 	if err != nil {
 		return nil, err
@@ -410,7 +412,7 @@ func (s *DeviceState) applyGpuConfig(ctx context.Context, config *configapi.GpuC
 		}
 	}
 	if config.DriverConfig != nil {
-		err := s.applyGpuDriverConfig(ctx, config.DriverConfig, claim, results, configState)
+		err := s.applyGpuDriverConfig(ctx, config.DriverConfig, results, configState)
 		if err != nil {
 			return err
 		}
@@ -478,13 +480,7 @@ func (s *DeviceState) applyImexChannelConfig(ctx context.Context, config *config
 	return nil
 }
 
-func (s *DeviceState) applyGpuDriverConfig(ctx context.Context, config *configapi.GpuDriverConfig, claim *resourceapi.ResourceClaim, results []*resourceapi.DeviceRequestAllocationResult, configState *DeviceConfigState) error {
-	// Get the list of claim requests this config is being applied over.
-	var requests []string
-	for _, r := range results {
-		requests = append(requests, r.Request)
-	}
-
+func (s *DeviceState) applyGpuDriverConfig(ctx context.Context, config *configapi.GpuDriverConfig, results []*resourceapi.DeviceRequestAllocationResult, configState *DeviceConfigState) error {
 	// Get the list of allocatable devices this config is being applied over.
 	allocatableDevices := make(AllocatableDevices)
 	for _, r := range results {
@@ -492,7 +488,7 @@ func (s *DeviceState) applyGpuDriverConfig(ctx context.Context, config *configap
 	}
 
 	if config.Driver == configapi.VfioPciDriver {
-		// Apply VfioPci settings.
+		// Apply vfio-pci driver settings.
 		for _, r := range results {
 			info := allocatableDevices[r.Device]
 			err := s.vfioPciManager.Configure(info.Gpu)
