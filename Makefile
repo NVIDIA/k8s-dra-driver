@@ -15,6 +15,7 @@
 DOCKER   ?= docker
 MKDIR    ?= mkdir
 TR       ?= tr
+CC       ?= cc
 DIST_DIR ?= $(CURDIR)/dist
 
 include $(CURDIR)/common.mk
@@ -40,6 +41,7 @@ DOCKERFILE_DEVEL ?= "images/devel/Dockerfile"
 DOCKERFILE_CONTEXT ?= "https://github.com/NVIDIA/k8s-test-infra.git"
 
 GOOS ?= linux
+GOARCH ?= $(shell uname -m | sed -e 's,aarch64,arm64,' -e 's,x86_64,amd64,')
 ifeq ($(VERSION),)
 CLI_VERSION = $(LIB_VERSION)$(if $(LIB_TAG),-$(LIB_TAG))
 else
@@ -53,15 +55,16 @@ cmd-%: COMMAND_BUILD_OPTIONS = -o $(PREFIX)/$(*)
 endif
 cmds: $(CMD_TARGETS)
 $(CMD_TARGETS): cmd-%:
-	CGO_LDFLAGS_ALLOW='-Wl,--unresolved-symbols=ignore-in-object-files' GOOS=$(GOOS) \
+	CGO_LDFLAGS_ALLOW='-Wl,--unresolved-symbols=ignore-in-object-files' \
+		CC=$(CC) CGO_ENABLED=1 GOOS=$(GOOS) GOARCH=$(GOARCH) \
 		go build -ldflags "-s -w -X $(CLI_VERSION_PACKAGE).gitCommit=$(GIT_COMMIT) -X $(CLI_VERSION_PACKAGE).version=$(CLI_VERSION)" $(COMMAND_BUILD_OPTIONS) $(MODULE)/cmd/$(*)
 
 build:
-	GOOS=$(GOOS) go build ./...
+	CC=$(CC) GOOS=$(GOOS) GOARCH=$(GOARCH) go build ./...
 
 examples: $(EXAMPLE_TARGETS)
 $(EXAMPLE_TARGETS): example-%:
-	GOOS=$(GOOS) go build ./examples/$(*)
+	CC=$(CC) GOOS=$(GOOS) GOARCH=$(GOARCH) go build ./examples/$(*)
 
 all: check test build binaries
 check: $(CHECK_TARGETS)
