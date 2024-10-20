@@ -34,6 +34,8 @@ selectorLabelsOverride: {}
 
 allowDefaultNamespace: false
 
+deviceClasses: ["gpu", "mig", "imex"]
+
 imagePullSecrets: []
 image:
   repository: nvcr.io/nvidia/cloud-native/k8s-dra-driver

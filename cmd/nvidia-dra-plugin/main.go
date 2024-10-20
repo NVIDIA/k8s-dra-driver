@@ -25,6 +25,7 @@ import (
 
 	"github.com/urfave/cli/v2"
 
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog/v2"
 
 	"github.com/NVIDIA/k8s-dra-driver/internal/info"
@@ -50,6 +51,7 @@ type Flags struct {
 	containerDriverRoot string
 	hostDriverRoot      string
 	nvidiaCTKPath       string
+	deviceClasses       sets.Set[string]
 }
 
 type Config struct {
@@ -112,6 +114,12 @@ func newApp() *cli.App {
 			Destination: &flags.nvidiaCTKPath,
 			EnvVars:     []string{"NVIDIA_CTK_PATH"},
 		},
+		&cli.StringSliceFlag{
+			Name:    "device-classes",
+			Usage:   "The supported set of DRA device classes",
+			Value:   cli.NewStringSlice(GpuDeviceType, MigDeviceType, ImexChannelType),
+			EnvVars: []string{"DEVICE_CLASSES"},
+		},
 	}
 	cliFlags = append(cliFlags, flags.kubeClientConfig.Flags()...)
 	cliFlags = append(cliFlags, flags.loggingConfig.Flags()...)
@@ -130,6 +138,8 @@ func newApp() *cli.App {
 		},
 		Action: func(c *cli.Context) error {
 			ctx := c.Context
+			flags.deviceClasses = sets.New[string](c.StringSlice("device-classes")...)
+
 			clientSets, err := flags.kubeClientConfig.NewClientSets()
 			if err != nil {
 				return fmt.Errorf("create client: %w", err)
