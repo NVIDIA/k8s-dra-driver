@@ -54,8 +54,7 @@ controller:
   priorityClassName: "system-node-critical"
   podAnnotations: {}
   podSecurityContext: {}
-  nodeSelector:
-    nvidia.com/dra.controller: "true"
+  nodeSelector: {}
   tolerations:
   - key: node-role.kubernetes.io/master
     operator: Exists
@@ -75,10 +74,8 @@ kubeletPlugin:
     type: RollingUpdate
   podAnnotations: {}
   podSecurityContext: {}
-  nodeSelector:
-    nvidia.com/dra.kubelet-plugin: "true"
+  nodeSelector: {}
   tolerations: []
-  affinity: {}
   containers:
     init:
       securityContext: {}
@@ -87,3 +84,25 @@ kubeletPlugin:
       securityContext:
         privileged: true
       resources: {}
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          # On discrete-GPU based systems NFD adds the following label where 10de is the NVIDIA PCI vendor ID
+          - key: feature.node.kubernetes.io/pci-10de.present
+            operator: In
+            values:
+            - "true"
+        - matchExpressions:
+          # On some Tegra-based systems NFD detects the CPU vendor ID as NVIDIA
+          - key: feature.node.kubernetes.io/cpu-model.vendor_id
+            operator: In
+            values:
+            - "NVIDIA"
+        - matchExpressions:
+          # We allow a GPU deployment to be forced by setting the following label to "true"
+          - key: "nvidia.com/gpu.present"
+            operator: In
+            values:
+            - "true"

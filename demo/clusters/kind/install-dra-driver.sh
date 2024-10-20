@@ -22,9 +22,6 @@ set -o pipefail
 
 source "${CURRENT_DIR}/scripts/common.sh"
 
-kubectl label node -l node-role.x-k8s.io/worker --overwrite nvidia.com/dra.kubelet-plugin=true
-kubectl label node -l node-role.x-k8s.io/control-plane --overwrite nvidia.com/dra.controller=true
-
 helm upgrade -i --create-namespace --namespace nvidia nvidia-dra-driver ${PROJECT_DIR}/deployments/helm/k8s-dra-driver \
     ${NVIDIA_DRIVER_ROOT:+--set nvidiaDriverRoot=${NVIDIA_DRIVER_ROOT}} \
     --wait
