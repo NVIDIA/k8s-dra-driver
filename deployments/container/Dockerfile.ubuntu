@@ -16,24 +16,15 @@ ARG GOLANG_VERSION=1.23.1
 ARG CUDA_IMAGE=cuda
 ARG CUDA_VERSION=11.8.0
 ARG BASE_DIST=ubuntu20.04
-FROM nvidia/cuda:${CUDA_VERSION}-base-${BASE_DIST} as build
+FROM --platform=${BUILDOS}/amd64 nvidia/cuda:${CUDA_VERSION}-base-${BASE_DIST} as build
 
 RUN apt-get update && \
-    apt-get install -y wget make git gcc \
+    apt-get install -y wget make git gcc-aarch64-linux-gnu gcc \
     && \
     rm -rf /var/lib/apt/lists/*
 
 ARG GOLANG_VERSION=x.x.x
-RUN set -eux; \
-    \
-    arch="$(uname -m)"; \
-    case "${arch##*-}" in \
-        x86_64 | amd64) ARCH='amd64' ;; \
-        ppc64el | ppc64le) ARCH='ppc64le' ;; \
-        aarch64 | arm64) ARCH='arm64' ;; \
-        *) echo "unsupported architecture" ; exit 1 ;; \
-    esac; \
-    wget -nv -O - https://storage.googleapis.com/golang/go${GOLANG_VERSION}.linux-${ARCH}.tar.gz \
+RUN wget -nv -O - https://storage.googleapis.com/golang/go${GOLANG_VERSION}.linux-amd64.tar.gz \
     | tar -C /usr/local -xz
 
 ENV GOPATH /go
@@ -42,10 +33,16 @@ ENV PATH $GOPATH/bin:/usr/local/go/bin:$PATH
 WORKDIR /build
 COPY . .
 
+ARG TARGETARCH
 RUN mkdir /artifacts
 ARG VERSION="N/A"
 ARG GIT_COMMIT="unknown"
-RUN make PREFIX=/artifacts cmds
+RUN if [ "$TARGETARCH" = "amd64" ]; then \
+        cc=gcc; \
+    elif [ "$TARGETARCH" = "arm64" ]; then \
+        cc=aarch64-linux-gnu-gcc; \
+    fi && \
+    make CC=${cc} GOARCH=${TARGETARCH} PREFIX=/artifacts cmds
 
 FROM nvidia/${CUDA_IMAGE}:${CUDA_VERSION}-base-${BASE_DIST}
 
