@@ -30,7 +30,6 @@ import (
 
 type driver struct {
 	sync.Mutex
-	doneCh chan struct{}
 	client coreclientset.Interface
 	plugin kubeletplugin.DRAPlugin
 	state  *DeviceState
@@ -79,7 +78,7 @@ func NewDriver(ctx context.Context, config *Config) (*driver, error) {
 }
 
 func (d *driver) Shutdown(ctx context.Context) error {
-	close(d.doneCh)
+	d.plugin.Stop()
 	return nil
 }
 
