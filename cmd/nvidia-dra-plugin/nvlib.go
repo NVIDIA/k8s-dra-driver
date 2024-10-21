@@ -108,36 +108,66 @@ func (l deviceLib) alwaysShutdown() {
 	}
 }
 
-func (l deviceLib) enumerateAllPossibleDevices() (AllocatableDevices, error) {
+func (l deviceLib) enumerateAllPossibleDevices(config *Config) (AllocatableDevices, error) {
+	alldevices := make(AllocatableDevices)
+	deviceClasses := config.flags.deviceClasses
+
+	if deviceClasses.Has(GpuDeviceType) || deviceClasses.Has(MigDeviceType) {
+		gms, err := l.enumerateGpusAndMigDevices(config)
+		if err != nil {
+			return nil, fmt.Errorf("error enumerating IMEX devices: %w", err)
+		}
+		for k, v := range gms {
+			alldevices[k] = v
+		}
+	}
+
+	if deviceClasses.Has(ImexChannelType) {
+		imex, err := l.enumerateImexChannels(config)
+		if err != nil {
+			return nil, fmt.Errorf("error enumerating IMEX devices: %w", err)
+		}
+		for k, v := range imex {
+			alldevices[k] = v
+		}
+	}
+
+	return alldevices, nil
+}
+
+func (l deviceLib) enumerateGpusAndMigDevices(config *Config) (AllocatableDevices, error) {
 	if err := l.Init(); err != nil {
 		return nil, err
 	}
 	defer l.alwaysShutdown()
 
-	alldevices := make(AllocatableDevices)
+	devices := make(AllocatableDevices)
+	deviceClasses := config.flags.deviceClasses
 	err := l.VisitDevices(func(i int, d nvdev.Device) error {
 		gpuInfo, err := l.getGpuInfo(i, d)
 		if err != nil {
 			return fmt.Errorf("error getting info for GPU %d: %w", i, err)
 		}
 
-		migs, err := l.getMigDevices(gpuInfo)
-		if err != nil {
-			return fmt.Errorf("error getting MIG devices for GPU %d: %w", i, err)
-		}
-
-		for _, migDeviceInfo := range migs {
-			deviceInfo := &AllocatableDevice{
-				Mig: migDeviceInfo,
-			}
-			alldevices[migDeviceInfo.CanonicalName()] = deviceInfo
-		}
-
-		if !gpuInfo.migEnabled && len(migs) == 0 {
+		if deviceClasses.Has(GpuDeviceType) && !gpuInfo.migEnabled {
 			deviceInfo := &AllocatableDevice{
 				Gpu: gpuInfo,
 			}
-			alldevices[gpuInfo.CanonicalName()] = deviceInfo
+			devices[gpuInfo.CanonicalName()] = deviceInfo
+		}
+
+		if deviceClasses.Has(MigDeviceType) {
+			migs, err := l.getMigDevices(gpuInfo)
+			if err != nil {
+				return fmt.Errorf("error getting MIG devices for GPU %d: %w", i, err)
+			}
+
+			for _, migDeviceInfo := range migs {
+				deviceInfo := &AllocatableDevice{
+					Mig: migDeviceInfo,
+				}
+				devices[migDeviceInfo.CanonicalName()] = deviceInfo
+			}
 		}
 
 		return nil
@@ -145,6 +175,12 @@ func (l deviceLib) enumerateAllPossibleDevices() (AllocatableDevices, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error visiting devices: %w", err)
 	}
+
+	return devices, nil
+}
+
+func (l deviceLib) enumerateImexChannels(config *Config) (AllocatableDevices, error) {
+	devices := make(AllocatableDevices)
 
 	imexChannelCount, err := l.getImexChannelCount()
 	if err != nil {
@@ -157,10 +193,10 @@ func (l deviceLib) enumerateAllPossibleDevices() (AllocatableDevices, error) {
 		deviceInfo := &AllocatableDevice{
 			ImexChannel: imexChannelInfo,
 		}
-		alldevices[imexChannelInfo.CanonicalName()] = deviceInfo
+		devices[imexChannelInfo.CanonicalName()] = deviceInfo
 	}
 
-	return alldevices, nil
+	return devices, nil
 }
 
 func (l deviceLib) getGpuInfo(index int, device nvdev.Device) (*GpuInfo, error) {

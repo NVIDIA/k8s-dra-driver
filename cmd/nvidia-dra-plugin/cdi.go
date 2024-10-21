@@ -172,6 +172,13 @@ func (cdi *CDIHandler) CreateStandardDeviceSpecFile(allocatable AllocatableDevic
 		return fmt.Errorf("failed to get common CDI spec edits: %w", err)
 	}
 
+	// Make sure that NVIDIA_VISIBLE_DEVICES is set to void to avoid the
+	// nvidia-container-runtime honoring it in addition to the underlying
+	// runtime honoring CDI.
+	commonEdits.ContainerEdits.Env = append(
+		commonEdits.ContainerEdits.Env,
+		"NVIDIA_VISIBLE_DEVICES=void")
+
 	// Generate device specs for all full GPUs and MIG devices.
 	var deviceSpecs []cdispec.Device
 	for _, device := range allocatable {
@@ -223,25 +230,16 @@ func (cdi *CDIHandler) CreateClaimSpecFile(claimUID string, preparedDevices Prep
 	// Generate claim specific specs for each device.
 	var deviceSpecs []cdispec.Device
 	for _, group := range preparedDevices {
-		// Include this per-device, rather than as a top-level edit so that
-		// each device spec is never empty and the spec file gets created
-		// without error.
-		claimDeviceEdits := cdiapi.ContainerEdits{
-			ContainerEdits: &cdispec.ContainerEdits{
-				Env: []string{
-					"NVIDIA_VISIBLE_DEVICES=void",
-				},
-			},
+		// If there are no edits passed back as prt of the device config state, skip it
+		if group.ConfigState.containerEdits == nil {
+			continue
 		}
 
-		// Apply any edits passed back as part of the device config state.
-		claimDeviceEdits.Append(group.ConfigState.containerEdits)
-
-		// Apply edits to all devices.
+		// Apply any edits passed back as part of the device config state to all devices
 		for _, device := range group.Devices {
 			deviceSpec := cdispec.Device{
 				Name:           fmt.Sprintf("%s-%s", claimUID, device.CanonicalName()),
-				ContainerEdits: *claimDeviceEdits.ContainerEdits,
+				ContainerEdits: *group.ConfigState.containerEdits.ContainerEdits,
 			}
 
 			deviceSpecs = append(deviceSpecs, deviceSpec)

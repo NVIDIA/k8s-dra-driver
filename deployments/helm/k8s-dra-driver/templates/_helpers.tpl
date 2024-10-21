@@ -95,3 +95,35 @@ Create the name of the service account to use
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}
 {{- end }}
+
+{{/*
+Check for the existence of an element in a list
+*/}}
+{{- define "k8s-dra-driver.listHas" -}}
+  {{- $listToCheck := index . 0 }}
+  {{- $valueToCheck := index . 1 }}
+
+  {{- $found := "" -}}
+  {{- range $listToCheck}}
+    {{- if eq . $valueToCheck }}
+      {{- $found = "true" -}}
+    {{- end }}
+  {{- end }}
+  {{- $found -}}
+{{- end }}
+
+{{/*
+Filter a list by a set of valid values
+*/}}
+{{- define "k8s-dra-driver.filterList" -}}
+  {{- $listToFilter := index . 0 }}
+  {{- $validValues := index . 1 }}
+
+  {{- $result := list -}}
+  {{- range $validValues}}
+    {{- if include "k8s-dra-driver.listHas" (list $listToFilter .) }}
+      {{- $result = append $result . }}
+    {{- end }}
+  {{- end }}
+  {{- $result -}}
+{{- end -}}

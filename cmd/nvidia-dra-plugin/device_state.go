@@ -61,7 +61,7 @@ func NewDeviceState(ctx context.Context, config *Config) (*DeviceState, error) {
 		return nil, fmt.Errorf("failed to create device library: %w", err)
 	}
 
-	allocatable, err := nvdevlib.enumerateAllPossibleDevices()
+	allocatable, err := nvdevlib.enumerateAllPossibleDevices(config)
 	if err != nil {
 		return nil, fmt.Errorf("error enumerating all possible devices: %w", err)
 	}

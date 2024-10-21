@@ -22,9 +22,3 @@ const (
 	ImexChannelType   = "imex"
 	UnknownDeviceType = "unknown"
 )
-
-type UUIDProvider interface {
-	UUIDs() []string
-	GpuUUIDs() []string
-	MigDeviceUUIDs() []string
-}
