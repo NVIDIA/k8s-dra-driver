@@ -17,12 +17,15 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"net/http"
 	"net/http/pprof"
 	"os"
+	"os/signal"
 	"path"
+	"syscall"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -132,7 +135,6 @@ func newApp() *cli.App {
 			return flags.loggingConfig.Apply()
 		},
 		Action: func(c *cli.Context) error {
-			ctx := c.Context
 			mux := http.NewServeMux()
 			flags.deviceClasses = sets.New[string](c.StringSlice("device-classes")...)
 
@@ -154,14 +156,26 @@ func newApp() *cli.App {
 				}
 			}
 
+			sigs := make(chan os.Signal, 1)
+			signal.Notify(sigs, syscall.SIGTERM, syscall.SIGINT)
+
+			var imexManager *ImexManager
+			ctx, cancel := context.WithCancel(c.Context)
+			defer func() {
+				cancel()
+				if err := imexManager.Stop(); err != nil {
+					klog.Errorf("Error stopping IMEX manager: %v", err)
+				}
+			}()
+
 			if flags.deviceClasses.Has(ImexChannelType) {
-				err = StartIMEXManager(ctx, config)
+				imexManager, err = StartIMEXManager(ctx, config)
 				if err != nil {
 					return fmt.Errorf("start IMEX manager: %w", err)
 				}
 			}
 
-			<-ctx.Done()
+			<-sigs
 
 			return nil
 		},
