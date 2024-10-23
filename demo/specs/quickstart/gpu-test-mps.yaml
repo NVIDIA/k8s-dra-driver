@@ -45,7 +45,7 @@ spec:
   containers:
   - name: ctr
     image: nvcr.io/nvidia/k8s/cuda-sample:nbody-cuda11.7.1-ubuntu18.04
-    args: ["--benchmark", "--numbodies=4226000"]
+    args: ["--benchmark", "--numbodies=4226048"]
     resources:
       claims:
       - name: gpu
