@@ -19,6 +19,8 @@ package main
 import (
 	"context"
 	"fmt"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -105,6 +107,8 @@ func (m *ImexManager) manageResourceSlices(ctx context.Context, owner resourcesl
 		return fmt.Errorf("error starting resource slice controller: %w", err)
 	}
 
+	imexChannelPool := make(map[string]int)
+
 	m.waitGroup.Add(1)
 	go func() {
 		defer m.waitGroup.Done()
@@ -112,12 +116,20 @@ func (m *ImexManager) manageResourceSlices(ctx context.Context, owner resourcesl
 			select {
 			case addedDomain := <-addedDomainsCh:
 				klog.Infof("Adding channels for new IMEX domain: %v", addedDomain)
+				id := strings.Split(addedDomain, ".")
+				clique, err := strconv.Atoi(id[1])
+				if err != nil {
+					klog.Errorf("Error converting string to int: %v", err)
+				}
+				imexChannelPool[id[0]] = clique
 				newDriverResources := DriverResources(driverResources).DeepCopy()
-				newDriverResources.Pools[addedDomain] = generateImexChannelPool(addedDomain, ImexChannelLimit)
+				newDriverResources.Pools[addedDomain] = generateImexChannelPool(id[0], clique)
 				controller.Update(&newDriverResources)
 				driverResources = newDriverResources
 			case removedDomain := <-removedDomainsCh:
 				klog.Infof("Removing channels for removed IMEX domain: %v", removedDomain)
+				id := strings.Split(removedDomain, ".")
+				delete(imexChannelPool, id[0])
 				newDriverResources := DriverResources(driverResources).DeepCopy()
 				delete(newDriverResources.Pools, removedDomain)
 				controller.Update(&newDriverResources)
@@ -152,7 +164,12 @@ func (d DriverResources) DeepCopy() resourceslice.DriverResources {
 		Pools: make(map[string]resourceslice.Pool),
 	}
 	for p := range d.Pools {
-		driverResources.Pools[p] = generateImexChannelPool(p, ImexChannelLimit)
+		id := strings.Split(p, ".")
+		clique, err := strconv.Atoi(id[1])
+		if err != nil {
+			klog.Errorf("Error converting string to int: %v", err)
+		}
+		driverResources.Pools[p] = generateImexChannelPool(id[0], clique)
 	}
 	return driverResources
 }
@@ -249,10 +266,10 @@ func (m *ImexManager) streamImexDomains(ctx context.Context) (<-chan string, <-c
 }
 
 // generateImexChannelPool generates the contents of a ResourceSlice pool for a given IMEX domain.
-func generateImexChannelPool(imexDomain string, numChannels int) resourceslice.Pool {
-	// Generate dchannels from 0 to numChannels
+func generateImexChannelPool(imexDomain string, cliqueid int) resourceslice.Pool {
+	// Generate dchannels from ImexChannelLimit*(cliqueid-1) to ImexChannelLimit*(cliqueid)
 	var devices []resourceapi.Device
-	for i := 0; i < numChannels; i++ {
+	for i := (ImexChannelLimit * (cliqueid - 1)); i < ImexChannelLimit*(cliqueid); i++ {
 		d := resourceapi.Device{
 			Name: fmt.Sprintf("imex-channel-%d", i),
 			Basic: &resourceapi.BasicDevice{
@@ -279,7 +296,7 @@ func generateImexChannelPool(imexDomain string, numChannels int) resourceslice.P
 							Key:      ImexDomainLabel,
 							Operator: v1.NodeSelectorOpIn,
 							Values: []string{
-								imexDomain,
+								strings.Join([]string{imexDomain, strconv.Itoa(cliqueid)}, "."),
 							},
 						},
 					},
