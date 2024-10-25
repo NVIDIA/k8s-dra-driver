@@ -22,6 +22,8 @@ set -o pipefail
 
 source "${CURRENT_DIR}/scripts/common.sh"
 
+kubectl label node -l node-role.x-k8s.io/worker --overwrite nvidia.com/gpu.present=true
+
 deviceClasses=${1:-"gpu,mig,imex"}
 helm upgrade -i --create-namespace --namespace nvidia nvidia-dra-driver ${PROJECT_DIR}/deployments/helm/k8s-dra-driver \
     --set deviceClasses="{${deviceClasses}}" \
