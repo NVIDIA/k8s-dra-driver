@@ -18,6 +18,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -41,7 +42,11 @@ const (
 	ImexDomainLabel               = "nvidia.com/gpu.imex-domain"
 	ResourceSliceImexChannelLimit = 128
 	DriverImexChannelLimit        = 2048
+	RetryTimeout                  = 1 * time.Minute
 )
+
+// transientError defines an error indicating that it is transient.
+type transientError struct{ error }
 
 // imexDomainOffsets represents the offset for assigning IMEX channels
 // to ResourceSlices for each <imex-domain, cliqueid> combination.
@@ -51,6 +56,7 @@ type ImexManager struct {
 	driverName                    string
 	resourceSliceImexChannelLimit int
 	driverImexChannelLimit        int
+	retryTimeout                  time.Duration
 	waitGroup                     sync.WaitGroup
 	clientset                     kubernetes.Interface
 	imexDomainOffsets             imexDomainOffsets
@@ -95,6 +101,7 @@ func StartIMEXManager(ctx context.Context, config *Config) (*ImexManager, error)
 		driverName:                    DriverName,
 		resourceSliceImexChannelLimit: ResourceSliceImexChannelLimit,
 		driverImexChannelLimit:        DriverImexChannelLimit,
+		retryTimeout:                  RetryTimeout,
 		clientset:                     clientset,
 		owner:                         owner,
 		driverResources:               driverResources,
@@ -133,14 +140,26 @@ func (m *ImexManager) manageResourceSlices(ctx context.Context) error {
 				klog.Infof("Adding channels for new IMEX domain: %v", addedDomain)
 				if err := m.addImexDomain(addedDomain); err != nil {
 					klog.Errorf("Error adding channels for IMEX domain %s: %v", addedDomain, err)
-					return
+					if errors.As(err, &transientError{}) {
+						klog.Infof("Retrying adding channels for IMEX domain %s after %v", addedDomain, m.retryTimeout)
+						go func() {
+							time.Sleep(m.retryTimeout)
+							addedDomainsCh <- addedDomain
+						}()
+					}
 				}
 				controller.Update(m.driverResources)
 			case removedDomain := <-removedDomainsCh:
 				klog.Infof("Removing channels for removed IMEX domain: %v", removedDomain)
 				if err := m.removeImexDomain(removedDomain); err != nil {
 					klog.Errorf("Error removing channels for IMEX domain %s: %v", removedDomain, err)
-					return
+					if errors.As(err, &transientError{}) {
+						klog.Infof("Retrying removing channels for IMEX domain %s after %v", removedDomain, m.retryTimeout)
+						go func() {
+							time.Sleep(m.retryTimeout)
+							removedDomainsCh <- removedDomain
+						}()
+					}
 				}
 				controller.Update(m.driverResources)
 			case <-ctx.Done():
@@ -334,7 +353,7 @@ func (offsets imexDomainOffsets) add(imexDomainID string, cliqueID string, resou
 
 	// If we reach the limit, return an error
 	if offset == driverImexChannelLimit {
-		return -1, fmt.Errorf("channel limit reached")
+		return -1, transientError{fmt.Errorf("channel limit reached")}
 	}
 	offsets[imexDomainID][cliqueID] = offset
 
