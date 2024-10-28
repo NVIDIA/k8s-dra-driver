@@ -9,42 +9,37 @@ metadata:
   name: gpu-test6
 
 ---
-apiVersion: gpu.resource.nvidia.com/v1alpha1
-kind: GpuClaimParameters
-metadata:
-  namespace: gpu-test6
-  name: a100
-spec:
-  count: 1
-  selector:
-    andExpression:
-    - productName: "*a100*"
-    - orExpression:
-      - index: 0
-      - index: 2
-      - index: 4
-      - index: 6
-    - orExpression:
-      - migEnabled: true
-      - migEnabled: false
-  sharing:
-    strategy: TimeSlicing
-    timeSlicingConfig:
-      timeSlice: Long
-
----
-apiVersion: resource.k8s.io/v1alpha2
+apiVersion: resource.k8s.io/v1alpha3
 kind: ResourceClaimTemplate
 metadata:
   namespace: gpu-test6
   name: a100
 spec:
   spec:
-    resourceClassName: gpu.nvidia.com
-    parametersRef:
-      apiGroup: gpu.resource.nvidia.com
-      kind: GpuClaimParameters
-      name: a100
+    devices:
+      requests:
+      - name: gpu
+        deviceClassName: gpu.nvidia.com
+        selectors:
+        - cel:
+            expression: |
+              device.attributes['gpu.nvidia.com'].productName.lowerAscii().matches('^.*a100.*$')
+              &&
+              (device.attributes['gpu.nvidia.com'].index == 0 ||
+               device.attributes['gpu.nvidia.com'].index == 2 ||
+               device.attributes['gpu.nvidia.com'].index == 4 ||
+               device.attributes['gpu.nvidia.com'].index == 6)
+      config:
+      - requests: ["gpu"]
+        opaque:
+          driver: gpu.nvidia.com
+          parameters:
+            apiVersion: gpu.nvidia.com/v1alpha1
+            kind: GpuConfig
+            sharing:
+              strategy: TimeSlicing
+              timeSlicingConfig:
+                interval: Long
 
 ---
 apiVersion: apps/v1
@@ -64,10 +59,6 @@ spec:
       labels:
         app: pod
     spec:
-      resourceClaims:
-      - name: a100
-        source:
-          resourceClaimTemplateName: a100
       containers:
       - name: ctr
         image: ubuntu:22.04
@@ -76,3 +67,6 @@ spec:
         resources:
           claims:
           - name: a100
+      resourceClaims:
+      - name: a100
+        resourceClaimTemplateName: a100
