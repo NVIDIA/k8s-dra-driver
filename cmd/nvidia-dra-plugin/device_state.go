@@ -309,7 +309,7 @@ func (s *DeviceState) prepareDevices(ctx context.Context, claim *resourceapi.Res
 			if d := s.cdi.GetStandardDevice(s.allocatable[result.Device]); d != "" {
 				cdiDevices = append(cdiDevices, d)
 			}
-			if d := s.cdi.GetClaimDevice(string(claim.UID), s.allocatable[result.Device]); d != "" {
+			if d := s.cdi.GetClaimDevice(string(claim.UID), s.allocatable[result.Device], preparedDeviceGroupConfigState[c].containerEdits); d != "" {
 				cdiDevices = append(cdiDevices, d)
 			}
 

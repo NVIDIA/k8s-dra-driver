@@ -230,7 +230,7 @@ func (cdi *CDIHandler) CreateClaimSpecFile(claimUID string, preparedDevices Prep
 	// Generate claim specific specs for each device.
 	var deviceSpecs []cdispec.Device
 	for _, group := range preparedDevices {
-		// If there are no edits passed back as prt of the device config state, skip it
+		// If there are no edits passed back as part of the device config state, skip it
 		if group.ConfigState.containerEdits == nil {
 			continue
 		}
@@ -290,6 +290,9 @@ func (cdi *CDIHandler) GetStandardDevice(device *AllocatableDevice) string {
 	return cdiparser.QualifiedName(cdiVendor, cdiDeviceClass, device.CanonicalName())
 }
 
-func (cdi *CDIHandler) GetClaimDevice(claimUID string, device *AllocatableDevice) string {
+func (cdi *CDIHandler) GetClaimDevice(claimUID string, device *AllocatableDevice, containerEdits *cdiapi.ContainerEdits) string {
+	if containerEdits == nil {
+		return ""
+	}
 	return cdiparser.QualifiedName(cdiVendor, cdiClaimClass, fmt.Sprintf("%s-%s", claimUID, device.CanonicalName()))
 }
