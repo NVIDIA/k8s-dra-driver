@@ -115,7 +115,7 @@ func (l deviceLib) enumerateAllPossibleDevices(config *Config) (AllocatableDevic
 	if deviceClasses.Has(GpuDeviceType) || deviceClasses.Has(MigDeviceType) {
 		gms, err := l.enumerateGpusAndMigDevices(config)
 		if err != nil {
-			return nil, fmt.Errorf("error enumerating IMEX devices: %w", err)
+			return nil, fmt.Errorf("error enumerating GPUs and MIG devices: %w", err)
 		}
 		for k, v := range gms {
 			alldevices[k] = v
