@@ -1,55 +1,59 @@
+# One pod, 2 containers share GPU using MPS
 ---
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: sharing-demo
-
-
+  name: gpu-test-mps
 ---
-apiVersion: resource.k8s.io/v1alpha2
-kind: ResourceClaim
+apiVersion: resource.k8s.io/v1alpha3
+kind: ResourceClaimTemplate
 metadata:
-  namespace: sharing-demo
-  name: gpu-mps-sharing
+  namespace: gpu-test-mps
+  name: shared-gpu
 spec:
-  resourceClassName: gpu.nvidia.com
-  parametersRef:
-    apiGroup: gpu.resource.nvidia.com
-    kind: GpuClaimParameters
-    name: gpu-mps-sharing
-
----
-apiVersion: gpu.resource.nvidia.com/v1alpha1
-kind: GpuClaimParameters
-metadata:
-  namespace: sharing-demo
-  name: gpu-mps-sharing
-spec:
-  sharing:
-    strategy: MPS
-    mpsConfig:
-      defaultActiveThreadPercentage: 50
-      defaultPinnedDeviceMemoryLimit: 10Gi
-      # defaultPerDevicePinnedMemoryLimit:
-      #   0: 5Gi
-
+  spec:
+    devices:
+      requests:
+      - name: mps-gpu
+        deviceClassName: gpu.nvidia.com
+      config:
+      - requests: ["mps-gpu"]
+        opaque:
+          driver: gpu.nvidia.com
+          parameters:
+            apiVersion: gpu.nvidia.com/v1alpha1
+            kind: GpuConfig
+            sharing:
+              strategy: MPS
+              mpsConfig:
+                defaultActiveThreadPercentage: 50
+                defaultPinnedDeviceMemoryLimit: 10Gi
 ---
 apiVersion: v1
 kind: Pod
 metadata:
-  namespace: sharing-demo
-  name: pod1
+  namespace: gpu-test-mps
+  name: test-pod
   labels:
     app: pod
 spec:
   containers:
-  - name: ctr
-    image: nvcr.io/nvidia/k8s/cuda-sample:nbody-cuda11.7.1-ubuntu18.04
-    args: ["--benchmark", "--numbodies=4226000"]
+  - name: mps-ctr0
+    image: nvcr.io/nvidia/k8s/cuda-sample:nbody-cuda11.6.0-ubuntu18.04
+    command: ["bash", "-c"]
+    args: ["trap 'exit 0' TERM; /tmp/sample --benchmark --numbodies=4226000 & wait"]
     resources:
       claims:
-      - name: gpu
+      - name: shared-gpu
+        request: mps-gpu
+  - name: mps-ctr1
+    image: nvcr.io/nvidia/k8s/cuda-sample:nbody-cuda11.6.0-ubuntu18.04
+    command: ["bash", "-c"]
+    args: ["trap 'exit 0' TERM; /tmp/sample --benchmark --numbodies=4226000 & wait"]
+    resources:
+      claims:
+      - name: shared-gpu
+        request: mps-gpu
   resourceClaims:
-  - name: gpu
-    source:
-      resourceClaimName: gpu-mps-sharing
+  - name: shared-gpu
+    resourceClaimTemplateName: shared-gpu
