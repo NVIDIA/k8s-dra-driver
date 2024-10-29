@@ -56,7 +56,6 @@ spec:
         command: ["bash", "-c"]
         args:
         - |-
-          trap 'exit 0' TERM
           # TODO: Masking of the params file is done below to allow nvkind to
           # selectively exclude certain GPUs from being visible to the driver.
           # At present, this is only feasible with a host-mounted driver where
@@ -69,8 +68,7 @@ spec:
             sed -i 's/^ModifyDeviceFiles: 1$/ModifyDeviceFiles: 0/' root/gpu-params
             mount --bind root/gpu-params /proc/driver/nvidia/params
           fi
-          nvidia-dra-plugin &
-          wait
+          nvidia-dra-plugin
         resources:
           {{- toYaml .Values.kubeletPlugin.containers.plugin.resources | nindent 10 }}
         env:

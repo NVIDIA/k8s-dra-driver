@@ -83,7 +83,10 @@ func NewDriver(ctx context.Context, config *Config) (*driver, error) {
 	return driver, nil
 }
 
-func (d *driver) Shutdown(ctx context.Context) error {
+func (d *driver) Shutdown() error {
+	if d == nil {
+		return nil
+	}
 	d.plugin.Stop()
 	return nil
 }

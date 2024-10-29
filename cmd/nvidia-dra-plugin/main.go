@@ -183,19 +183,24 @@ func StartPlugin(ctx context.Context, config *Config) error {
 		return fmt.Errorf("path for cdi file generation is not a directory: '%v'", config.flags.cdiRoot)
 	}
 
-	driver, err := NewDriver(ctx, config)
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+
+	var driver *driver
+	ctx, cancel := context.WithCancel(ctx)
+	defer func() {
+		cancel()
+		if err := driver.Shutdown(); err != nil {
+			klog.Errorf("Unable to cleanly shutdown driver: %v", err)
+		}
+	}()
+
+	driver, err = NewDriver(ctx, config)
 	if err != nil {
-		return err
+		return fmt.Errorf("error creating driver: %w", err)
 	}
 
-	sigc := make(chan os.Signal, 1)
-	signal.Notify(sigc, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
-	<-sigc
-
-	err = driver.Shutdown(ctx)
-	if err != nil {
-		klog.Errorf("Unable to cleanly shutdown driver: %v", err)
-	}
+	<-sigs
 
 	return nil
 }
