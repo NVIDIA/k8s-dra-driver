@@ -57,9 +57,18 @@ spec:
         args:
         - |-
           trap 'exit 0' TERM
-          cp /proc/driver/nvidia/params root/gpu-params
-          sed -i 's/^ModifyDeviceFiles: 1$/ModifyDeviceFiles: 0/' root/gpu-params
-          mount --bind root/gpu-params /proc/driver/nvidia/params
+          # TODO: Masking of the params file is done below to allow nvkind to
+          # selectively exclude certain GPUs from being visible to the driver.
+          # At present, this is only feasible with a host-mounted driver where
+          # /dev in this container already has GPU devices present (as brought
+          # in via the --privileged flag from docker/podman when using nvkind).
+          # In the future we should revisit this to find a more robust method
+          # of supporting this.
+          if [ "${NVIDIA_DRIVER_ROOT}" = "/" ]; then
+            cp /proc/driver/nvidia/params root/gpu-params
+            sed -i 's/^ModifyDeviceFiles: 1$/ModifyDeviceFiles: 0/' root/gpu-params
+            mount --bind root/gpu-params /proc/driver/nvidia/params
+          fi
           nvidia-dra-plugin &
           wait
         resources:
