@@ -56,14 +56,11 @@ spec:
         command: ["bash", "-c"]
         args:
         - |-
-          # TODO: Masking of the params file is done below to allow nvkind to
-          # selectively exclude certain GPUs from being visible to the driver.
-          # At present, this is only feasible with a host-mounted driver where
-          # /dev in this container already has GPU devices present (as brought
-          # in via the --privileged flag from docker/podman when using nvkind).
-          # In the future we should revisit this to find a more robust method
-          # of supporting this.
-          if [ "${NVIDIA_DRIVER_ROOT}" = "/" ]; then
+          # Conditionally mask the params file to prevent this container from
+          # recreating any missing GPU device nodes. This is necessary, for
+          # example, when running under nvkind to limit the set GPUs governed
+          # by the plugin even though it has cgroup access to all of them.
+          if [ "${MASK_NVIDIA_DRIVER_PARAMS}" = "true" ]; then
             cp /proc/driver/nvidia/params root/gpu-params
             sed -i 's/^ModifyDeviceFiles: 1$/ModifyDeviceFiles: 0/' root/gpu-params
             mount --bind root/gpu-params /proc/driver/nvidia/params
@@ -72,6 +69,8 @@ spec:
         resources:
           {{- toYaml .Values.kubeletPlugin.containers.plugin.resources | nindent 10 }}
         env:
+        - name: MASK_NVIDIA_DRIVER_PARAMS
+          value: "{{ .Values.maskNvidiaDriverParams }}"
         - name: NVIDIA_CTK_PATH
           value: "{{ .Values.nvidiaCtkPath }}"
         - name: NVIDIA_DRIVER_ROOT

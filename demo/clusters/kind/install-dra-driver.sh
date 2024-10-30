@@ -29,6 +29,7 @@ helm upgrade -i --create-namespace --namespace nvidia nvidia-dra-driver ${PROJEC
     --set deviceClasses="{${deviceClasses}}" \
     ${NVIDIA_CTK_PATH:+--set nvidiaCtkPath=${NVIDIA_CTK_PATH}} \
     ${NVIDIA_DRIVER_ROOT:+--set nvidiaDriverRoot=${NVIDIA_DRIVER_ROOT}} \
+    ${MASK_NVIDIA_DRIVER_PARAMS:+--set maskNvidiaDriverParams=${MASK_NVIDIA_DRIVER_PARAMS}} \
     --wait
 
 set +x
