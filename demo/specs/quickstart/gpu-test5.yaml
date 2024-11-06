@@ -87,3 +87,7 @@ spec:
   resourceClaims:
   - name: shared-gpus
     resourceClaimTemplateName: multiple-gpus
+  tolerations:
+  - key: "nvidia.com/gpu"
+    operator: "Exists"
+    effect: "NoSchedule"

@@ -70,3 +70,7 @@ spec:
       resourceClaims:
       - name: a100
         resourceClaimTemplateName: a100
+      tolerations:
+      - key: "nvidia.com/gpu"
+        operator: "Exists"
+        effect: "NoSchedule"

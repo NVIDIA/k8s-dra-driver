@@ -27,7 +27,7 @@ DRIVER_NAME=$(from_versions_mk "DRIVER_NAME")
 
 : ${IMAGE_REGISTRY:=ghcr.io/nvidia}
 : ${IMAGE_NAME:=${DRIVER_NAME}}
-: ${IMAGE_TAG:=9323da2d-ubuntu20.04}
+: ${IMAGE_TAG:=32805fec-ubi8}
 
 helm upgrade -i --create-namespace --namespace nvidia nvidia-dra-driver ${PROJECT_DIR}/deployments/helm/k8s-dra-driver \
   --set image.repository=${IMAGE_REGISTRY}/${IMAGE_NAME} \
@@ -35,6 +35,7 @@ helm upgrade -i --create-namespace --namespace nvidia nvidia-dra-driver ${PROJEC
   --set image.pullPolicy=Always \
   --set controller.priorityClassName="" \
   --set kubeletPlugin.priorityClassName="" \
+  --set deviceClasses="{gpu,mig}" \
   --set nvidiaDriverRoot="/opt/nvidia" \
   --set kubeletPlugin.tolerations[0].key=nvidia.com/gpu \
   --set kubeletPlugin.tolerations[0].operator=Exists \
