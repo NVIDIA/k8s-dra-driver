@@ -45,3 +45,7 @@ spec:
   resourceClaims:
   - name: shared-gpu
     resourceClaimTemplateName: single-gpu
+  tolerations:
+  - key: "nvidia.com/gpu"
+    operator: "Exists"
+    effect: "NoSchedule"
