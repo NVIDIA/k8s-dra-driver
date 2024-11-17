@@ -146,6 +146,27 @@ func newGraphicsLibrariesDiscoverer(logger logger.Interface, driver *root.Driver
 	}
 }
 
+// Mounts discovers the required libraries and filters out libnvidia-allocator.so.
+// The library libnvidia-allocator.so is already handled by either the *.RM_VERSION
+// injection or by libnvidia-container. We therefore filter it out here as a
+// workaround for the case where libnvidia-container will re-mount this in the
+// container, which causes issues with shared mount propagation.
+func (d graphicsDriverLibraries) Mounts() ([]Mount, error) {
+	mounts, err := d.Discover.Mounts()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get library mounts: %v", err)
+	}
+
+	var filtered []Mount
+	for _, mount := range mounts {
+		if d.isDriverLibrary(filepath.Base(mount.Path), "libnvidia-allocator.so") {
+			continue
+		}
+		filtered = append(filtered, mount)
+	}
+	return filtered, nil
+}
+
 // Create necessary library symlinks for graphics drivers
 func (d graphicsDriverLibraries) Hooks() ([]Hook, error) {
 	mounts, err := d.Discover.Mounts()
@@ -159,10 +180,10 @@ func (d graphicsDriverLibraries) Hooks() ([]Hook, error) {
 		switch {
 		case d.isDriverLibrary(filename, "libnvidia-allocator.so"):
 			// gbm/nvidia-drm_gbm.so is a symlink to ../libnvidia-allocator.so.1 which
-			// in turn symlinks to libnvidia-allocator.so.RM_VERSION and is created
-			// when ldconfig is run in the container.
-			// create libnvidia-allocate.so.1 -> libnvidia-allocate.so.RM_VERSION symlink
-			links = append(links, fmt.Sprintf("%s::%s", filename, filepath.Join(dir, "libnvidia-allocator.so.1")))
+			// in turn symlinks to libnvidia-allocator.so.RM_VERSION.
+			// The libnvidia-allocator.so.1 -> libnvidia-allocator.so.RM_VERSION symlink
+			// is created when ldconfig is run against the container and there
+			// is no explicit need to create it.
 			// create gbm/nvidia-drm_gbm.so -> ../libnvidia-allocate.so.1 symlink
 			linkPath := filepath.Join(dir, "gbm", "nvidia-drm_gbm.so")
 			links = append(links, fmt.Sprintf("%s::%s", "../libnvidia-allocator.so.1", linkPath))
