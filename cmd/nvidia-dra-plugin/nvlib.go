@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2021-2024, NVIDIA CORPORATION.  All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -199,6 +199,10 @@ func (l deviceLib) enumerateImexChannels(config *Config) (AllocatableDevices, er
 	return devices, nil
 }
 
+func getPciAddressFromNvmlPciInfo(info nvml.PciInfo) string {
+	return fmt.Sprintf("%04x:%02x:%02x.0", info.Domain, info.Bus, info.Device)
+}
+
 func (l deviceLib) getGpuInfo(index int, device nvdev.Device) (*GpuInfo, error) {
 	minor, ret := device.GetMinorNumber()
 	if ret != nvml.SUCCESS {
@@ -240,6 +244,11 @@ func (l deviceLib) getGpuInfo(index int, device nvdev.Device) (*GpuInfo, error) 
 	if ret != nvml.SUCCESS {
 		return nil, fmt.Errorf("error getting CUDA driver version: %w", err)
 	}
+	pciInfo, ret := l.nvmllib.DeviceGetPciInfo(device)
+	if ret != nvml.SUCCESS {
+		return nil, fmt.Errorf("error getting PCI info for device %d: %w", index, err)
+	}
+	pciAddress := getPciAddressFromNvmlPciInfo(pciInfo)
 
 	var migProfiles []*MigProfileInfo
 	for i := 0; i < nvml.GPU_INSTANCE_PROFILE_COUNT; i++ {
@@ -307,6 +316,7 @@ func (l deviceLib) getGpuInfo(index int, device nvdev.Device) (*GpuInfo, error) 
 		driverVersion:         driverVersion,
 		cudaDriverVersion:     fmt.Sprintf("%v.%v", cudaDriverVersion/1000, (cudaDriverVersion%1000)/10),
 		migProfiles:           migProfiles,
+		PciAddress:            pciAddress,
 	}
 
 	return gpuInfo, nil

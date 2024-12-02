@@ -1,0 +1,19 @@
+{{- if include "k8s-dra-driver.listHas" (list $.Values.deviceClasses "vfiopci") }}
+---
+apiVersion: resource.k8s.io/v1alpha3
+kind: DeviceClass
+metadata:
+  name: vfiopci.nvidia.com
+spec:
+  config:
+  - opaque:
+      driver: gpu.nvidia.com
+      parameters:
+        apiVersion: gpu.nvidia.com/v1alpha1
+        kind: GpuConfig
+        driverConfig:
+          driver: vfio-pci
+  selectors:
+  - cel:
+      expression: "device.driver == 'gpu.nvidia.com' && device.attributes['gpu.nvidia.com'].type == 'gpu'"
+{{- end }}
