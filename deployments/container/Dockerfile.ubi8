@@ -59,9 +59,10 @@ LABEL org.opencontainers.image.description "NVIDIA GPU DRA driver for Kubernetes
 
 RUN mkdir /licenses && mv /NGC-DL-CONTAINER-LICENSE /licenses/NGC-DL-CONTAINER-LICENSE
 
-COPY --from=build /artifacts/nvidia-dra-controller /usr/bin/nvidia-dra-controller
-COPY --from=build /artifacts/nvidia-dra-plugin     /usr/bin/nvidia-dra-plugin
-COPY --from=build /build/templates                 /templates
+COPY --from=build /artifacts/nvidia-dra-plugin         /usr/bin/nvidia-dra-plugin
+COPY --from=build /build/templates                     /templates
+COPY --from=build /build/scripts/bind_to_driver.sh     /usr/bin/bind_to_driver.sh
+COPY --from=build /build/scripts/unbind_from_driver.sh /usr/bin/unbind_from_driver.sh
 
 # Install / upgrade packages here that are required to resolve CVEs
 ARG CVE_UPDATES
