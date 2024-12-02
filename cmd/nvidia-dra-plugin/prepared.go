@@ -203,3 +203,23 @@ func (d PreparedDevices) MigDeviceUUIDs() []string {
 	slices.Sort(uuids)
 	return uuids
 }
+
+func (l PreparedDeviceList) PciAddresses() []string {
+	var pciAddresses []string
+	for _, device := range l.Gpus() {
+		pciAddresses = append(pciAddresses, device.Gpu.Info.PciAddress)
+	}
+	return pciAddresses
+}
+
+func (g *PreparedDeviceGroup) PciAddresses() []string {
+	return g.Devices.Gpus().PciAddresses()
+}
+
+func (d PreparedDevices) PciAddresses() []string {
+	var pciAddresses []string
+	for _, group := range d {
+		pciAddresses = append(pciAddresses, group.PciAddresses()...)
+	}
+	return pciAddresses
+}
