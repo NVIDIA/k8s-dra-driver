@@ -29,7 +29,8 @@ import (
 // GpuConfig holds the set of parameters for configuring a GPU.
 type GpuConfig struct {
 	metav1.TypeMeta `json:",inline"`
-	Sharing         *GpuSharing `json:"sharing,omitempty"`
+	Sharing         *GpuSharing      `json:"sharing,omitempty"`
+	DriverConfig    *GpuDriverConfig `json:"driverConfig,omitempty"`
 }
 
 // DefaultGpuConfig provides the default GPU configuration.
@@ -45,11 +46,26 @@ func DefaultGpuConfig() *GpuConfig {
 				Interval: ptr.To(DefaultTimeSlice),
 			},
 		},
+		DriverConfig: &GpuDriverConfig{
+			Driver: NvidiaDriver,
+		},
 	}
 }
 
 // Normalize updates a GpuConfig config with implied default values based on other settings.
 func (c *GpuConfig) Normalize() error {
+	if c.DriverConfig == nil {
+		c.DriverConfig = DefaultGpuDriverConfig()
+	} else {
+		if err := c.DriverConfig.Normalize(); err != nil {
+			return err
+		}
+	}
+	// If driver is not Nvidia, don't proceed with normalizing sharing configuration.
+	if c.DriverConfig.Driver != NvidiaDriver {
+		return nil
+	}
+
 	if c.Sharing == nil {
 		c.Sharing = &GpuSharing{
 			Strategy: TimeSlicingStrategy,
@@ -68,8 +84,21 @@ func (c *GpuConfig) Normalize() error {
 
 // Validate ensures that GpuConfig has a valid set of values.
 func (c *GpuConfig) Validate() error {
-	if c.Sharing == nil {
-		return fmt.Errorf("no sharing strategy set")
+	if c.DriverConfig.Driver == NvidiaDriver {
+		if c.Sharing == nil {
+			return fmt.Errorf("no sharing strategy set")
+		}
+		if err := c.Sharing.Validate(); err != nil {
+			return err
+		}
+	} else {
+		if c.Sharing != nil {
+			return fmt.Errorf("sharing strategy cannot be provided while using non-nvidia driver")
+		}
 	}
-	return c.Sharing.Validate()
+	if err := c.DriverConfig.Validate(); err != nil {
+		return err
+	}
+
+	return nil
 }
