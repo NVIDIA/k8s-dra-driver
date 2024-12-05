@@ -17,6 +17,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -26,6 +27,7 @@ import (
 )
 
 const (
+	hostNamespaceMount     = "/proc/1/ns/mnt"
 	vfioPciModule          = "vfio_pci"
 	vfioPciDriver          = "vfio-pci"
 	nvidiaDriver           = "nvidia"
@@ -80,8 +82,7 @@ func (vm *VfioPciManager) isVfioPCIModuleLoaded() bool {
 }
 
 func (vm *VfioPciManager) loadVfioPciModule() error {
-	cmd := exec.Command("modprobe", vm.vfioPciModule) //nolint:gosec
-	_, err := cmd.CombinedOutput()
+	_, err := execCommandInHostNamespace("modprobe", []string{vm.vfioPciModule}) //nolint:gosec
 	if err != nil {
 		return err
 	}
@@ -149,8 +150,7 @@ func changeDriver(pciAddress, driver string) error {
 }
 
 func unbindFromDriver(pciAddress, driverResetRetries string) error {
-	cmd := exec.Command(unbindFromDriverScript, pciAddress, driverResetRetries) //nolint:gosec
-	_, err := cmd.CombinedOutput()
+	_, err := execCommandInHostNamespace(unbindFromDriverScript, []string{pciAddress, driverResetRetries}) //nolint:gosec
 	if err != nil {
 		return err
 	}
@@ -158,8 +158,7 @@ func unbindFromDriver(pciAddress, driverResetRetries string) error {
 }
 
 func bindToDriver(pciAddress, driver string) error {
-	cmd := exec.Command(bindToDriverScript, pciAddress, driver) //nolint:gosec
-	_, err := cmd.CombinedOutput()
+	_, err := execCommandInHostNamespace(bindToDriverScript, []string{pciAddress, driver}) //nolint:gosec
 	if err != nil {
 		return err
 	}
@@ -189,4 +188,10 @@ func (vm *VfioPciManager) GetCDIContainerEdits(info *GpuInfo) *cdiapi.ContainerE
 			},
 		},
 	}
+}
+
+func execCommandInHostNamespace(cmd string, args []string) ([]byte, error) {
+	nsenterArgs := []string{fmt.Sprintf("--mount=%s", hostNamespaceMount), "--", cmd}
+	nsenterArgs = append(nsenterArgs, args...)
+	return exec.Command("nsenter", nsenterArgs...).CombinedOutput()
 }
