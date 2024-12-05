@@ -52,9 +52,6 @@ type Flags struct {
 	hostDriverRoot      string
 	nvidiaCTKPath       string
 	deviceClasses       sets.Set[string]
-	pciDevicesRoot      string
-	sysModulesRoot      string
-	vfioDevicesRoot     string
 }
 
 type Config struct {

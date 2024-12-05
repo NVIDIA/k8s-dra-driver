@@ -54,7 +54,7 @@ func (c *GpuDriverConfig) Validate() error {
 	case VfioPciDriver:
 		break
 	default:
-		return fmt.Errorf("invalid driver specified in gpu driver configuration")
+		return fmt.Errorf("invalid driver '%s' specified in gpu driver configuration", c.Driver)
 	}
 	return nil
 }

@@ -103,12 +103,9 @@ spec:
         - name: driver-root
           mountPath: /driver-root
           readOnly: true
-        - name: sysfs
-          mountPath: /sys
-          readOnly: false
-        - name: dev-vfio
-          mountPath: /dev/vfio
-          readOnly: false
+        {{- if include "k8s-dra-driver.listHas" (list $.Values.deviceClasses "vfiopci") }}
+        {{- include "k8s-dra-driver.vfiopciDeviceClassVolumeMounts" . | nindent 8 }}
+        {{- end }}
       volumes:
       - name: plugins-registry
         hostPath:
@@ -122,12 +119,9 @@ spec:
       - name: driver-root
         hostPath:
           path: {{ .Values.nvidiaDriverRoot }}
-      - name: sysfs
-        hostPath:
-          path: /sys
-      - name: dev-vfio
-        hostPath:
-          path: /dev/vfio
+      {{- if include "k8s-dra-driver.listHas" (list $.Values.deviceClasses "vfiopci") }}
+      {{- include "k8s-dra-driver.vfiopciDeviceClassVolumes" . | nindent 6}}
+      {{- end }}
       {{- with .Values.kubeletPlugin.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

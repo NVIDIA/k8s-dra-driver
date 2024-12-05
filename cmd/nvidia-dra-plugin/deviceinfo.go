@@ -29,6 +29,7 @@ import (
 
 type GpuInfo struct {
 	UUID                  string `json:"uuid"`
+	PciAddress            string `json:"pciAddress"`
 	index                 int
 	minor                 int
 	migEnabled            bool
@@ -40,7 +41,6 @@ type GpuInfo struct {
 	driverVersion         string
 	cudaDriverVersion     string
 	migProfiles           []*MigProfileInfo
-	PciAddress            string `json:"pciAddress"`
 }
 
 type MigDeviceInfo struct {

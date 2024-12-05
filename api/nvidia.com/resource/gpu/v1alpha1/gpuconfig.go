@@ -56,13 +56,14 @@ func DefaultGpuConfig() *GpuConfig {
 func (c *GpuConfig) Normalize() error {
 	if c.DriverConfig == nil {
 		c.DriverConfig = DefaultGpuDriverConfig()
-	} else {
-		if err := c.DriverConfig.Normalize(); err != nil {
-			return err
-		}
 	}
-	// If driver is not Nvidia, don't proceed with normalizing sharing configuration.
-	if c.DriverConfig.Driver != NvidiaDriver {
+
+	if err := c.DriverConfig.Normalize(); err != nil {
+		return err
+	}
+
+	// If sharing is not supported, don't proceed with normalizing its configuration.
+	if !c.SupportsSharing() {
 		return nil
 	}
 
@@ -84,21 +85,23 @@ func (c *GpuConfig) Normalize() error {
 
 // Validate ensures that GpuConfig has a valid set of values.
 func (c *GpuConfig) Validate() error {
-	if c.DriverConfig.Driver == NvidiaDriver {
+	if err := c.DriverConfig.Validate(); err != nil {
+		return err
+	}
+
+	if c.SupportsSharing() {
 		if c.Sharing == nil {
 			return fmt.Errorf("no sharing strategy set")
 		}
 		if err := c.Sharing.Validate(); err != nil {
 			return err
 		}
-	} else {
-		if c.Sharing != nil {
-			return fmt.Errorf("sharing strategy cannot be provided while using non-nvidia driver")
-		}
+	} else if c.Sharing != nil {
+		return fmt.Errorf("sharing strategy cannot be provided while using non-nvidia driver")
 	}
-	if err := c.DriverConfig.Validate(); err != nil {
-		return err
-	}
-
 	return nil
+}
+
+func (c *GpuConfig) SupportsSharing() bool {
+	return c.DriverConfig.Driver == NvidiaDriver
 }

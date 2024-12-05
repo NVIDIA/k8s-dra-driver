@@ -114,5 +114,6 @@ func (d AllocatableDevices) PciAddresses() []string {
 			pciAddresses = append(pciAddresses, device.Gpu.PciAddress)
 		}
 	}
+	slices.Sort(pciAddresses)
 	return pciAddresses
 }

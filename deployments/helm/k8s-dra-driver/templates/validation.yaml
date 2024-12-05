@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-{{- $validDeviceClasses := list "gpu" "mig" "imex" }}
+{{- $validDeviceClasses := list "gpu" "mig" "imex" "vfiopci" }}
 
 {{- if not (kindIs "slice" .Values.deviceClasses) }}
 {{- $error := "" }}

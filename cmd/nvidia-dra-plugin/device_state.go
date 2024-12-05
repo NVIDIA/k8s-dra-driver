@@ -39,7 +39,7 @@ type OpaqueDeviceConfig struct {
 
 type DeviceConfigState struct {
 	MpsControlDaemonID string               `json:"mpsControlDaemonID"`
-	GpuConfig          *configapi.GpuConfig `json:"deviceConfig,omitempty"`
+	GpuConfig          *configapi.GpuConfig `json:"gpuConfig,omitempty"`
 	containerEdits     *cdiapi.ContainerEdits
 }
 
@@ -112,7 +112,9 @@ func NewDeviceState(ctx context.Context, config *Config) (*DeviceState, error) {
 	}
 
 	// Initialize the vfio-pci driver manager.
-	vfioPciManager.Init()
+	if err := vfioPciManager.Init(); err != nil {
+		return nil, fmt.Errorf("unable to initialize vfio-pci manager: %v", err)
+	}
 
 	checkpoints, err := state.checkpointManager.ListCheckpoints()
 	if err != nil {
@@ -357,12 +359,21 @@ func (s *DeviceState) prepareDevices(ctx context.Context, claim *resourceapi.Res
 
 func (s *DeviceState) unprepareDevices(ctx context.Context, claimUID string, devices PreparedDevices) error {
 	for _, group := range devices {
-		var err error
 		if group.ConfigState.GpuConfig != nil {
-			err = s.unprepareGpus(ctx, group.ConfigState.GpuConfig, group.Devices.Gpus())
+			err := s.unprepareGpus(ctx, group.ConfigState.GpuConfig, group.Devices.Gpus())
+			if err != nil {
+				return err
+			}
 		}
-		if err != nil {
-			return err
+		// Stop any MPS control daemons started for each group of prepared devices.
+		mpsControlDaemon := s.mpsManager.NewMpsControlDaemon(claimUID, group)
+		if err := mpsControlDaemon.Stop(ctx); err != nil {
+			return fmt.Errorf("error stopping MPS control daemon: %w", err)
+		}
+		// Go back to default time-slicing for all full GPUs.
+		tsc := configapi.DefaultGpuConfig().Sharing.TimeSlicingConfig
+		if err := s.tsManager.SetTimeSlice(devices, tsc); err != nil {
+			return fmt.Errorf("error setting timeslice for devices: %w", err)
 		}
 	}
 	return nil
@@ -375,52 +386,40 @@ func (s *DeviceState) unprepareGpus(ctx context.Context, config *configapi.GpuCo
 			}
 		}
 	}
-	// Go back to default time-slicing for all full GPUs.
-	tsc := configapi.DefaultGpuConfig().Sharing.TimeSlicingConfig
-	if err := s.tsManager.SetTimeSlice(devices, tsc); err != nil {
-		return fmt.Errorf("error setting timeslice for devices: %w", err)
-	}
 	return nil
 }
 
 func (s *DeviceState) applyConfig(ctx context.Context, config configapi.Interface, claim *resourceapi.ResourceClaim, results []*resourceapi.DeviceRequestAllocationResult) (*DeviceConfigState, error) {
-	var err error
 	var configState DeviceConfigState
-
 	switch castConfig := config.(type) {
 	case *configapi.GpuConfig:
 		configState.GpuConfig = castConfig
-		err = s.applyGpuConfig(ctx, castConfig, claim, results, &configState)
+		return s.applyGpuConfig(ctx, castConfig, claim, results, &configState)
 	case *configapi.MigDeviceConfig:
-		err = s.applySharingConfig(ctx, castConfig.Sharing, claim, results, &configState)
+		return s.applySharingConfig(ctx, castConfig.Sharing, claim, results, &configState)
 	case *configapi.ImexChannelConfig:
-		err = s.applyImexChannelConfig(ctx, castConfig, claim, results, &configState)
+		return s.applyImexChannelConfig(ctx, castConfig, claim, results, &configState)
 	default:
-		err = fmt.Errorf("unknown config type: %T", castConfig)
+		return nil, fmt.Errorf("unknown config type: %T", castConfig)
 	}
+}
+
+func (s *DeviceState) applyGpuConfig(ctx context.Context, config *configapi.GpuConfig, claim *resourceapi.ResourceClaim, results []*resourceapi.DeviceRequestAllocationResult, configState *DeviceConfigState) (*DeviceConfigState, error) {
+	var err error
+	configState, err = s.applyGpuDriverConfig(ctx, config.DriverConfig, results, configState)
 	if err != nil {
 		return nil, err
 	}
-	return &configState, nil
-}
-
-func (s *DeviceState) applyGpuConfig(ctx context.Context, config *configapi.GpuConfig, claim *resourceapi.ResourceClaim, results []*resourceapi.DeviceRequestAllocationResult, configState *DeviceConfigState) error {
-	if config.Sharing != nil {
-		err := s.applySharingConfig(ctx, config.Sharing, claim, results, configState)
+	if config.SupportsSharing() {
+		configState, err = s.applySharingConfig(ctx, config.Sharing, claim, results, configState)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
-	if config.DriverConfig != nil {
-		err := s.applyGpuDriverConfig(ctx, config.DriverConfig, results, configState)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
+	return configState, nil
 }
 
-func (s *DeviceState) applySharingConfig(ctx context.Context, config configapi.Sharing, claim *resourceapi.ResourceClaim, results []*resourceapi.DeviceRequestAllocationResult, configState *DeviceConfigState) error {
+func (s *DeviceState) applySharingConfig(ctx context.Context, config configapi.Sharing, claim *resourceapi.ResourceClaim, results []*resourceapi.DeviceRequestAllocationResult, configState *DeviceConfigState) (*DeviceConfigState, error) {
 	// Get the list of claim requests this config is being applied over.
 	var requests []string
 	for _, r := range results {
@@ -437,12 +436,12 @@ func (s *DeviceState) applySharingConfig(ctx context.Context, config configapi.S
 	if config.IsTimeSlicing() {
 		tsc, err := config.GetTimeSlicingConfig()
 		if err != nil {
-			return fmt.Errorf("error getting timeslice config for requests '%v' in claim '%v': %w", requests, claim.UID, err)
+			return nil, fmt.Errorf("error getting timeslice config for requests '%v' in claim '%v': %w", requests, claim.UID, err)
 		}
 		if tsc != nil {
 			err = s.tsManager.SetTimeSlice(allocatableDevices, tsc)
 			if err != nil {
-				return fmt.Errorf("error setting timeslice config for requests '%v' in claim '%v': %w", requests, claim.UID, err)
+				return nil, fmt.Errorf("error setting timeslice config for requests '%v' in claim '%v': %w", requests, claim.UID, err)
 			}
 		}
 	}
@@ -451,55 +450,51 @@ func (s *DeviceState) applySharingConfig(ctx context.Context, config configapi.S
 	if config.IsMps() {
 		mpsc, err := config.GetMpsConfig()
 		if err != nil {
-			return fmt.Errorf("error getting MPS configuration: %w", err)
+			return nil, fmt.Errorf("error getting MPS configuration: %w", err)
 		}
 		mpsControlDaemon := s.mpsManager.NewMpsControlDaemon(string(claim.UID), allocatableDevices)
 		if err := mpsControlDaemon.Start(ctx, mpsc); err != nil {
-			return fmt.Errorf("error starting MPS control daemon: %w", err)
+			return nil, fmt.Errorf("error starting MPS control daemon: %w", err)
 		}
 		if err := mpsControlDaemon.AssertReady(ctx); err != nil {
-			return fmt.Errorf("MPS control daemon is not yet ready: %w", err)
+			return nil, fmt.Errorf("MPS control daemon is not yet ready: %w", err)
 		}
 		configState.MpsControlDaemonID = mpsControlDaemon.GetID()
 		configState.containerEdits = mpsControlDaemon.GetCDIContainerEdits()
 	}
 
-	return nil
+	return configState, nil
 }
 
-func (s *DeviceState) applyImexChannelConfig(ctx context.Context, config *configapi.ImexChannelConfig, claim *resourceapi.ResourceClaim, results []*resourceapi.DeviceRequestAllocationResult, configState *DeviceConfigState) error {
+func (s *DeviceState) applyImexChannelConfig(ctx context.Context, config *configapi.ImexChannelConfig, claim *resourceapi.ResourceClaim, results []*resourceapi.DeviceRequestAllocationResult, configState *DeviceConfigState) (*DeviceConfigState, error) {
 	// Create any necessary IMEX channels and gather their CDI container edits.
 	for _, r := range results {
 		imexChannel := s.allocatable[r.Device].ImexChannel
 		if err := s.nvdevlib.createImexChannelDevice(imexChannel.Channel); err != nil {
-			return fmt.Errorf("error creating IMEX channel device: %w", err)
+			return nil, fmt.Errorf("error creating IMEX channel device: %w", err)
 		}
 		configState.containerEdits = configState.containerEdits.Append(s.cdi.GetImexChannelContainerEdits(imexChannel))
 	}
 
-	return nil
+	return configState, nil
 }
 
-func (s *DeviceState) applyGpuDriverConfig(ctx context.Context, config *configapi.GpuDriverConfig, results []*resourceapi.DeviceRequestAllocationResult, configState *DeviceConfigState) error {
-	// Get the list of allocatable devices this config is being applied over.
-	allocatableDevices := make(AllocatableDevices)
+func (s *DeviceState) applyGpuDriverConfig(ctx context.Context, config *configapi.GpuDriverConfig, results []*resourceapi.DeviceRequestAllocationResult, configState *DeviceConfigState) (*DeviceConfigState, error) {
+	if config.Driver != configapi.VfioPciDriver {
+		return configState, nil
+	}
+
+	// Apply vfio-pci driver settings.
 	for _, r := range results {
-		allocatableDevices[r.Device] = s.allocatable[r.Device]
-	}
-
-	if config.Driver == configapi.VfioPciDriver {
-		// Apply vfio-pci driver settings.
-		for _, r := range results {
-			info := allocatableDevices[r.Device]
-			err := s.vfioPciManager.Configure(info.Gpu)
-			if err != nil {
-				return err
-			}
-			configState.containerEdits = configState.containerEdits.Append(s.vfioPciManager.GetCDIContainerEdits(info.Gpu))
+		info := s.allocatable[r.Device]
+		err := s.vfioPciManager.Configure(info.Gpu)
+		if err != nil {
+			return nil, err
 		}
+		configState.containerEdits = configState.containerEdits.Append(s.vfioPciManager.GetCDIContainerEdits(info.Gpu))
 	}
 
-	return nil
+	return configState, nil
 }
 
 // GetOpaqueDeviceConfigs returns an ordered list of the configs contained in possibleConfigs for this driver.
