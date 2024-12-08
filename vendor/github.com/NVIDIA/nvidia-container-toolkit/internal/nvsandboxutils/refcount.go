@@ -1,5 +1,5 @@
-/*
-# Copyright (c) 2021, NVIDIA CORPORATION.  All rights reserved.
+/**
+# Copyright 2024 NVIDIA CORPORATION
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,27 +12,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-*/
+**/
 
-package discover
+package nvsandboxutils
 
-// None is a null discoverer that returns an empty list of devices and
-// mounts.
-type None struct{}
+type refcount int
 
-var _ Discover = (*None)(nil)
-
-// Devices returns an empty list of devices
-func (e None) Devices() ([]Device, error) {
-	return nil, nil
+func (r *refcount) IncOnNoError(err error) {
+	if err == nil {
+		(*r)++
+	}
 }
 
-// Mounts returns an empty list of mounts
-func (e None) Mounts() ([]Mount, error) {
-	return nil, nil
-}
-
-// Hooks returns an empty list of hooks
-func (e None) Hooks() ([]Hook, error) {
-	return nil, nil
+func (r *refcount) DecOnNoError(err error) {
+	if err == nil && (*r) > 0 {
+		(*r)--
+	}
 }
