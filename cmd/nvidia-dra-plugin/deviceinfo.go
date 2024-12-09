@@ -29,6 +29,7 @@ import (
 
 type GpuInfo struct {
 	UUID                  string `json:"uuid"`
+	PciAddress            string `json:"pciAddress"`
 	index                 int
 	minor                 int
 	migEnabled            bool
@@ -129,6 +130,9 @@ func (d *GpuInfo) GetDevice() resourceapi.Device {
 				},
 				"cudaDriverVersion": {
 					VersionValue: ptr.To(semver.MustParse(d.cudaDriverVersion).String()),
+				},
+				"pciAddress": {
+					StringValue: &d.PciAddress,
 				},
 			},
 			Capacity: map[resourceapi.QualifiedName]resource.Quantity{

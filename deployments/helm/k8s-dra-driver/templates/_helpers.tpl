@@ -127,3 +127,21 @@ Filter a list by a set of valid values
   {{- end }}
   {{- $result -}}
 {{- end -}}
+
+{{- define "k8s-dra-driver.vfiopciDeviceClassVolumes" -}}
+- name: sysfs
+  hostPath:
+    path: /sys
+- name: dev-vfio
+  hostPath:
+    path: /dev/vfio
+{{- end -}}
+
+{{- define "k8s-dra-driver.vfiopciDeviceClassVolumeMounts" -}}
+- name: sysfs
+  mountPath: /sys
+  readOnly: false
+- name: dev-vfio
+  mountPath: /dev/vfio
+  readOnly: false
+{{- end -}}
