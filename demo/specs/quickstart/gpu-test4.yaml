@@ -97,3 +97,7 @@ spec:
           claims:
           - name: mig-devices
             request: mig-3g-20gb
+      tolerations:
+      - key: "nvidia.com/gpu"
+        operator: "Exists"
+        effect: "NoSchedule"

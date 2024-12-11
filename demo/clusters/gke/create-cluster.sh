@@ -35,6 +35,7 @@ DRIVER_NAME=$(from_versions_mk "DRIVER_NAME")
 
 NETWORK_NAME="${DRIVER_NAME}-net"
 CLUSTER_NAME="${DRIVER_NAME}-cluster"
+NODE_VERSION="1.31.1"
 
 ## Create the Network for the cluster
 gcloud compute networks create "${NETWORK_NAME}" \
@@ -52,8 +53,10 @@ gcloud container clusters create "${CLUSTER_NAME}" \
 	--no-enable-autorepair \
 	--no-enable-autoupgrade \
 	--region us-west1 \
+	--num-nodes "1" \
 	--network "${NETWORK_NAME}" \
-	--node-labels=nvidia.com/dra.controller=true
+	--cluster-version "${NODE_VERSION}" \
+	--node-version "${NODE_VERSION}"
 
 # Create t4 node pool
 gcloud beta container node-pools create "pool-1" \
@@ -61,7 +64,7 @@ gcloud beta container node-pools create "pool-1" \
 	--project "${PROJECT_NAME}" \
 	--cluster "${CLUSTER_NAME}" \
 	--region "us-west1" \
-	--node-version "1.27.3-gke.100" \
+	--node-version "${NODE_VERSION}" \
 	--machine-type "n1-standard-8" \
 	--accelerator "type=nvidia-tesla-t4,count=1" \
 	--image-type "UBUNTU_CONTAINERD" \
@@ -79,7 +82,7 @@ gcloud beta container node-pools create "pool-1" \
 	--max-surge-upgrade 1 \
 	--max-unavailable-upgrade 0 \
 	--node-locations "us-west1-a" \
-	--node-labels=gke-no-default-nvidia-gpu-device-plugin=true,nvidia.com/gpu=present,nvidia.com/dra.kubelet-plugin=true
+	--node-labels=gke-no-default-nvidia-gpu-device-plugin=true,nvidia.com/gpu.present=true
 
 # Create v100 node pool
 gcloud beta container node-pools create "pool-2" \
@@ -87,7 +90,7 @@ gcloud beta container node-pools create "pool-2" \
     --project "${PROJECT_NAME}" \
 	--cluster "${CLUSTER_NAME}" \
 	--region "us-west1" \
-	--node-version "1.27.3-gke.100" \
+	--node-version "${NODE_VERSION}" \
 	--machine-type "n1-standard-8" \
 	--accelerator "type=nvidia-tesla-v100,count=1" \
 	--image-type "UBUNTU_CONTAINERD" \
@@ -105,7 +108,7 @@ gcloud beta container node-pools create "pool-2" \
 	--max-surge-upgrade 1 \
 	--max-unavailable-upgrade 0 \
 	--node-locations "us-west1-a" \
-	--node-labels=gke-no-default-nvidia-gpu-device-plugin=true,nvidia.com/gpu=present,nvidia.com/dra.kubelet-plugin=true
+	--node-labels=gke-no-default-nvidia-gpu-device-plugin=true,nvidia.com/gpu.present=true
 
 ## Allow the GPU nodes access to the internet
 gcloud compute routers create ${NETWORK_NAME}-nat-router \
@@ -126,10 +129,11 @@ gcloud compute routers nats create "${NETWORK_NAME}-nat-config" \
 gcloud container clusters get-credentials "${CLUSTER_NAME}" --location="us-west1"
 
 ## Launch the nvidia-driver-installer daemonset to install the GPU drivers on any GPU nodes that come online:
+kubectl label node --overwrite -l nvidia.com/gpu.present=true cloud.google.com/gke-gpu-driver-version-
 kubectl apply -f https://raw.githubusercontent.com/GoogleCloudPlatform/container-engine-accelerators/master/nvidia-driver-installer/ubuntu/daemonset-preloaded.yaml
 
 ## Create the nvidia namespace
 kubectl create namespace nvidia
 
 ## Deploy a custom daemonset that prepares a node for use with DRA
-kubectl apply -f https://raw.githubusercontent.com/NVIDIA/k8s-dra-driver/456d097feb452cca1351817bab2ccd0782e96c9f/demo/prepare-gke-nodes-for-dra.yaml
+kubectl apply -f https://raw.githubusercontent.com/NVIDIA/k8s-dra-driver/3498c9a91cb594af94c9e8d65177b131e380e116/demo/prepare-gke-nodes-for-dra.yaml
