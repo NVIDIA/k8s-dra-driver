@@ -19,7 +19,7 @@ package main
 import (
 	"slices"
 
-	drapbv1 "k8s.io/kubelet/pkg/apis/dra/v1alpha4"
+	drapbv1 "k8s.io/kubelet/pkg/apis/dra/v1beta1"
 )
 
 type PreparedDeviceList []PreparedDevice

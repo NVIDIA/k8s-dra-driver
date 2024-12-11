@@ -8,7 +8,7 @@ metadata:
   name: gpu-test3
 
 ---
-apiVersion: resource.k8s.io/v1alpha3
+apiVersion: resource.k8s.io/v1beta1
 kind: ResourceClaim
 metadata:
   namespace: gpu-test3

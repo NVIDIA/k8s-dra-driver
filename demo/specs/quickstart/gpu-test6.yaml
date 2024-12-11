@@ -9,7 +9,7 @@ metadata:
   name: gpu-test6
 
 ---
-apiVersion: resource.k8s.io/v1alpha3
+apiVersion: resource.k8s.io/v1beta1
 kind: ResourceClaimTemplate
 metadata:
   namespace: gpu-test6

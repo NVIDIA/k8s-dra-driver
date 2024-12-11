@@ -25,7 +25,7 @@ import (
 	"time"
 
 	v1 "k8s.io/api/core/v1"
-	resourceapi "k8s.io/api/resource/v1alpha3"
+	resourceapi "k8s.io/api/resource/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
@@ -60,7 +60,6 @@ type ImexManager struct {
 	waitGroup                     sync.WaitGroup
 	clientset                     kubernetes.Interface
 	imexDomainOffsets             imexDomainOffsets
-	owner                         resourceslice.Owner
 	driverResources               *resourceslice.DriverResources
 }
 
@@ -77,20 +76,6 @@ func StartIMEXManager(ctx context.Context, config *Config) (*ImexManager, error)
 		return nil, fmt.Errorf("error creating dynamic client: %w", err)
 	}
 
-	// Fetch the current Pod object
-	pod, err := clientset.CoreV1().Pods(config.flags.namespace).Get(ctx, config.flags.podName, metav1.GetOptions{})
-	if err != nil {
-		return nil, fmt.Errorf("error fetching pod: %w", err)
-	}
-
-	// Set the owner of the ResourceSlices we will create
-	owner := resourceslice.Owner{
-		APIVersion: "v1",
-		Kind:       "Pod",
-		Name:       pod.Name,
-		UID:        pod.UID,
-	}
-
 	// Create a new set of DriverResources
 	driverResources := &resourceslice.DriverResources{
 		Pools: make(map[string]resourceslice.Pool),
@@ -103,7 +88,6 @@ func StartIMEXManager(ctx context.Context, config *Config) (*ImexManager, error)
 		driverImexChannelLimit:        DriverImexChannelLimit,
 		retryTimeout:                  RetryTimeout,
 		clientset:                     clientset,
-		owner:                         owner,
 		driverResources:               driverResources,
 		imexDomainOffsets:             make(imexDomainOffsets),
 	}
@@ -125,8 +109,14 @@ func (m *ImexManager) manageResourceSlices(ctx context.Context) error {
 		return fmt.Errorf("error streaming IMEX domains: %w", err)
 	}
 
+	options := resourceslice.Options{
+		DriverName: m.driverName,
+		KubeClient: m.clientset,
+		Resources:  m.driverResources,
+	}
+
 	klog.Info("Start publishing IMEX channels to ResourceSlices...")
-	controller, err := resourceslice.StartController(ctx, m.clientset, m.driverName, m.owner, m.driverResources)
+	controller, err := resourceslice.StartController(ctx, options)
 	if err != nil {
 		return fmt.Errorf("error starting resource slice controller: %w", err)
 	}
@@ -310,13 +300,13 @@ func (m *ImexManager) cleanupResourceSlices() error {
 	ops := metav1.ListOptions{
 		FieldSelector: fmt.Sprintf("%s=%s", resourceapi.ResourceSliceSelectorDriver, DriverName),
 	}
-	l, err := m.clientset.ResourceV1alpha3().ResourceSlices().List(context.Background(), ops)
+	l, err := m.clientset.ResourceV1beta1().ResourceSlices().List(context.Background(), ops)
 	if err != nil {
 		return fmt.Errorf("error listing resource slices: %w", err)
 	}
 
 	for _, rs := range l.Items {
-		err := m.clientset.ResourceV1alpha3().ResourceSlices().Delete(context.Background(), rs.Name, metav1.DeleteOptions{})
+		err := m.clientset.ResourceV1beta1().ResourceSlices().Delete(context.Background(), rs.Name, metav1.DeleteOptions{})
 		if err != nil {
 			return fmt.Errorf("error deleting resource slice %s: %w", rs.Name, err)
 		}
@@ -415,7 +405,11 @@ func generateImexChannelPool(imexDomain string, startChannel int, numChannels in
 				},
 			},
 		},
-		Devices: devices,
+		Slices: []resourceslice.Slice{
+			{
+				Devices: devices,
+			},
+		},
 	}
 
 	return pool

@@ -22,7 +22,7 @@ import (
 	"github.com/Masterminds/semver"
 	nvdev "github.com/NVIDIA/go-nvlib/pkg/nvlib/device"
 	"github.com/NVIDIA/go-nvml/pkg/nvml"
-	resourceapi "k8s.io/api/resource/v1alpha3"
+	resourceapi "k8s.io/api/resource/v1beta1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/utils/ptr"
 )
@@ -131,8 +131,10 @@ func (d *GpuInfo) GetDevice() resourceapi.Device {
 					VersionValue: ptr.To(semver.MustParse(d.cudaDriverVersion).String()),
 				},
 			},
-			Capacity: map[resourceapi.QualifiedName]resource.Quantity{
-				"memory": *resource.NewQuantity(int64(d.memoryBytes), resource.BinarySI),
+			Capacity: map[resourceapi.QualifiedName]resourceapi.DeviceCapacity{
+				"memory": {
+					Value: *resource.NewQuantity(int64(d.memoryBytes), resource.BinarySI),
+				},
 			},
 		},
 	}
@@ -181,20 +183,24 @@ func (d *MigDeviceInfo) GetDevice() resourceapi.Device {
 					VersionValue: ptr.To(semver.MustParse(d.parent.cudaDriverVersion).String()),
 				},
 			},
-			Capacity: map[resourceapi.QualifiedName]resource.Quantity{
-				"multiprocessors": *resource.NewQuantity(int64(d.giProfileInfo.MultiprocessorCount), resource.BinarySI),
-				"copyEngines":     *resource.NewQuantity(int64(d.giProfileInfo.CopyEngineCount), resource.BinarySI),
-				"decoders":        *resource.NewQuantity(int64(d.giProfileInfo.DecoderCount), resource.BinarySI),
-				"encoders":        *resource.NewQuantity(int64(d.giProfileInfo.EncoderCount), resource.BinarySI),
-				"jpegEngines":     *resource.NewQuantity(int64(d.giProfileInfo.JpegCount), resource.BinarySI),
-				"ofaEngines":      *resource.NewQuantity(int64(d.giProfileInfo.OfaCount), resource.BinarySI),
-				"memory":          *resource.NewQuantity(int64(d.giProfileInfo.MemorySizeMB*1024*1024), resource.BinarySI),
+			Capacity: map[resourceapi.QualifiedName]resourceapi.DeviceCapacity{
+				"multiprocessors": {
+					Value: *resource.NewQuantity(int64(d.giProfileInfo.MultiprocessorCount), resource.BinarySI),
+				},
+				"copyEngines": {Value: *resource.NewQuantity(int64(d.giProfileInfo.CopyEngineCount), resource.BinarySI)},
+				"decoders":    {Value: *resource.NewQuantity(int64(d.giProfileInfo.DecoderCount), resource.BinarySI)},
+				"encoders":    {Value: *resource.NewQuantity(int64(d.giProfileInfo.EncoderCount), resource.BinarySI)},
+				"jpegEngines": {Value: *resource.NewQuantity(int64(d.giProfileInfo.JpegCount), resource.BinarySI)},
+				"ofaEngines":  {Value: *resource.NewQuantity(int64(d.giProfileInfo.OfaCount), resource.BinarySI)},
+				"memory":      {Value: *resource.NewQuantity(int64(d.giProfileInfo.MemorySizeMB*1024*1024), resource.BinarySI)},
 			},
 		},
 	}
 	for i := d.placement.Start; i < d.placement.Start+d.placement.Size; i++ {
 		capacity := resourceapi.QualifiedName(fmt.Sprintf("memorySlice%d", i))
-		device.Basic.Capacity[capacity] = *resource.NewQuantity(1, resource.BinarySI)
+		device.Basic.Capacity[capacity] = resourceapi.DeviceCapacity{
+			Value: *resource.NewQuantity(1, resource.BinarySI),
+		}
 	}
 	return device
 }
