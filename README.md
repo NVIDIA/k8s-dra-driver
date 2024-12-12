@@ -79,13 +79,14 @@ We now install the NVIDIA GPU DRA driver:
 ./demo/clusters/kind/install-dra-driver.sh
 ```
 
-This should show two pods running in the `nvidia-dra-driver` namespace:
+This should show two pods running in the `nvidia` namespace:
 ```console
-kubectl get pods -n nvidia-dra-driver
+kubectl get pods -n nvidia
 ```
 ```
-NAME                                         READY   STATUS    RESTARTS   AGE
-nvidia-k8s-dra-driver-kubelet-plugin-t5qgz   1/1     Running   0          44s
+NAME                                                          READY   STATUS    RESTARTS   AGE
+nvidia-dra-driver-k8s-dra-driver-controller-844fcb94b-ktbkc   1/1     Running   0          69s
+nvidia-dra-driver-k8s-dra-driver-kubelet-plugin-5vfp9         1/1     Running   0          69s
 ```
 
 ### Run the examples by following the steps in the demo script

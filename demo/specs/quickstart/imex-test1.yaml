@@ -8,7 +8,7 @@ metadata:
   name: imex-test1
 
 ---
-apiVersion: resource.k8s.io/v1alpha3
+apiVersion: resource.k8s.io/v1beta1
 kind: ResourceClaim
 metadata:
   namespace: imex-test1
@@ -20,7 +20,7 @@ spec:
       deviceClassName: imex.nvidia.com
 
 ---
-apiVersion: resource.k8s.io/v1alpha3
+apiVersion: resource.k8s.io/v1beta1
 kind: ResourceClaim
 metadata:
   namespace: imex-test1
@@ -32,7 +32,7 @@ spec:
       deviceClassName: imex.nvidia.com
 
 ---
-apiVersion: resource.k8s.io/v1alpha3
+apiVersion: resource.k8s.io/v1beta1
 kind: ResourceClaim
 metadata:
   namespace: imex-test1
@@ -44,7 +44,7 @@ spec:
       deviceClassName: imex.nvidia.com
 
 ---
-apiVersion: resource.k8s.io/v1alpha3
+apiVersion: resource.k8s.io/v1beta1
 kind: ResourceClaim
 metadata:
   namespace: imex-test1
@@ -56,7 +56,7 @@ spec:
       deviceClassName: imex.nvidia.com
 
 ---
-apiVersion: resource.k8s.io/v1alpha3
+apiVersion: resource.k8s.io/v1beta1
 kind: ResourceClaimTemplate
 metadata:
   namespace: imex-test1

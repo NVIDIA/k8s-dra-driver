@@ -32,7 +32,7 @@ nodes:
     kind: ClusterConfiguration
     apiServer:
         extraArgs:
-          runtime-config: "resource.k8s.io/v1alpha3=true"
+          runtime-config: "resource.k8s.io/v1beta1=true"
     scheduler:
         extraArgs:
           v: "1"
@@ -48,8 +48,6 @@ nodes:
 - role: worker
   labels:
     node-role.x-k8s.io/worker: ""
-    nvidia.com/gpu.clusteruuid: "0f884867-ba2f-4294-9155-b495ff367eea"
-    nvidia.com/gpu.cliqueid: "{{ add 1 (mod $gpu 2) }}"
   kubeadmConfigPatches:
   - |
     kind: JoinConfiguration
@@ -62,4 +60,15 @@ nodes:
   # in `/etc/nvidia-container-runtime/config.toml`
   - hostPath: /dev/null
     containerPath: /var/run/nvidia-container-devices/cdi/runtime.nvidia.com/gpu/{{ $gpu }}
+  # The generated CDI specification assumes that `nvidia-ctk` is available on a
+  # node -- specifically for the `nvidia-ctk hook` subcommand. As a workaround,
+  # we mount it from the host.
+  # TODO: Remove this once we have a more stable solution to make `nvidia-ctk`
+  # on the kind nodes.
+  - hostPath: /usr/bin/nvidia-ctk
+    containerPath: /usr/bin/nvidia-ctk
+  # We need to inject the fabricmanager socket to support MIG with toolkit 1.16.2
+  # TODO: Remove this once we have a version of the toolkit where this is not required
+  - hostPath: /run/nvidia-fabricmanager/socket
+    containerPath: /run/nvidia-fabricmanager/socket
 {{- end }}

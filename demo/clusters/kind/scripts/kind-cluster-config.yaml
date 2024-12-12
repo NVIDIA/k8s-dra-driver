@@ -32,7 +32,7 @@ nodes:
     kind: ClusterConfiguration
     apiServer:
         extraArgs:
-          runtime-config: "resource.k8s.io/v1alpha3=true"
+          runtime-config: "resource.k8s.io/v1beta1=true"
     scheduler:
         extraArgs:
           v: "1"
@@ -66,3 +66,7 @@ nodes:
   # on the kind nodes.
   - hostPath: /usr/bin/nvidia-ctk
     containerPath: /usr/bin/nvidia-ctk
+  # We need to inject the fabricmanager socket to support MIG with toolkit 1.16.2
+  # TODO: Remove this once we have a version of the toolkit where this is not required
+  - hostPath: /run/nvidia-fabricmanager/socket
+    containerPath: /run/nvidia-fabricmanager/socket
