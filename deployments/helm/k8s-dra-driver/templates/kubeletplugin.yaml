@@ -75,6 +75,8 @@ spec:
           value: "{{ .Values.nvidiaCtkPath }}"
         - name: NVIDIA_DRIVER_ROOT
           value: "{{ .Values.nvidiaDriverRoot }}"
+        - name: DRIVER_ROOT_CTR_PATH
+          value: "{{ .Values.driverRootCtrPath }}"
         - name: NVIDIA_VISIBLE_DEVICES
           value: void
         - name: CDI_ROOT

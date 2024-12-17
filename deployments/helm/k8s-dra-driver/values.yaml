@@ -22,6 +22,9 @@
 # For driver installed directly on a host, a value of `/` is used.
 nvidiaDriverRoot: /
 
+# the path where the NVIDIA driver root is mounted in the container; used for generating CDI specifications
+driverRootCtrPath: /driver-root
+
 # Specify the path of CTK binary (nvidia-ctk) on the host,
 # as it should appear in the the generated CDI specification.
 # The path depends on the system that runs on the node.
