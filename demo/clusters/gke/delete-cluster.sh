@@ -29,25 +29,27 @@ DRIVER_NAME=$(from_versions_mk "DRIVER_NAME")
 
 NETWORK_NAME="${DRIVER_NAME}-net"
 CLUSTER_NAME="${DRIVER_NAME}-cluster"
+ROUTER_REGION="us-central1"
+REGION="us-central1-c"
 
 ## Delete the cluster
 gcloud container clusters delete "${CLUSTER_NAME}" \
 	--quiet \
 	--project "${PROJECT_NAME}" \
-	--region "us-west1"
+	--region "${REGION}"
 
 ## Delete the nat config
 gcloud compute routers nats delete "${NETWORK_NAME}-nat-config" \
 	--quiet \
 	--project "${PROJECT_NAME}" \
     --router "${NETWORK_NAME}-nat-router" \
-    --router-region "us-west1"
+    --router-region "${ROUTER_REGION}"
 
 ## Delete the nat router
 gcloud compute routers delete ${NETWORK_NAME}-nat-router \
 	--quiet \
 	--project "${PROJECT_NAME}" \
-	--region "us-west1"
+	--region "${ROUTER_REGION}"
 
 ## Delete the network
 gcloud compute networks delete "${NETWORK_NAME}" \

@@ -35,13 +35,15 @@ DRIVER_NAME=$(from_versions_mk "DRIVER_NAME")
 
 NETWORK_NAME="${DRIVER_NAME}-net"
 CLUSTER_NAME="${DRIVER_NAME}-cluster"
-NODE_VERSION="1.31.1"
+NODE_VERSION="1.32"
+ROUTER_REGION="us-central1"
+REGION="us-central1-c"
 
 ## Create the Network for the cluster
 gcloud compute networks create "${NETWORK_NAME}" \
 	--quiet \
 	--project="${PROJECT_NAME}" \
-	--description=Manually\ created\ network\ for\ TMS\ DRA\ Alpha\ cluster \
+	--description="Manually created network for DRA beta test cluster" \
 	--subnet-mode=auto \
 	--mtu=1460 \
 	--bgp-routing-mode=regional
@@ -49,21 +51,22 @@ gcloud compute networks create "${NETWORK_NAME}" \
 ## Create the cluster
 gcloud container clusters create "${CLUSTER_NAME}" \
 	--quiet \
-	--enable-kubernetes-alpha \
+	--enable-kubernetes-unstable-apis="resource.k8s.io/v1beta1/deviceclasses,resource.k8s.io/v1beta1/resourceclaims,resource.k8s.io/v1beta1/resourceclaimtemplates,resource.k8s.io/v1beta1/resourceslices" \
+	--release-channel=rapid \
 	--no-enable-autorepair \
-	--no-enable-autoupgrade \
-	--region us-west1 \
+	--enable-autoupgrade \
+	--region "${REGION}" \
 	--num-nodes "1" \
 	--network "${NETWORK_NAME}" \
 	--cluster-version "${NODE_VERSION}" \
-	--node-version "${NODE_VERSION}"
+	--node-version "${NODE_VERSION}" \
 
 # Create t4 node pool
 gcloud beta container node-pools create "pool-1" \
 	--quiet \
 	--project "${PROJECT_NAME}" \
 	--cluster "${CLUSTER_NAME}" \
-	--region "us-west1" \
+	--region "${REGION}" \
 	--node-version "${NODE_VERSION}" \
 	--machine-type "n1-standard-8" \
 	--accelerator "type=nvidia-tesla-t4,count=1" \
@@ -77,11 +80,11 @@ gcloud beta container node-pools create "pool-1" \
 	--min-nodes "2" \
 	--max-nodes "6" \
 	--location-policy "ANY" \
-	--no-enable-autoupgrade \
+	--enable-autoupgrade \
 	--no-enable-autorepair \
 	--max-surge-upgrade 1 \
 	--max-unavailable-upgrade 0 \
-	--node-locations "us-west1-a" \
+	--node-locations "${REGION}" \
 	--node-labels=gke-no-default-nvidia-gpu-device-plugin=true,nvidia.com/gpu.present=true
 
 # Create v100 node pool
@@ -89,7 +92,7 @@ gcloud beta container node-pools create "pool-2" \
 	--quiet \
     --project "${PROJECT_NAME}" \
 	--cluster "${CLUSTER_NAME}" \
-	--region "us-west1" \
+	--region "${REGION}" \
 	--node-version "${NODE_VERSION}" \
 	--machine-type "n1-standard-8" \
 	--accelerator "type=nvidia-tesla-v100,count=1" \
@@ -103,11 +106,11 @@ gcloud beta container node-pools create "pool-2" \
 	--min-nodes "1" \
 	--max-nodes "6" \
 	--location-policy "ANY" \
-	--no-enable-autoupgrade \
+	--enable-autoupgrade \
 	--no-enable-autorepair \
 	--max-surge-upgrade 1 \
 	--max-unavailable-upgrade 0 \
-	--node-locations "us-west1-a" \
+	--node-locations "${REGION}" \
 	--node-labels=gke-no-default-nvidia-gpu-device-plugin=true,nvidia.com/gpu.present=true
 
 ## Allow the GPU nodes access to the internet
@@ -115,7 +118,7 @@ gcloud compute routers create ${NETWORK_NAME}-nat-router \
 	--quiet \
 	--project "${PROJECT_NAME}" \
 	--network "${NETWORK_NAME}" \
-	--region "us-west1"
+	--region "${ROUTER_REGION}" \
 
 gcloud compute routers nats create "${NETWORK_NAME}-nat-config" \
 	--quiet \
@@ -123,10 +126,10 @@ gcloud compute routers nats create "${NETWORK_NAME}-nat-config" \
     --router "${NETWORK_NAME}-nat-router" \
     --nat-all-subnet-ip-ranges \
     --auto-allocate-nat-external-ips \
-    --router-region "us-west1"
+	--router-region "${ROUTER_REGION}" \
 
 ## Start using this cluster for kubectl
-gcloud container clusters get-credentials "${CLUSTER_NAME}" --location="us-west1"
+gcloud container clusters get-credentials "${CLUSTER_NAME}" --location="${REGION}"
 
 ## Launch the nvidia-driver-installer daemonset to install the GPU drivers on any GPU nodes that come online:
 kubectl label node --overwrite -l nvidia.com/gpu.present=true cloud.google.com/gke-gpu-driver-version-
