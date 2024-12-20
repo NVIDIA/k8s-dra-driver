@@ -27,7 +27,7 @@ DRIVER_NAME=$(from_versions_mk "DRIVER_NAME")
 
 : ${IMAGE_REGISTRY:=ghcr.io/nvidia}
 : ${IMAGE_NAME:=${DRIVER_NAME}}
-: ${IMAGE_TAG:=32805fec-ubi8}
+: ${IMAGE_TAG:=6c34f5fb-ubi8}
 
 helm upgrade -i --create-namespace --namespace nvidia nvidia-dra-driver ${PROJECT_DIR}/deployments/helm/k8s-dra-driver \
   --set image.repository=${IMAGE_REGISTRY}/${IMAGE_NAME} \
