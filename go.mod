@@ -6,7 +6,7 @@ require (
 	github.com/Masterminds/semver v1.5.0
 	github.com/NVIDIA/go-nvlib v0.7.0
 	github.com/NVIDIA/go-nvml v0.12.4-0
-	github.com/NVIDIA/nvidia-container-toolkit v1.16.2
+	github.com/NVIDIA/nvidia-container-toolkit v1.17.3
 	github.com/prometheus/client_golang v1.19.1
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/pflag v1.0.5
