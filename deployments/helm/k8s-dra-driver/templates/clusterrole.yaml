@@ -13,7 +13,7 @@ rules:
   verbs: ["update"]
 - apiGroups: [""]
   resources: ["nodes"]
-  verbs: ["get"]
+  verbs: ["get", "list", "watch"]
 - apiGroups: ["resource.k8s.io"]
   resources: ["resourceslices"]
   verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
