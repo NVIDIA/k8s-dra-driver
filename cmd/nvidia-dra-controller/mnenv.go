@@ -40,12 +40,13 @@ import (
 )
 
 const (
-	resourceClaimFinalizer = "gpu.nvidia.com/finalizer.multiNodeEnvironment"
-	imexDeviceClass        = "imex.nvidia.com"
+	multiNodeEnvironmentFinalizer = "gpu.nvidia.com/finalizer.multiNodeEnvironment"
+	imexDeviceClass               = "imex.nvidia.com"
 
 	MultiNodeEnvironmentAddEvent    = "onMultiNodeEnvironmentAddEvent"
 	MultiNodeEnvironmentDeleteEvent = "onMultiNodeEnvironmentDeleteEvent"
 	ResourceClaimAddEvent           = "ResourceClaimAddEvent"
+	DeviceClassAddEvent             = "DeviceClassAddEvent"
 )
 
 type WorkItem struct {
@@ -60,25 +61,31 @@ type MultiNodeEnvironmentManager struct {
 
 	multiNodeEnvironmentLister nvlisters.MultiNodeEnvironmentLister
 	resourceClaimLister        resourcelisters.ResourceClaimLister
+	deviceClassLister          resourcelisters.DeviceClassLister
 }
 
 // StartManager starts a MultiNodeEnvironmentManager.
 func StartMultiNodeEnvironmentManager(ctx context.Context, config *Config) (*MultiNodeEnvironmentManager, error) {
 	queue := workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter())
 
-	mneInformerFactory := nvinformers.NewSharedInformerFactory(config.clientsets.Nvidia, 30*time.Second)
-	mneInformer := mneInformerFactory.Gpu().V1alpha1().MultiNodeEnvironments().Informer()
+	nvInformerFactory := nvinformers.NewSharedInformerFactory(config.clientsets.Nvidia, 30*time.Second)
+	coreInformerFactory := informers.NewSharedInformerFactory(config.clientsets.Core, 30*time.Second)
+
+	mneInformer := nvInformerFactory.Gpu().V1alpha1().MultiNodeEnvironments().Informer()
 	mneLister := nvlisters.NewMultiNodeEnvironmentLister(mneInformer.GetIndexer())
 
-	rcInformerFactory := informers.NewSharedInformerFactory(config.clientsets.Core, 30*time.Second)
-	rcInformer := rcInformerFactory.Resource().V1beta1().ResourceClaims().Informer()
+	rcInformer := coreInformerFactory.Resource().V1beta1().ResourceClaims().Informer()
 	rcLister := resourcelisters.NewResourceClaimLister(rcInformer.GetIndexer())
+
+	dcInformer := coreInformerFactory.Resource().V1beta1().DeviceClasses().Informer()
+	dcLister := resourcelisters.NewDeviceClassLister(dcInformer.GetIndexer())
 
 	m := &MultiNodeEnvironmentManager{
 		clientsets:                 config.clientsets,
 		queue:                      queue,
 		multiNodeEnvironmentLister: mneLister,
 		resourceClaimLister:        rcLister,
+		deviceClassLister:          dcLister,
 	}
 
 	mneInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
@@ -90,21 +97,25 @@ func StartMultiNodeEnvironmentManager(ctx context.Context, config *Config) (*Mul
 		AddFunc: func(obj any) { m.enqueue(obj, ResourceClaimAddEvent) },
 	})
 
+	dcInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc: func(obj any) { m.enqueue(obj, DeviceClassAddEvent) },
+	})
+
 	m.waitGroup.Add(3)
 	go func() {
 		defer m.waitGroup.Done()
-		rcInformerFactory.Start(ctx.Done())
+		nvInformerFactory.Start(ctx.Done())
 	}()
 	go func() {
 		defer m.waitGroup.Done()
-		mneInformerFactory.Start(ctx.Done())
+		coreInformerFactory.Start(ctx.Done())
 	}()
 	go func() {
 		defer m.waitGroup.Done()
 		m.run(ctx.Done())
 	}()
 
-	if !cache.WaitForCacheSync(ctx.Done(), mneInformer.HasSynced, rcInformer.HasSynced) {
+	if !cache.WaitForCacheSync(ctx.Done(), mneInformer.HasSynced, rcInformer.HasSynced, dcInformer.HasSynced) {
 		klog.Warning("Cache sync failed; retrying in 5 seconds")
 		time.Sleep(5 * time.Second)
 		if !cache.WaitForCacheSync(ctx.Done(), mneInformer.HasSynced, rcInformer.HasSynced) {
@@ -183,6 +194,8 @@ func (m *MultiNodeEnvironmentManager) reconcile(workItem WorkItem) error {
 		return m.onMultiNodeEnvironmentDelete(workItem.Object)
 	case ResourceClaimAddEvent:
 		return m.onResourceClaimAdd(workItem.Object)
+	case DeviceClassAddEvent:
+		return m.onDeviceClassAdd(workItem.Object)
 	}
 	return fmt.Errorf("unknown event type: %s", workItem.EventType)
 }
@@ -223,7 +236,7 @@ func (m *MultiNodeEnvironmentManager) onMultiNodeEnvironmentAdd(obj any) error {
 			Name:            mne.Spec.ResourceClaimName,
 			Namespace:       mne.Namespace,
 			OwnerReferences: []metav1.OwnerReference{ownerReference},
-			Finalizers:      []string{resourceClaimFinalizer},
+			Finalizers:      []string{multiNodeEnvironmentFinalizer},
 		},
 		Spec: resourceapi.ResourceClaimSpec{
 			Devices: resourceapi.DeviceClaim{
@@ -288,6 +301,37 @@ func (m *MultiNodeEnvironmentManager) onResourceClaimAdd(obj any) error {
 	return nil
 }
 
+func (m *MultiNodeEnvironmentManager) onDeviceClassAdd(obj interface{}) error {
+	dc, ok := obj.(*resourceapi.DeviceClass)
+	if !ok {
+		return fmt.Errorf("failed to cast to DeviceClass")
+	}
+
+	klog.Infof("Processing added DeviceClass: %s/%s", dc.Namespace, dc.Name)
+
+	if len(dc.OwnerReferences) != 1 {
+		return nil
+	}
+
+	if dc.OwnerReferences[0].Kind != nvapi.MultiNodeEnvironmentKind {
+		return nil
+	}
+
+	_, err := m.multiNodeEnvironmentLister.MultiNodeEnvironments(dc.Namespace).Get(dc.OwnerReferences[0].Name)
+	if err == nil {
+		return nil
+	}
+	if !errors.IsNotFound(err) {
+		return fmt.Errorf("error retrieving DeviceClass's OwnerReference '%s': %w", dc.OwnerReferences[0].Name, err)
+	}
+
+	if err := m.removeDeviceClassFinalizer(dc.Name); err != nil {
+		return fmt.Errorf("error removing finalizer on DeviceClass '%s': %w", dc.Name, err)
+	}
+
+	return nil
+}
+
 func (m *MultiNodeEnvironmentManager) removeResourceClaimFinalizer(namespace, name string) error {
 	rc, err := m.resourceClaimLister.ResourceClaims(namespace).Get(name)
 	if err != nil && errors.IsNotFound(err) {
@@ -301,7 +345,7 @@ func (m *MultiNodeEnvironmentManager) removeResourceClaimFinalizer(namespace, na
 
 	newRC.Finalizers = []string{}
 	for _, f := range rc.Finalizers {
-		if f != resourceClaimFinalizer {
+		if f != multiNodeEnvironmentFinalizer {
 			newRC.Finalizers = append(newRC.Finalizers, f)
 		}
 	}
@@ -309,6 +353,32 @@ func (m *MultiNodeEnvironmentManager) removeResourceClaimFinalizer(namespace, na
 	_, err = m.clientsets.Core.ResourceV1beta1().ResourceClaims(namespace).Update(context.Background(), newRC, metav1.UpdateOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to update ResourceClaim: %w", err)
+	}
+
+	return nil
+}
+
+func (m *MultiNodeEnvironmentManager) removeDeviceClassFinalizer(name string) error {
+	dc, err := m.deviceClassLister.Get(name)
+	if err != nil && errors.IsNotFound(err) {
+		return fmt.Errorf("DeviceClass not found")
+	}
+	if err != nil {
+		return fmt.Errorf("error retrieving DeviceClass: %w", err)
+	}
+
+	newDC := dc.DeepCopy()
+
+	newDC.Finalizers = []string{}
+	for _, f := range dc.Finalizers {
+		if f != multiNodeEnvironmentFinalizer {
+			newDC.Finalizers = append(newDC.Finalizers, f)
+		}
+	}
+
+	_, err = m.clientsets.Core.ResourceV1beta1().DeviceClasses().Update(context.Background(), newDC, metav1.UpdateOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to update DeviceClass: %w", err)
 	}
 
 	return nil
