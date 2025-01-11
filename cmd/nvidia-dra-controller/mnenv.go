@@ -25,10 +25,11 @@ import (
 	resourceapi "k8s.io/api/resource/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/informers"
 	resourcelisters "k8s.io/client-go/listers/resource/v1beta1"
 	"k8s.io/client-go/tools/cache"
-	"k8s.io/client-go/util/retry"
+	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 
@@ -41,11 +42,21 @@ import (
 const (
 	resourceClaimFinalizer = "gpu.nvidia.com/finalizer.multiNodeEnvironment"
 	imexDeviceClass        = "imex.nvidia.com"
+
+	MultiNodeEnvironmentAddEvent    = "onMultiNodeEnvironmentAddEvent"
+	MultiNodeEnvironmentDeleteEvent = "onMultiNodeEnvironmentDeleteEvent"
+	ResourceClaimAddEvent           = "ResourceClaimAddEvent"
 )
+
+type WorkItem struct {
+	Object    any
+	EventType string
+}
 
 type MultiNodeEnvironmentManager struct {
 	clientsets flags.ClientSets
 	waitGroup  sync.WaitGroup
+	queue      workqueue.RateLimitingInterface
 
 	multiNodeEnvironmentLister nvlisters.MultiNodeEnvironmentLister
 	resourceClaimLister        resourcelisters.ResourceClaimLister
@@ -53,6 +64,8 @@ type MultiNodeEnvironmentManager struct {
 
 // StartManager starts a MultiNodeEnvironmentManager.
 func StartMultiNodeEnvironmentManager(ctx context.Context, config *Config) (*MultiNodeEnvironmentManager, error) {
+	queue := workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter())
+
 	mneInformerFactory := nvinformers.NewSharedInformerFactory(config.clientsets.Nvidia, 30*time.Second)
 	mneInformer := mneInformerFactory.Gpu().V1alpha1().MultiNodeEnvironments().Informer()
 	mneLister := nvlisters.NewMultiNodeEnvironmentLister(mneInformer.GetIndexer())
@@ -63,20 +76,21 @@ func StartMultiNodeEnvironmentManager(ctx context.Context, config *Config) (*Mul
 
 	m := &MultiNodeEnvironmentManager{
 		clientsets:                 config.clientsets,
+		queue:                      queue,
 		multiNodeEnvironmentLister: mneLister,
 		resourceClaimLister:        rcLister,
 	}
 
 	mneInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc:    m.onMultiNodeEnvironmentAdd,
-		DeleteFunc: m.onMultiNodeEnvironmentDelete,
+		AddFunc:    func(obj any) { m.enqueue(obj, MultiNodeEnvironmentAddEvent) },
+		DeleteFunc: func(obj any) { m.enqueue(obj, MultiNodeEnvironmentDeleteEvent) },
 	})
 
 	rcInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc: m.onResourceClaimAdd,
+		AddFunc: func(obj any) { m.enqueue(obj, ResourceClaimAddEvent) },
 	})
 
-	m.waitGroup.Add(2)
+	m.waitGroup.Add(3)
 	go func() {
 		defer m.waitGroup.Done()
 		rcInformerFactory.Start(ctx.Done())
@@ -84,6 +98,10 @@ func StartMultiNodeEnvironmentManager(ctx context.Context, config *Config) (*Mul
 	go func() {
 		defer m.waitGroup.Done()
 		mneInformerFactory.Start(ctx.Done())
+	}()
+	go func() {
+		defer m.waitGroup.Done()
+		m.run(ctx.Done())
 	}()
 
 	if !cache.WaitForCacheSync(ctx.Done(), mneInformer.HasSynced, rcInformer.HasSynced) {
@@ -106,14 +124,76 @@ func (m *MultiNodeEnvironmentManager) Stop() error {
 	return nil
 }
 
-func (m *MultiNodeEnvironmentManager) onMultiNodeEnvironmentAdd(obj interface{}) {
-	mne, ok := obj.(*nvapi.MultiNodeEnvironment)
+func (m *MultiNodeEnvironmentManager) run(done <-chan struct{}) {
+	go func() {
+		<-done
+		m.queue.ShutDown()
+	}()
+	for {
+		select {
+		case <-done:
+			return
+		default:
+			m.processNextWorkItem()
+		}
+	}
+}
+
+func (m *MultiNodeEnvironmentManager) enqueue(obj any, eventType string) {
+	runtimeObj, ok := obj.(runtime.Object)
 	if !ok {
-		klog.Warning("Failed to cast to MultiNodeEnvironment")
+		klog.Warningf("unexpected object type %T", obj)
+	}
+
+	workItem := WorkItem{
+		Object:    runtimeObj.DeepCopyObject(),
+		EventType: eventType,
+	}
+
+	m.queue.AddRateLimited(workItem)
+}
+
+func (m *MultiNodeEnvironmentManager) processNextWorkItem() {
+	item, shutdown := m.queue.Get()
+	if shutdown {
+		return
+	}
+	defer m.queue.Done(item)
+
+	workItem, ok := item.(WorkItem)
+	if !ok {
+		klog.Errorf("Unexpected item in queue: %v", item)
 		return
 	}
 
-	klog.Infof("MultiNodeEnvironment added: %s", mne.Name)
+	err := m.reconcile(workItem)
+	if err != nil {
+		klog.Errorf("Failed to reconcile work item %v: %v", workItem.Object, err)
+		m.queue.AddRateLimited(workItem)
+	} else {
+		m.queue.Forget(workItem)
+	}
+}
+
+func (m *MultiNodeEnvironmentManager) reconcile(workItem WorkItem) error {
+	switch workItem.EventType {
+	case MultiNodeEnvironmentAddEvent:
+		return m.onMultiNodeEnvironmentAdd(workItem.Object)
+	case MultiNodeEnvironmentDeleteEvent:
+		return m.onMultiNodeEnvironmentDelete(workItem.Object)
+	case ResourceClaimAddEvent:
+		return m.onResourceClaimAdd(workItem.Object)
+	}
+	return fmt.Errorf("unknown event type: %s", workItem.EventType)
+}
+
+func (m *MultiNodeEnvironmentManager) onMultiNodeEnvironmentAdd(obj any) error {
+	mne, ok := obj.(*nvapi.MultiNodeEnvironment)
+	if !ok {
+		return fmt.Errorf("failed to cast to MultiNodeEnvironment")
+	}
+
+	klog.Infof("Processing added MultiNodeEnvironment: %s/%s", mne.Namespace, mne.Name)
 
 	gvk := nvapi.SchemeGroupVersion.WithKind("MultiNodeEnvironment")
 	mne.APIVersion = gvk.GroupVersion().String()
@@ -130,13 +210,12 @@ func (m *MultiNodeEnvironmentManager) onMultiNodeEnvironmentAdd(obj interface{})
 	rc, err := m.resourceClaimLister.ResourceClaims(mne.Namespace).Get(mne.Spec.ResourceClaimName)
 	if err == nil {
 		if len(rc.OwnerReferences) != 1 && rc.OwnerReferences[0] != ownerReference {
-			klog.Warningf("ResourceClaim exists without expected OwnerReference: %s", rc.Name)
+			return fmt.Errorf("ResourceClaim exists without expected OwnerReference: %s", rc.Name)
 		}
-		return
+		return nil
 	}
 	if !errors.IsNotFound(err) {
-		klog.Warningf("Error retrieving ResourceClaim '%s': %v", err)
-		return
+		return fmt.Errorf("error retrieving ResourceClaim '%s': %w", err)
 	}
 
 	resourceClaim := &resourceapi.ResourceClaim{
@@ -155,83 +234,81 @@ func (m *MultiNodeEnvironmentManager) onMultiNodeEnvironmentAdd(obj interface{})
 		},
 	}
 
-	_, err = m.clientsets.Core.ResourceV1beta1().ResourceClaims(mne.Namespace).Create(context.Background(), resourceClaim, metav1.CreateOptions{})
+	_, err = m.clientsets.Core.ResourceV1beta1().ResourceClaims(resourceClaim.Namespace).Create(context.Background(), resourceClaim, metav1.CreateOptions{})
 	if err != nil {
-		klog.Errorf("Failed to create ResourceClaim '%s': %v", mne.Spec.ResourceClaimName, err)
+		return fmt.Errorf("failed to create ResourceClaim '%s': %w", resourceClaim.Name, err)
 	}
+
+	return nil
 }
 
-func (m *MultiNodeEnvironmentManager) onMultiNodeEnvironmentDelete(obj interface{}) {
+func (m *MultiNodeEnvironmentManager) onMultiNodeEnvironmentDelete(obj any) error {
 	mne, ok := obj.(*nvapi.MultiNodeEnvironment)
 	if !ok {
-		klog.Warning("Failed to cast to MultiNodeEnvironment")
-		return
+		return fmt.Errorf("failed to cast to MultiNodeEnvironment")
 	}
 
-	klog.Infof("MultiNodeEnvironment deleted: %s", mne.Name)
+	klog.Infof("Processing deleted MultiNodeEnvironment: %s/%s", mne.Namespace, mne.Name)
 
 	if err := m.removeResourceClaimFinalizer(mne.Namespace, mne.Spec.ResourceClaimName); err != nil {
-		klog.Infof("Error removing finalizer on Resource Claim '%s'", mne.Spec.ResourceClaimName, err)
+		return fmt.Errorf("error removing finalizer on ResourceClaim '%s': %w", mne.Spec.ResourceClaimName, err)
 	}
+
+	return nil
 }
 
-func (m *MultiNodeEnvironmentManager) onResourceClaimAdd(obj interface{}) {
+func (m *MultiNodeEnvironmentManager) onResourceClaimAdd(obj any) error {
 	rc, ok := obj.(*resourceapi.ResourceClaim)
 	if !ok {
-		klog.Warning("Failed to cast to ResourceClaim")
-		return
+		return fmt.Errorf("failed to cast to ResourceClaim")
 	}
 
+	klog.Infof("Processing added ResourceClaim: %s/%s", rc.Namespace, rc.Name)
+
 	if len(rc.OwnerReferences) != 1 {
-		return
+		return nil
 	}
 
 	if rc.OwnerReferences[0].Kind != nvapi.MultiNodeEnvironmentKind {
-		return
+		return nil
 	}
 
 	_, err := m.multiNodeEnvironmentLister.MultiNodeEnvironments(rc.Namespace).Get(rc.OwnerReferences[0].Name)
 	if err == nil {
-		return
+		return nil
 	}
 	if !errors.IsNotFound(err) {
-		klog.Warningf("Error retrieving ResourceClaim's OwnerReference '%s': %v", rc.OwnerReferences[0].Name, err)
-		return
+		return fmt.Errorf("error retrieving ResourceClaim's OwnerReference '%s': %w", rc.OwnerReferences[0].Name, err)
 	}
 
 	if err := m.removeResourceClaimFinalizer(rc.Namespace, rc.Name); err != nil {
-		klog.Warningf("Error removing finalizer on ResourceClaim '%s': %v", rc.Name, err)
+		return fmt.Errorf("error removing finalizer on ResourceClaim '%s': %w", rc.Name, err)
 	}
+
+	return nil
 }
 
 func (m *MultiNodeEnvironmentManager) removeResourceClaimFinalizer(namespace, name string) error {
-	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		rc, err := m.resourceClaimLister.ResourceClaims(namespace).Get(name)
-		if err != nil && errors.IsNotFound(err) {
-			return fmt.Errorf("ResourceClaim not found")
-		}
-		if err != nil {
-			return fmt.Errorf("error retrieving ResourceClaim", err)
-		}
-
-		newRC := rc.DeepCopy()
-
-		newRC.Finalizers = []string{}
-		for _, f := range rc.Finalizers {
-			if f != resourceClaimFinalizer {
-				newRC.Finalizers = append(newRC.Finalizers, f)
-			}
-		}
-
-		_, err = m.clientsets.Core.ResourceV1beta1().ResourceClaims(namespace).Update(context.Background(), newRC, metav1.UpdateOptions{})
-		if err != nil {
-			return err
-		}
-
-		return nil
-	})
+	rc, err := m.resourceClaimLister.ResourceClaims(namespace).Get(name)
+	if err != nil && errors.IsNotFound(err) {
+		return fmt.Errorf("ResourceClaim not found")
+	}
 	if err != nil {
-		return fmt.Errorf("failed to update ResourceClaim: %v", err)
+		return fmt.Errorf("error retrieving ResourceClaim: %w", err)
+	}
+
+	newRC := rc.DeepCopy()
+
+	newRC.Finalizers = []string{}
+	for _, f := range rc.Finalizers {
+		if f != resourceClaimFinalizer {
+			newRC.Finalizers = append(newRC.Finalizers, f)
+		}
+	}
+
+	_, err = m.clientsets.Core.ResourceV1beta1().ResourceClaims(namespace).Update(context.Background(), newRC, metav1.UpdateOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to update ResourceClaim: %w", err)
 	}
 
 	return nil
