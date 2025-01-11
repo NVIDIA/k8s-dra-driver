@@ -59,7 +59,7 @@ type Flags struct {
 
 type Config struct {
 	flags      *Flags
-	clientSets flags.ClientSets
+	clientsets flags.ClientSets
 	mux        *http.ServeMux
 }
 
@@ -138,7 +138,7 @@ func newApp() *cli.App {
 			mux := http.NewServeMux()
 			flags.deviceClasses = sets.New[string](c.StringSlice("device-classes")...)
 
-			clientSets, err := flags.kubeClientConfig.NewClientSets()
+			clientsets, err := flags.kubeClientConfig.NewClientSets()
 			if err != nil {
 				return fmt.Errorf("create client: %w", err)
 			}
@@ -146,7 +146,7 @@ func newApp() *cli.App {
 			config := &Config{
 				mux:        mux,
 				flags:      flags,
-				clientSets: clientSets,
+				clientsets: clientsets,
 			}
 
 			if flags.httpEndpoint != "" {
@@ -159,20 +159,18 @@ func newApp() *cli.App {
 			sigs := make(chan os.Signal, 1)
 			signal.Notify(sigs, syscall.SIGTERM, syscall.SIGINT)
 
-			var imexManager *ImexManager
+			var controller *Controller
 			ctx, cancel := context.WithCancel(c.Context)
 			defer func() {
 				cancel()
-				if err := imexManager.Stop(); err != nil {
-					klog.Errorf("Error stopping IMEX manager: %v", err)
+				if err := controller.Stop(); err != nil {
+					klog.Errorf("Error stopping controller: %v", err)
 				}
 			}()
 
-			if flags.deviceClasses.Has(ImexChannelType) {
-				imexManager, err = StartIMEXManager(ctx, config)
-				if err != nil {
-					return fmt.Errorf("start IMEX manager: %w", err)
-				}
+			controller, err = StartController(ctx, config)
+			if err != nil {
+				return fmt.Errorf("start controller: %w", err)
 			}
 
 			<-sigs

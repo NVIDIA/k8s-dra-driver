@@ -27,9 +27,10 @@ const (
 	GroupName = "gpu.nvidia.com"
 	Version   = "v1alpha1"
 
-	GpuConfigKind         = "GpuConfig"
-	MigDeviceConfigKind   = "MigDeviceConfig"
-	ImexChannelConfigKind = "ImexChannelConfig"
+	GpuConfigKind            = "GpuConfig"
+	MigDeviceConfigKind      = "MigDeviceConfig"
+	ImexChannelConfigKind    = "ImexChannelConfig"
+	MultiNodeEnvironmentKind = "MultiNodeEnvironment"
 )
 
 // Interface defines the set of common APIs for all configs
