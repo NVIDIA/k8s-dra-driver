@@ -1,4 +1,4 @@
-# Copyright (c) 2019-2022, NVIDIA CORPORATION.  All rights reserved.
+# Copyright (c) 2019-2025, NVIDIA CORPORATION.  All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@ ARG GOLANG_VERSION=1.23.1
 ARG CUDA_IMAGE=cuda
 ARG CUDA_VERSION=11.8.0
 ARG BASE_DIST=ubuntu20.04
-FROM --platform=${BUILDOS}/amd64 nvidia/cuda:${CUDA_VERSION}-base-${BASE_DIST} as build
+FROM --platform=${BUILDOS}/amd64 nvcr.io/nvidia/cuda:${CUDA_VERSION}-base-${BASE_DIST} as build
 
 RUN apt-get update && \
     apt-get install -y wget make git gcc-aarch64-linux-gnu gcc \
@@ -44,7 +44,7 @@ RUN if [ "$TARGETARCH" = "amd64" ]; then \
     fi && \
     make CC=${cc} GOARCH=${TARGETARCH} PREFIX=/artifacts cmds
 
-FROM nvidia/${CUDA_IMAGE}:${CUDA_VERSION}-base-${BASE_DIST}
+FROM nvcr.io/nvidia/${CUDA_IMAGE}:${CUDA_VERSION}-base-${BASE_DIST}
 
 ENV NVIDIA_DISABLE_REQUIRE="true"
 ENV NVIDIA_VISIBLE_DEVICES=all
