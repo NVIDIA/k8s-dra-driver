@@ -13,6 +13,8 @@
 # limitations under the License.
 
 DRIVER_NAME := k8s-dra-driver
+GPU_DRIVER_NAME := k8s-dra-gpu-driver
+IMEX_DRIVER_NAME := k8s-dra-imex-driver
 MODULE := github.com/NVIDIA/$(DRIVER_NAME)
 
 REGISTRY ?= nvcr.io/nvidia/cloud-native
@@ -27,7 +29,9 @@ CUDA_VERSION ?= 12.3.2
 
 # These variables are only needed when building a local image
 CLIENT_GEN_VERSION ?= v0.29.2
-CONTROLLER_GEN_VERSION ?= v0.14.0
+LISTER_GEN_VERSION ?= v0.29.2
+INFORMER_GEN_VERSION ?= v0.29.2
+CONTROLLER_GEN_VERSION ?= v0.17.1
 GOLANGCI_LINT_VERSION ?= v1.52.0
 MOQ_VERSION ?= v0.4.0
 

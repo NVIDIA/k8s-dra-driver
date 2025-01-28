@@ -5,12 +5,12 @@ github.com/Masterminds/semver
 ## explicit; go 1.20
 github.com/NVIDIA/go-nvlib/pkg/nvlib/device
 github.com/NVIDIA/go-nvlib/pkg/nvlib/info
-# github.com/NVIDIA/go-nvml v0.12.4-0
+# github.com/NVIDIA/go-nvml v0.12.4-1
 ## explicit; go 1.20
 github.com/NVIDIA/go-nvml/pkg/dl
 github.com/NVIDIA/go-nvml/pkg/nvml
-# github.com/NVIDIA/nvidia-container-toolkit v1.16.2
-## explicit; go 1.20
+# github.com/NVIDIA/nvidia-container-toolkit v1.16.2 => github.com/elezar/nvidia-container-toolkit v0.0.0-20250124134631-c91a1b1dc8a1
+## explicit; go 1.22.0
 github.com/NVIDIA/nvidia-container-toolkit/internal/config/image
 github.com/NVIDIA/nvidia-container-toolkit/internal/discover
 github.com/NVIDIA/nvidia-container-toolkit/internal/dxcore
@@ -24,6 +24,7 @@ github.com/NVIDIA/nvidia-container-toolkit/internal/lookup/cuda
 github.com/NVIDIA/nvidia-container-toolkit/internal/lookup/root
 github.com/NVIDIA/nvidia-container-toolkit/internal/lookup/symlinks
 github.com/NVIDIA/nvidia-container-toolkit/internal/nvcaps
+github.com/NVIDIA/nvidia-container-toolkit/internal/nvsandboxutils
 github.com/NVIDIA/nvidia-container-toolkit/internal/oci
 github.com/NVIDIA/nvidia-container-toolkit/internal/platform-support/dgpu
 github.com/NVIDIA/nvidia-container-toolkit/internal/platform-support/tegra
@@ -182,9 +183,10 @@ github.com/spf13/cobra
 # github.com/spf13/pflag v1.0.5
 ## explicit; go 1.12
 github.com/spf13/pflag
-# github.com/stretchr/testify v1.9.0
+# github.com/stretchr/testify v1.10.0
 ## explicit; go 1.17
 github.com/stretchr/testify/assert
+github.com/stretchr/testify/assert/yaml
 github.com/stretchr/testify/require
 # github.com/syndtr/gocapability v0.0.0-20200815063812-42c35b437635
 ## explicit
@@ -222,7 +224,7 @@ go.uber.org/zap/internal/exit
 go.uber.org/zap/internal/pool
 go.uber.org/zap/internal/stacktrace
 go.uber.org/zap/zapcore
-# golang.org/x/mod v0.21.0
+# golang.org/x/mod v0.22.0
 ## explicit; go 1.22.0
 golang.org/x/mod/semver
 # golang.org/x/net v0.30.0
@@ -237,7 +239,7 @@ golang.org/x/net/trace
 ## explicit; go 1.18
 golang.org/x/oauth2
 golang.org/x/oauth2/internal
-# golang.org/x/sys v0.26.0
+# golang.org/x/sys v0.29.0
 ## explicit; go 1.18
 golang.org/x/sys/plan9
 golang.org/x/sys/unix
@@ -525,6 +527,7 @@ k8s.io/client-go/applyconfigurations/storage/v1alpha1
 k8s.io/client-go/applyconfigurations/storage/v1beta1
 k8s.io/client-go/applyconfigurations/storagemigration/v1alpha1
 k8s.io/client-go/discovery
+k8s.io/client-go/discovery/fake
 k8s.io/client-go/features
 k8s.io/client-go/gentype
 k8s.io/client-go/informers
@@ -831,3 +834,4 @@ tags.cncf.io/container-device-interface/pkg/parser
 # tags.cncf.io/container-device-interface/specs-go v0.8.0
 ## explicit; go 1.19
 tags.cncf.io/container-device-interface/specs-go
+# github.com/NVIDIA/nvidia-container-toolkit => github.com/elezar/nvidia-container-toolkit v0.0.0-20250124134631-c91a1b1dc8a1

@@ -1,0 +1,68 @@
+/*
+ * Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package main
+
+import (
+	resourceapi "k8s.io/api/resource/v1beta1"
+)
+
+type AllocatableDevices map[string]*AllocatableDevice
+
+type AllocatableDevice struct {
+	ImexChannel *ImexChannelInfo
+	ImexDaemon  *ImexDaemonInfo
+}
+
+func (d AllocatableDevice) Type() string {
+	if d.ImexChannel != nil {
+		return ImexChannelType
+	}
+	if d.ImexDaemon != nil {
+		return ImexDaemonType
+	}
+	return UnknownDeviceType
+}
+
+func (d *AllocatableDevice) CanonicalName() string {
+	switch d.Type() {
+	case ImexChannelType:
+		return d.ImexChannel.CanonicalName()
+	case ImexDaemonType:
+		return d.ImexDaemon.CanonicalName()
+	}
+	panic("unexpected type for AllocatableDevice")
+}
+
+func (d *AllocatableDevice) CanonicalIndex() string {
+	switch d.Type() {
+	case ImexChannelType:
+		return d.ImexChannel.CanonicalIndex()
+	case ImexDaemonType:
+		return d.ImexDaemon.CanonicalIndex()
+	}
+	panic("unexpected type for AllocatableDevice")
+}
+
+func (d *AllocatableDevice) GetDevice() resourceapi.Device {
+	switch d.Type() {
+	case ImexChannelType:
+		return d.ImexChannel.GetDevice()
+	case ImexDaemonType:
+		return d.ImexDaemon.GetDevice()
+	}
+	panic("unexpected type for AllocatableDevice")
+}

@@ -97,11 +97,15 @@ func NewDriverLibraryDiscoverer(logger logger.Interface, driver *root.Driver, nv
 		libraryPaths,
 	)
 
-	hooks, _ := discover.NewLDCacheUpdateHook(logger, libraries, nvidiaCDIHookPath, ldconfigPath)
+	updateLDCache, _ := discover.NewLDCacheUpdateHook(logger, libraries, nvidiaCDIHookPath, ldconfigPath)
 
 	d := discover.Merge(
-		libraries,
-		hooks,
+		discover.WithDriverDotSoSymlinks(
+			libraries,
+			version,
+			nvidiaCDIHookPath,
+		),
+		updateLDCache,
 	)
 
 	return d, nil
@@ -180,6 +184,8 @@ func NewDriverBinariesDiscoverer(logger logger.Interface, driverRoot string) dis
 			"nvidia-persistenced",     /* Persistence mode utility */
 			"nvidia-cuda-mps-control", /* Multi process service CLI */
 			"nvidia-cuda-mps-server",  /* Multi process service server */
+			"nvidia-imex",             /* NVIDIA IMEX Daemon */
+			"nvidia-imex-ctl",         /* NVIDIA IMEX control */
 		},
 	)
 }
@@ -200,7 +206,10 @@ func getVersionLibs(logger logger.Interface, driver *root.Driver, version string
 
 	libraries := lookup.NewFileLocator(
 		lookup.WithLogger(logger),
-		lookup.WithSearchPaths(libRoot),
+		lookup.WithSearchPaths(
+			libRoot,
+			filepath.Join(libRoot, "vdpau"),
+		),
 		lookup.WithOptional(true),
 	)
 
