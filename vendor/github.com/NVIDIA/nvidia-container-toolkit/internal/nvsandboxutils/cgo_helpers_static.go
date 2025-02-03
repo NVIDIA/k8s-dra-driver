@@ -1,5 +1,5 @@
-/*
-# Copyright (c) 2021, NVIDIA CORPORATION.  All rights reserved.
+/**
+# Copyright 2024 NVIDIA CORPORATION
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,27 +12,27 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-*/
+**/
 
-package discover
+package nvsandboxutils
 
-// None is a null discoverer that returns an empty list of devices and
-// mounts.
-type None struct{}
+var cgoAllocsUnknown = new(struct{})
 
-var _ Discover = (*None)(nil)
-
-// Devices returns an empty list of devices
-func (e None) Devices() ([]Device, error) {
-	return nil, nil
+func clen(n []byte) int {
+	for i := 0; i < len(n); i++ {
+		if n[i] == 0 {
+			return i
+		}
+	}
+	return len(n)
 }
 
-// Mounts returns an empty list of mounts
-func (e None) Mounts() ([]Mount, error) {
-	return nil, nil
-}
-
-// Hooks returns an empty list of hooks
-func (e None) Hooks() ([]Hook, error) {
-	return nil, nil
+// Creates an int8 array of fixed input length to store the Go string.
+// TODO: Add error check if input string has a length greater than INPUT_LENGTH
+func convertStringToFixedArray(str string) [INPUT_LENGTH]int8 {
+	var output [INPUT_LENGTH]int8
+	for i, s := range str {
+		output[i] = int8(s)
+	}
+	return output
 }
