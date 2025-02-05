@@ -16,24 +16,15 @@
 name: Image
 
 on:
-  pull_request:
-    types:
-      - opened
-      - synchronize
-    branches:
-      - main
-      - release-*
   push:
     branches:
+      - "pull-request/[0-9]+"
       - main
       - release-*
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        dist: [ubuntu20.04, ubi8]
+    runs-on: linux-amd64-cpu4
     steps:
       - uses: actions/checkout@v4
         name: Check out code
@@ -42,9 +33,6 @@ jobs:
         run: |
           echo "COMMIT_SHORT_SHA=${GITHUB_SHA:0:8}" >> $GITHUB_ENV
           echo "LOWERCASE_REPO_OWNER=$(echo "${GITHUB_REPOSITORY_OWNER}" | awk '{print tolower($0)}')" >> $GITHUB_ENV
-          REPO_FULL_NAME="${{ github.event.pull_request.head.repo.full_name }}"
-          echo "${REPO_FULL_NAME}"
-          echo "LABEL_IMAGE_SOURCE=https://github.com/${REPO_FULL_NAME}" >> $GITHUB_ENV
 
           GENERATE_ARTIFACTS="false"
           if [[ "${{ github.actor }}" == "dependabot[bot]" ]]; then
@@ -72,4 +60,4 @@ jobs:
           VERSION: ${COMMIT_SHORT_SHA}
         run: |
           echo "${VERSION}"
-          make -f deployments/container/Makefile build-${{ matrix.dist }}
+          make -f deployments/container/Makefile build

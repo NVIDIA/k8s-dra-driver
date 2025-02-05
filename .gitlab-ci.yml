@@ -72,12 +72,7 @@ unit-tests:
   needs:
     - trigger-pipeline
 
-image-ubi8:
+image-ubi9:
   extends:
     - .image-build
-    - .dist-ubi8
-
-image-ubuntu20.04:
-  extends:
-    - .image-build
-    - .dist-ubuntu20.04
+    - .dist-ubi9

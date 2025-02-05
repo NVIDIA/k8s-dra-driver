@@ -38,8 +38,8 @@ OUT_IMAGE_TAG = $(OUT_IMAGE_VERSION)-$(DIST)
 OUT_IMAGE = $(OUT_IMAGE_NAME):$(OUT_IMAGE_TAG)
 
 ##### Public rules #####
-DEFAULT_PUSH_TARGET := ubuntu20.04
-DISTRIBUTIONS = $(DEFAULT_PUSH_TARGET) ubi8
+DEFAULT_PUSH_TARGET := ubi9
+DISTRIBUTIONS = $(DEFAULT_PUSH_TARGET)
 
 IMAGE_TARGETS := $(patsubst %,image-%,$(DISTRIBUTIONS))
 BUILD_TARGETS := $(patsubst %,build-%,$(DISTRIBUTIONS))
@@ -69,27 +69,21 @@ push-%: DIST = $(*)
 push-short: DIST = $(DEFAULT_PUSH_TARGET)
 
 build-%: DIST = $(*)
-build-%: DOCKERFILE = $(CURDIR)/deployments/container/Dockerfile.$(DOCKERFILE_SUFFIX)
+build-%: DOCKERFILE = $(CURDIR)/deployments/container/Dockerfile
 
 # Use a generic build target to build the relevant images
 $(IMAGE_TARGETS): image-%:
 	DOCKER_BUILDKIT=1 \
 		$(DOCKER) $(BUILDX) build --pull \
+		--provenance=false --sbom=false \
 		$(DOCKER_BUILD_OPTIONS) \
 		$(DOCKER_BUILD_PLATFORM_OPTIONS) \
 		--tag $(IMAGE) \
-		--build-arg BASE_DIST="$(DIST)" \
-		--build-arg CUDA_VERSION="$(CUDA_VERSION)" \
 		--build-arg GOLANG_VERSION="$(GOLANG_VERSION)" \
 		--build-arg VERSION="$(VERSION)" \
 		--build-arg GIT_COMMIT="$(GIT_COMMIT)" \
-		$(if $(LABEL_IMAGE_SOURCE),--label "org.opencontainers.image.source=$(LABEL_IMAGE_SOURCE)",) \
 		-f $(DOCKERFILE) \
 		$(CURDIR)
-
-build-ubuntu%: DOCKERFILE_SUFFIX := ubuntu
-
-build-ubi8: DOCKERFILE_SUFFIX := ubi8
 
 # Handle the default build target.
 .PHONY: build
